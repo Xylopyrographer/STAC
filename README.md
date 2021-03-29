@@ -1,4 +1,3 @@
----
 # STAC
 ## (Smart Tally Atom Client)
 **A Roland Smart Tally Client**
