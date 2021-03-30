@@ -34,7 +34,11 @@ where the X's are a set of characters unique to every ATOM unit.
 * Password is:  
     - **1234567890**
 
-To use this sketch, copy the *STAC* folder to your Arduino sketch folder.
+To use this sketch:
+* download the zip file from the **Code** tab
+* unzip the STAC-main.zip file
+* rename the unzipped folder from  *STAC-main* to just *STAC*
+* move the *STAC* folder to your Arduino sketch folder.
 
 Use of this sketch requires a modified set of libraries. See the *library_README.md* file in the *library* folder.
 
