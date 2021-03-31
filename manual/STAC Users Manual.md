@@ -134,7 +134,7 @@ Taping the "Reset" button on the browser form will clear all information entered
 
 At the bottom of the form, the version number of the STAC software is shown as a bit of trivia.
 
-**Some advise:** If you are configuring multiple STACs in one go, it is quite important to close the Confirmation browser window each time before moving onto the next one. I'd recommend using a desktop computer and browser. Some browsers, notably the mobile variety, get hung up when connecting to the IP address of the STAC (as each one is the same) even though the STAC and its WiFi SSID are unique.
+**Some advise:** If you are configuring multiple STACs in one go, it is quite important to close the Confirmation browser window each time before moving onto the next one. Using a desktop computer and browser is recommend. Some browsers, notably the mobile variety, get hung up when connecting to the IP address of the STAC (as each one is the same) even though the STAC and its WiFi SSID are unique.
 <br><br>
 ## <a name="UpandRunning"></a>Up and Running
 
@@ -287,6 +287,19 @@ To do a factory reset, you'll follow the same procedure as [Reconfiguring the ST
 You can remove power if you'd like or, to put the STAC back into service, follow the directions under [First Time Configuration](#FirstTimeConfiguration) above; connecting to the STAC by WiFi and using a browser to bring up the Configuration form and so on.
 
 Once you've entered factory reset state, there is no turning back. Not a super big deal, just do the configuration thing once more and you're good to go.
+
+## Back to the Beginning
+
+One more thing...
+
+The sections above show how the Reset button is used with the Display button to reconfigure or factory reset the STAC. 
+
+The other trick is, when used by itself, the Reset button will return the STAC to it's startup sequence. Why would you want to do this? Most common reason is let's say you just confirmed the tally channel or the operating mode but then realized you actually meant to change one or the other. Yoi!
+
+In this case, click the reset button. The STAC display will go blank, then the power light will come on, followed by display of the active tally channel. Now you can press and hold to change that or click through to the operating mode and put that thing where you want it. The brightness level can be changed while the STAC is in its operating state so no need to restart the STAC in that case, but you could click the reset buton to get there too.
+
+Much easier than removing and reconnecting power.
+
 <br><br>
 ## <a name="Troubleshooting"></a>Troubleshooting
 
@@ -304,12 +317,12 @@ But before charging forth, know that the STAC will mask most of the errors on th
 
 **What you're seeing:**<div style="margin-left: 2em;">The STAC display shows the orange connecting to WiFi icon and then after a minute it changes to a flashing red WiFi icon and then back to orange.
 
-This error is seen in both Operating Modes.
+This condition is seen in both Operating Modes.
 </div>
-**What's causing it:**<div style="margin-left: 2em;">The STAC is trying to connect to the WiFi network. It tries for about a minute to connect and if it can't it flashes the red icon to let you know it's trying but there is still no connection. It keeps trying forever.
+**What's causing it:**<div style="margin-left: 2em;">The STAC is trying to connect to the WiFi network. It tries this for about a minute and if it can't it flashes the red icon to let you know it's trying but there is still no connection. It keeps trying forever.
 </div>
 
-**What to try:**  
+**What to try:**
 
 * *If the STAC has successfully connected this WiFi network before:*
     - Check that the WiFi access point is turned on.
@@ -317,21 +330,22 @@ This error is seen in both Operating Modes.
     * Has the SSID or Password of the network been changed? Check with someone that might know. If so, whew&mdash;problem solved. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the new SSID and Password information, submit that and the other info required and you'll be great.
 
 * *If the STAC has never connected to this network:*  
-    - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the web browser form. Hey, it happens. We're all human. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the SSID and Password information, submit that and the other info required and you'll be great.
+    - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the web browser form. Hey, it happens. We're all human. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the SSID and Password, submit that and the other info required and you'll be great.
 </div>
 
-### _Tally Status not Changing_  
-**What you're seeing:**
+### _Tally Status not Changing_
+
+**What you're seeing:**  
 <div style="margin-left: 2em;">The tally status display on the STAC does not change. It's stuck on green, red or "dotted purple".
 
-This error is seen in both Operating Modes.
+This condition is seen in both Operating Modes.
 </div>
 **What's causing it:**  
 <div style="margin-left: 2em;">Most likely the STAC is set to monitor a channel on the switch that is not changing.</div>  
 **What to try:**<div style="margin-left: 2em;">
 
 * Confirm with the person doing the switching that the correct tally channel is being monitored.
-* If not, click the Reset button on the side of the STAC and when the tally channel is displayed, follow the steps under [Setting the Tally Channel](#SettingtheTallyChannel) to set the correct active channel.
+* If not, click the Reset button on the side of the STAC and when the tally channel is displayed, follow the steps under [Setting the Tally Channel](#SettingtheTallyChannel) to change the active channel.
 </div>
 
 ### <a name="BPX"></a>_A Big Purple X?_
@@ -359,7 +373,9 @@ Everything else is OK though.</div>
 <a name="BPX"></a>**Other Considerations**  
 <div style="margin-left: 2em;">It is possible that the big purple X (BPX) will appear and then a second or two later disappear with the normal channel status display shown.
 
-After asking the switch for the status of the active channel, the STAC waits about a second for the reply to come back. If it doesn't, the reply has "timed out" and the BPX is displayed. The STAC is continuously polling the switch and next time round, the reply may come back before the time-out period. In this case the current status of the active channel is shown. If the BPX appears often but the STAC soon returns to displaying the active channel status, it may mean:
+After asking the switch for the status of the active channel, the STAC waits about a second for the reply to come back. If it doesn't, the reply has "timed out" and the BPX is displayed. The STAC is continuously polling the switch and next time round, the reply may come back before the time-out period. In this case the current status of the active channel is shown.
+
+If the BPX appears often but the STAC soon returns to displaying the active channel status, it may mean:
 
 * there are too many devices (STAC or other Smart Tally clients) asking the switch for status, causing a backlog;
 * the network is busy with other traffic (live streaming being a big one) causing delays in the communication between the switch and the STAC.
@@ -369,11 +385,11 @@ If this seems to be the case, have a chat with the some folks about the state of
 ### _The Red WiFi Interrupt Screen!_
 
 **What you're seeing:**
-<div style="margin-left: 2em;">The STAC was operating normally but a suddenly the flashing red WiFi icon appeared on the display, followed by the orange WiFi icon.
+<div style="margin-left: 2em;">The STAC was operating normally but a suddenly a flashing red WiFi icon appeared on the display, followed by the orange WiFi icon.
 
-This error is seen in both Operating Modes.</div>
+This condition is seen in both Operating Modes.</div>
 **What's causing it:**  
-<div style="margin-left: 2em;">This means the STAC was doing its thing but lost its WiFi connection. Bummer. The STAC is now in its WiFi connect sequence and will keep trying to connect.</div>
+<div style="margin-left: 2em;">The STAC was doing its thing but lost its WiFi connection. Bummer. The STAC is now in its WiFi connect sequence and will keep trying to connect.</div>
 
 **What to try:**
 <div style="margin-left: 2em;">Check for the same things under [The WiFi Connect Loop of Death](#WiFiDeathLoop).  
@@ -421,7 +437,7 @@ A few WiFi capable commercial options were found but the per unit cost was stupi
 
 More searching led us to the [Tally Arbiter](http://www.tallyarbiter.com) project headed by the amazing Joseph Adams and the [Tech Ministry](https://techministry.blog) folks. I set up Tally Arbiter with help from Joseph and with a bit of time searching and poking about figured how get the Tally Arbiter code running on an [M5Stack](https://m5stack.com) [ATOM](https://docs.m5stack.com/#/en/core/atom_matrix) and our livestream computer. It worked great and the size and low cost of the ATOM units meant it could be easily deployed.
 
-However, we only were running with that single video switch and with the entire production and tech team being volunteers where only a few had a technical background, I was forced to come to the conclusion that as great as Tally Arbiter is, it was beyond the skill set of our team to set up, configure and maintain in a sustainable fashion.
+However, we were only running with that single video switch and with the entire production and tech team being volunteers where only a few had a technical background, I was forced to come to the conclusion that as great as Tally Arbiter is, it was beyond the skill set of our team to set up, configure and maintain in a sustainable fashion.
 
 But we had a dedicated WiFi network, these super little ATOM units and the Roland switch that could speak Smart Tally&mdash;so why not just let the two of them talk to each other directly?
 
@@ -470,6 +486,13 @@ The licensor cannot revoke these freedoms as long as you follow the license term
 
 No warranties are given. The license may not give you all of the permissions necessary for your intended use. For example, other rights such as publicity, privacy, or moral rights may limit how you use the material.
 </div>
+<br><br>
+
+---
+
+###Users Guide History
+**2021-03-31:** Added the "Back to the Beginning" section. Other minor editorial changes.  
+**2021-03-29:** First release.
 
 ---
 
