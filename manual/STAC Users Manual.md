@@ -97,7 +97,7 @@ You'll also need a computer, phone, tablet, or some other device that can connec
 <center>
 <img src="./images/wifi_connect.png">
 </center>
-1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890**
+1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is __1234567890__
 
 1. Once connected, on your smart device, fire up your web browser, open a new browser window and enter the IP address of the STAC which is **192.168.6.14** hit "go" or the Return key to connect. The STAC Configuration page will pop up.
 <center>
