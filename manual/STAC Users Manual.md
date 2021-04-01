@@ -28,7 +28,7 @@ To ensure you see the pictures, make sure the *images* folder is in the same fol
 
 The bits you need to know about when using the STAC are shown in the picture below.
 <center>
-![M5Atom](./images/STAC_bits.png)
+<img src="./images/STAC_bits.png">
 </center>
 The Display is, well, just that. A square matrix of colour LED's used to show: the state of the tally channel being monitored; receive feedback on its operation; and for setup. We'll get to those parts in a while.
 
@@ -50,12 +50,12 @@ Connect one end of a USB-C cable to the STAC and the other to a 5 VDC power sour
 
 The STAC will briefly show a "power on" indicator and then display the tally channel of the Roland Smart Tally device it is monitoring (the active channel).
 <center>
-![poweron](./images/startup_1.png)
+<img src="./images/startup_1.png">
 </center>
 
 From here, click the Display Button. The Operating Mode of the STAC is shown. Click once more and the current Brightness Level of the display is shown.
 <center>
-![currentstate](./images/startup_2.png)
+<img src="./images/startup_2.png">
 </center>
 The active tally channel, the operating mode and the display brightness can each be changed when they are displayed during startup. The display brightness level can also be changed when the STAC is monitoring the tally channel. We're getting to that part too.
 
@@ -63,11 +63,11 @@ When the Brightness Level is displayed, the next click of the display button (we
 
 The orange "attempting to connect to WiFi" icon is shown and, after a bit if the connection is made, the icon will change to green indicating success.
 <center>
-![wifiseq](./images/startup_3.png)
+<img src="./images/startup_3.png">
 </center>
 Once WiFi is connected the STAC will start querying the configured Roland Smart Tally device for the tally status of the channel being monitored. The STAC then continuously polls the Roland switch and the display will change according to the state returned by the Roland device like so...
 <center>
-<a name="tallystates"></a>![tallydisplaystates](./images/operating.png)
+<a name="tallystates"></a><img src="./images/operating.png">
 </center>
 We're going to call this the normal operating state of the STAC.
 
@@ -75,7 +75,7 @@ We're going to call this the normal operating state of the STAC.
 
 So that's the general flow of things. Now let's get to the nitty gritty...
 <br><br>
-## <a/ name="FirstTimeConfiguration"></a>First Time Configuration
+## <a name="FirstTimeConfiguration"></a>First Time Configuration
 
 Until you tell it a few things, the STAC is pretty useless. You'll have to configure it.
 
@@ -90,18 +90,18 @@ You'll also need a computer, phone, tablet, or some other device that can connec
 
 1. Power up the STAC. It will flash the red "configuration required" icon and then hold this icon on the display. The STAC then fires up a WiFi access point so it can communicate with your web browser and waits for the configuration information to be received.
 <center>
-![STACConfgReqd](./images/stac_config_reqd.png)
+<img src="./images/stac_config_reqd.png">
 </center>
 
 1. Using a computer, phone, tablet, or some other smarty pants device, open its WiFi settings and pick the SSID of your STAC. The STAC SSID starts with **"STAC\_"** followed by eight characters. Something like **STAC\_4660A124**. Each STAC has its own unique SSID.
 <center>
-![STAC WiFi](./images/wifi_connect.png)
+<img src="./images/wifi_connect.png">
 </center>
-1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890**. 
+1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890** (Some markdown viewiers have a problem displaying this. The password is the digits 1 to 0. No "*"s.)
 
 1. Once connected, on your smart device, fire up your web browser, open a new browser window and enter the IP address of the STAC which is **192.168.6.14** hit "go" or the Return key to connect. The STAC Configuration page will pop up.
 <center>
-![STAC Address](./images/browser_connect.png)
+<img src="./images/browser_connect.png">
 </center>
 
 1. On your browser, fill in the form with the WiFi SSID and Password, the Roland device Smart Tally IP address and the maximum channel number that you want to monitor. Remember, the Roland device must be on the WiFi network that matches this SSID and Password.
@@ -109,7 +109,7 @@ You'll also need a computer, phone, tablet, or some other device that can connec
 1. Once the information has been entered, tap the "Submit" button to send the form to the STAC.
 The STAC will send a confirmation page to your browser, briefly show a confirmation checkmark on the display, and then shut down its WiFi connection.
 <center>
-![STAC Configuration Page](./images/browser_complete.png)
+<img src="./images/browser_complete.png">
 </center>
 
 1. Close the confirmation window in your browser, reconnect your smart device to your preferred WiFi network and you're done. Like dinner.
@@ -168,17 +168,17 @@ That was a lot of words. Let's show you how this works in detail for changing th
 
 Power up your STAC. When you see the blue active tally number on the display, press and hold down the button. In about two seconds the display will change from a blue number on black background to an orange number on a blue background. The orange colour is a bit of a heads up to let you know the STAC is in a select state and you can now change or select the value. We use this convention with all the parameters when in a select state.
 <center>
-![Initiate Edit Mode](./images/initiate.png)
+<img src="./images/initiate.png">
 </center>
 
 Now click the button once. The tally number will advance by one. Keep clicking the button and watch how the tally number increases and then wraps around to the number **1**. Keep clicking until the desired tally channel is shown. Or until your finger gets tired. Your call.
 <center>
-![Changing the value](./images/select.png)
+<img src="./images/select.png">
 </center>
 
 Now press and hold the button. After about two seconds the green confirmed checkmark will briefly appear, the STAC will exit select state and the display will show the new active tally channel as a blue number on a black background.
 <center>
-![Change confirm](./images/confirm1.png)
+<img src="./images/confirm1.png">
 </center>Only easy right?
 
 When in a select state, the STAC has a timeout feature. If after entering a select state, no clicks of the display button are detected for about 30 seconds, the select state is cancelled and the display and tally channel will revert back to the value it had before entering select state. From here the button can be clicked to advance to the next parameter or press and hold to enter the select state again.
@@ -205,7 +205,7 @@ The sequence of steps to change the Operating Mode is the same as for setting th
 
 The Operating Mode is displayed as a purple letter on a black background. A **C** means the STAC is in **Camera Operator Mode**. A purple **T** is shown for **Talent Mode**.
 <center>
-![Operating Mode](./images/displays_opmode.png)
+<img src="./images/displays_opmode.png">
 </center>
 To change the Operating Mode:
 
@@ -228,7 +228,7 @@ To accommodate a range of ambient light levels when using the STAC, the brightne
 
 The current brightness level is shown as a white number on a spectacular field of red and green dots. Yes, it looks like Christmas. There are six brightness levels, increasing from **1** (lowest) to **6** (brightest). Bet you didn't see that coming. Anyway, as levels are selected, the display brightness changes to match.
 <center>
-![Brightness Select](./images/displays_bright.png)
+<img src="./images/displays_bright.png">
 </center>
 To change the Brightness Level:
 
@@ -262,7 +262,7 @@ To reconfigure the STAC you'll use the Reset button and Display button in combin
 
 If you did this little dance right, (guess you figured it'll take two hands) the orange reconfiguration icon will stay on after flashing. The STAC is now waiting patiently for the new configuration information to head its way.
 <center>
-![Configuration Change](./images/stac_config_change.png)
+<img src="./images/stac_config_change.png">
 </center>
 If the STAC returns to the tally display, just give the two-button dance another whirl. You got this.
 
@@ -282,7 +282,7 @@ All righty then. Maybe you want to hand off your STAC to someone else or just fo
 
 To do a factory reset, you'll follow the same procedure as [Reconfiguring the STAC](#ReconfiguringtheSTAC) except, instead of releasing the Display button at step 5, keep holding down the Display button after the reconfiguration icon stops flashing. In about two seconds, the display will show the factory reset icon. Release the Display button. A moment later the STAC will be completely reset. The red Configuration Required icon will flash and then stay on.
 <center>
-![Factory Reset](./images/cleanslate.png)
+<img src="./images/cleanslate.png">
 </center>
 You can remove power if you'd like or, to put the STAC back into service, follow the directions under [First Time Configuration](#FirstTimeConfiguration) above; connecting to the STAC by WiFi and using a browser to bring up the Configuration form and so on.
 
@@ -401,7 +401,7 @@ After the WiFi connection is re-established, you'll need to click through the no
 <b>What you're seeing:</b>
 <div style="margin-left: 2em;">There is a purple question mark on the display. It may appear intermittently or for longer periods of time.</div>
 <center>
-![PQM](./images/err_badreply.png)
+<img src="./images/err_badreply.png">
 </center>**What's causing it:**  
 <div style="margin-left: 2em;">Ahh, well. What we have here is a failure to communicate. In a way that the STAC understands. Meaning the STAC sent a tally status request to the switch, and a reply was received before the time-out period, but the reply was gibberish.
 </div>
@@ -414,7 +414,7 @@ After the WiFi connection is re-established, you'll need to click through the no
 **What you're seeing:**
 <div style="margin-left: 2em;">Well boss, there is a big red X on the display!
 <center>
-![BRX](./images/err_intern.png)
+<img src="./images/err_intern.png">
 </center></div>
 
 **What's causing it:**
@@ -491,6 +491,7 @@ No warranties are given. The license may not give you all of the permissions nec
 ---
 
 ###Users Guide History
+**2021-04-01:** Changed all pictures to use the `<img src=" ">` syntax. Fixed a formatting error.
 **2021-03-31:** Added the "Back to the Beginning" section. Other minor editorial changes.  
 **2021-03-29:** First release.
 
