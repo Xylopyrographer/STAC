@@ -75,7 +75,7 @@ We're going to call this the normal operating state of the STAC.
 
 So that's the general flow of things. Now let's get to the nitty gritty...
 <br><br>
-## <a/ name="FirstTimeConfiguration"></a>First Time Configuration
+## <a name="FirstTimeConfiguration"></a>First Time Configuration
 
 Until you tell it a few things, the STAC is pretty useless. You'll have to configure it.
 
