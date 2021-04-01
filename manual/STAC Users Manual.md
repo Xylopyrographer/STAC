@@ -63,7 +63,7 @@ When the Brightness Level is displayed, the next click of the display button (we
 
 The orange "attempting to connect to WiFi" icon is shown and, after a bit if the connection is made, the icon will change to green indicating success.
 <center>
-<img src="./images/startup_3.png"
+<img src="./images/startup_3.png">
 </center>
 Once WiFi is connected the STAC will start querying the configured Roland Smart Tally device for the tally status of the channel being monitored. The STAC then continuously polls the Roland switch and the display will change according to the state returned by the Roland device like so...
 <center>
@@ -97,7 +97,7 @@ You'll also need a computer, phone, tablet, or some other device that can connec
 <center>
 <img src="./images/wifi_connect.png">
 </center>
-1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is __1234567890__
+1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890** (Some markdown viewiers have a problem displaying this. The password is the digits 1 to 0. No "*"s.)
 
 1. Once connected, on your smart device, fire up your web browser, open a new browser window and enter the IP address of the STAC which is **192.168.6.14** hit "go" or the Return key to connect. The STAC Configuration page will pop up.
 <center>
