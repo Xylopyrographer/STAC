@@ -48,6 +48,7 @@ Use of this sketch requires a modified set of libraries. See the *library_README
 Additional information is in the User Manual, located in the *manual* folder.
 
 ---
-#Revision History
+
+##Revision History
 
 **2021-04-05:** Revise for user configurable port number
