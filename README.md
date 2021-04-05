@@ -20,21 +20,24 @@ the colour of the display on the ATOM:
      - RED if the channel is in PGM (Progam or onair)
      - GREEN otherwise
 
-Configuration of the STAC for the WiFi credentials and number of tally 
-channels of the Roland switch is done using a web browser.
+Configuration of the STAC for the WiFi credentials and IP address, port number  
+and number of tally channels of the Roland switch is done using a web browser.
 
 When in its Configuration state the:
 
 * STAC WiFi SSID is:  
-    - **STAC_XXXXXXXX**  
+     * **STAC_XXXXXXXX**  
 where the X's are a set of characters unique to every ATOM unit.
-* STAC configuration page is at:  
-    - **192.168.6.14**
 
 * Password is:  
-    - **1234567890**
+     * **1234567890**
+    
+* STAC configuration page is at:  
+    * **192.168.6.14**
+
 
 To use this sketch:
+
 * download the zip file from the **Code** tab
 * unzip the STAC-main.zip file
 * rename the unzipped folder from  *STAC-main* to just *STAC*
@@ -45,3 +48,6 @@ Use of this sketch requires a modified set of libraries. See the *library_README
 Additional information is in the User Manual, located in the *manual* folder.
 
 ---
+#Revision History
+
+**2021-04-05:** Revise for user configurable port number
