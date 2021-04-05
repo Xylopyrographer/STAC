@@ -1,7 +1,7 @@
 /* STAC (Smart Tally ATOM Client) 
  *  
- *  Version: 1.6
- *  2021-03-23
+ *  Version: 1.7
+ *  2021-04-02
  *  
  *  Author: Xylopyrographer
  *  
@@ -20,21 +20,27 @@
  *          - RED if the channel is in PGM (Progam or onair)
  *          - GREEN otherwise
  *     
- *  Configuration of the STAC for the WiFi credentials and number of tally 
- *  channels of the Roland switch is done using a web browser.
+ *  Configuration of the STAC for the WiFi credentials and IP address, port number  
+ *  and number of tally channels of the Roland switch is done using a web browser.
  *
  *  When in its Configuration state the:
  *
  *      STAC WiFi SSID is:  
  *          STAC_XXXXXXXX  
- *      where the X's are a set of characters unique to every ATOM unit.
+ *      where the X's are a set of 8 alphanumeric characters unique to every ATOM unit.
+ *      
+ *      Password is:  
+ *          1234567890
  *
  *      STAC configuration page is at:  
  *          192.168.6.14
  *
- *      Password is:  
- *          1234567890
-*/
+ */
+/*  Release Notes
+ *      1.7
+ *          - add support for user configurable ST Server port #. Allows STAC to be used in an emulated environment; as in a Tally Arbiter client
+ * 
+ */
 
 
 #include <WiFi.h>
@@ -42,13 +48,13 @@
 #include <Preferences.h>        // #include's my modified Preferences.cpp file.
 #define DATA_PIN_LED 27         // for the ATOM display - though abscence of this line seems to make no never mind...
 
-String swVer = "1.6";           // shows up on the web config page
+String swVer = "1.7";           // shows up on the web config page
 String apPrefix = "STAC_";      // prefix to use for naming the STAC AP SSID when being configured
 
 char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's web browser; max length of a WiFi SSID is 32 char
 char networkPass[64]{};         // ST server WiFI password. Configured via the user's web browser; max length of a password is 63 char
 char host[16]{};                // IP address of the ST server. Configured via the user's web browser; max length of an IP address is 15 char
-const uint16_t port = 80;       // HTTP port of the Roland Smart Tally server (switcher). >>> Shouldn't need to ever change this!<<<
+uint16_t stPort;                // HTTP port of the actual or emulated Roland Smart Tally server (switcher). Configured via the user's web browser; 0 to 65353; default is 80
 
 
 bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
@@ -64,7 +70,7 @@ bool debug = false;			    // will send debugging stuff out the on-board USB port
 #define WIFI_ATTEMPTS 6                     // # of times to try to connect to the WiFi network before giving up
 
 Preferences stcPrefs;                       // holds the operational parameters in NVS for retention across power cycles.
-String lastTallyState = "-- nulll --";
+String lastTallyState = "--nullll--";
 uint8_t btnWas, btnNow;                     // used in the button click detector buttonClicked() and the control logic for this fn
 bool escapeFlag = false;                    // used for getting out of the settings loops in setup()
 unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status
@@ -95,6 +101,7 @@ struct provision {                      // structure that holds the credentials 
     String pSSID;
     String pPass;
     String pSwitchIP;
+    uint16_t pPort;
     uint8_t ptChanMax;
 };
 
@@ -116,10 +123,11 @@ typedef struct provision provData_t;
     talChan         UChar       --> tallyStatus.tChannel        uint8_t         tally channel being monitored.
     talMax          UChar       --> tallyStatus.tMax            uint8_t         max tally channel #
     ctMde           Bool        --> ctMode                      bool            "camera operator" or "talent mode"
+    pvis            Bool        --> provisioned                 bool            true if the WiFi credentials in NVS are non-zero
     stnSSID         String      --> stSSID                      String          SSID of the WiFi network to connect to     
     stnPass         String      --> stPass                      String          password of the WiFi network to connect to
     stswIP          String      --> stswIP                      String          IP address of the Roland Smart Tally device being monitored
-    pvis            Bool        --> provisioned                 bool            true if the WiFi credentials in NVS are non-zero
+    stswPort        UShort      --> stswPort                    uint16_t        Port number of the actual or emulated Roland Smart Tally device
 */
 
 WiFiClient wfClient;				    // initiate the WiFi library and create a WiFi client object
@@ -272,7 +280,7 @@ TallyState getTallyState(TState tally) {
 
     if (!wfClient.connected()) {
         stTimeout = millis() + ST_CONNECT_TIMEOUT;
-        while(!wfClient.connect(host, port) && stTimeout >= millis()) {
+        while(!wfClient.connect(host, stPort) && stTimeout >= millis()) {
             delay(1);
         }
         if (wfClient.connected()) {     // we're connected
@@ -521,6 +529,7 @@ void sendForm(WiFiClient theClient, String &swVer) {
     theClient.println("<label for=\"Password:\">Password:</label><input id=\"pwd\" name=\"pwd\" type=\"text\" size=\"20\" maxlength=\"63\"><br><br>");
     theClient.println("<label for=\"Smart Tally IP:\">Smart Tally IP:</label><input id=\"stIP\" name=\"stIP\" size=\"15\" ");
     theClient.println("pattern=\"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$\" required=\"\" type=\"text\"><br><br>");
+    theClient.println("<label for=\"stPort\">port #:</label><input id=\"stPort\" name=\"stPort\" size=\"5\" min=\"0\" max=\"65353\" required=\"\" type=\"number\" value=\"80\"><br><br>");
     theClient.println("<label for=\"stChan\"># of channels:</label><input id=\"stChan\" name=\"stChan\" size=\"3\" min=\"1\" max=\"8\" required=\"\" type=\"number\" value=\"6\"><br><br>");
     theClient.println("<input value=\"Submit\" type=\"submit\">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<input type=\"Reset\"></font></form><br>");
     theClient.print("<p align=\"center\"><font face=\"Helvetica, Arial, sans-serif\">STAC software version: ");
@@ -580,16 +589,21 @@ provData_t parseForm(String &formData) {
     String tempString;
     unsigned int llIndex;
     provData_t stCred;
-
+ 
     llIndex = formData.lastIndexOf("SSID=");                                // the last line of the POST reply is the only thing we want
     if (llIndex != -1) payload = formData.substring(llIndex);               // throw away everything except the last line
     else payload = formData;                                                // should never need this check but just in case...
+
     payload.trim();                                                         // knock any junk off the front and back of the last line of the reply
-    
+    // parse the payload from the end of the string to the start
     tempString = payload.substring(payload.lastIndexOf("&") + 8);           // pull out the max # of tally channels; 8 = length of "&stChan="...
-    stCred.ptChanMax = (uint8_t)tempString.toInt();                         // convert it to a short uint and save it   
+    stCred.ptChanMax = (uint8_t)tempString.toInt();                         // convert (cast) it to an 8-bit uint and save it   
     payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the tally channel
-    
+
+    tempString = payload.substring(payload.lastIndexOf("&") + 8);           // pull out the port #; 8 = length of "&stPort="...
+    stCred.pPort = (uint16_t)tempString.toInt();                            // convert (cast) it to a uint16_t and save it      
+    payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the port number
+
     stCred.pSwitchIP = payload.substring(payload.lastIndexOf("&") + 6);     // pull out IP address of the Roland switch and save it; 6 = length of "&stIP=" 
     payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the IP address
     
@@ -649,9 +663,9 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
  *      - waits for the form to be returned
  *      - confirms to the user that the form was received (on the browser and on the STAC)
  *      - shuts down the access point
- *      - returns the configuration/provisiong data
+ *      - returns the configuration/provisiong data to the calling function
  *      - and then goes for a beer.
- *      
+ *
  *  The IP and password for the access point are set in this function.
  */
 
@@ -798,12 +812,14 @@ void setup() {
             stcPrefs.getString("stnSSID");
             stcPrefs.getString("stnPass");
             stcPrefs.getString("stswIP");
+            stcPrefs.getUShort("stswPort");
             stcPrefs.getBool("pvis");                   // NVS keys are now created
         }        
         stcPrefs.putString("stnSSID", sConfigData.pSSID);       // namespace keys exist, store the provisioning data 
         stcPrefs.putString("stnPass", sConfigData.pPass);
         stcPrefs.putString("stswIP", sConfigData.pSwitchIP);
         stcPrefs.putUChar("talMax", sConfigData.ptChanMax);
+        stcPrefs.putUShort("stswPort", sConfigData.pPort);
         if (tpInit) {                                           // make sure the current tally channel is no longer > new max tally channel
             if (stcPrefs.getUChar("talChan") > sConfigData.ptChanMax) {
                 stcPrefs.putUChar("talChan", 1);
@@ -827,6 +843,7 @@ void setup() {
         stcPrefs.getString("stnSSID");
         stcPrefs.getString("stnPass");
         stcPrefs.getString("stswIP");
+        stcPrefs.getUShort("stswPort");
         stcPrefs.getBool("pvis");                   // the namespace key entries are now created.
 
         stcPrefs.putUChar("curBright", 10);         // so store the initial "factory default" values
@@ -852,11 +869,13 @@ void setup() {
         stcPrefs.getString("stnSSID");
         stcPrefs.getString("stnPass");
         stcPrefs.getString("stswIP");
+        stcPrefs.getUShort("stswPort");
         stcPrefs.getBool("pvis");                               // NVS keys are now created
         
         stcPrefs.putString("stnSSID", sConfigData.pSSID);       // so save the provisioning data
         stcPrefs.putString("stnPass", sConfigData.pPass);
         stcPrefs.putString("stswIP", sConfigData.pSwitchIP);
+        stcPrefs.putUShort("stswPort", sConfigData.pPort);
         stcPrefs.putUChar("talMax", sConfigData.ptChanMax);
         stcPrefs.putBool("pvis", true);                         // set the provisioning data is non-zero flag...
         stcPrefs.end();
@@ -877,7 +896,9 @@ void setup() {
 
     tempstring = stcPrefs.getString("stswIP") + '\0';           // ST switch IP address. Make it a C-string    
     tempstring.toCharArray(host, tempstring.length());
-    
+
+    stPort = stcPrefs.getUShort("stswPort");                      // ST port number
+ 
     stcPrefs.end();                                             // close our preferences namespace
     
     M5.dis.setBrightness(currentBrightness);
