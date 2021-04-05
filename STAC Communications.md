@@ -36,6 +36,6 @@ With no `<return>` or `<newline>` characters added.
 Any other response will cause the STAC to display an error state as described in the *Troubleshooting* section of the *STAC Users Guide.md*.
 
 ---
-###Revision History
+### Revision History
 **2021-04-05:** First release.
 
