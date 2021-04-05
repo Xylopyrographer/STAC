@@ -1,7 +1,6 @@
-#STAC Communications
+# STAC Communications
 
-
-##Introduction
+## Introduction
 
 Short techie document describing the way a STAC communicates with a Roland device using the Smart Tally protocol.
 
