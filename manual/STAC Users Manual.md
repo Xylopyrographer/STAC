@@ -19,16 +19,17 @@ The STAC uses WiFi to connect to the same network as that of the Roland switch. 
 	- RED if the channel is in PGM (Program or onair)
 	- GREEN otherwise
 
-Configuration of the STAC for the WiFi credentials and number of tally channels of the Roland switch is done using a web browser.
+Configuration of the STAC for the WiFi credentials, Roland switch IP address, port number and number of tally channels is done using a web browser.
 
 Setup of the STAC is done using its display button, with feedback provided via the display.
 
 To ensure you see the pictures, make sure the *images* folder is in the same folder as this *STAC Users Manual.md* file.<br><br>
+
 ## Getting to Know You
 
 The bits you need to know about when using the STAC are shown in the picture below.
 <center>
-<img src="./images/STAC_bits.png">
+![M5Atom](./images/STAC_bits.png)
 </center>
 The Display is, well, just that. A square matrix of colour LED's used to show: the state of the tally channel being monitored; receive feedback on its operation; and for setup. We'll get to those parts in a while.
 
@@ -50,12 +51,12 @@ Connect one end of a USB-C cable to the STAC and the other to a 5 VDC power sour
 
 The STAC will briefly show a "power on" indicator and then display the tally channel of the Roland Smart Tally device it is monitoring (the active channel).
 <center>
-<img src="./images/startup_1.png">
+![poweron](./images/startup_1.png)
 </center>
 
 From here, click the Display Button. The Operating Mode of the STAC is shown. Click once more and the current Brightness Level of the display is shown.
 <center>
-<img src="./images/startup_2.png">
+![currentstate](./images/startup_2.png)
 </center>
 The active tally channel, the operating mode and the display brightness can each be changed when they are displayed during startup. The display brightness level can also be changed when the STAC is monitoring the tally channel. We're getting to that part too.
 
@@ -63,11 +64,11 @@ When the Brightness Level is displayed, the next click of the display button (we
 
 The orange "attempting to connect to WiFi" icon is shown and, after a bit if the connection is made, the icon will change to green indicating success.
 <center>
-<img src="./images/startup_3.png">
+![wifiseq](./images/startup_3.png)
 </center>
 Once WiFi is connected the STAC will start querying the configured Roland Smart Tally device for the tally status of the channel being monitored. The STAC then continuously polls the Roland switch and the display will change according to the state returned by the Roland device like so...
 <center>
-<a name="tallystates"></a><img src="./images/operating.png">
+<a name="tallystates"></a>![tallydisplaystates](./images/operating.png)
 </center>
 We're going to call this the normal operating state of the STAC.
 
@@ -75,7 +76,7 @@ We're going to call this the normal operating state of the STAC.
 
 So that's the general flow of things. Now let's get to the nitty gritty...
 <br><br>
-## <a name="FirstTimeConfiguration"></a>First Time Configuration
+## <a/ name="FirstTimeConfiguration"></a>First Time Configuration
 
 Until you tell it a few things, the STAC is pretty useless. You'll have to configure it.
 
@@ -84,32 +85,31 @@ To do this you need the:
 * SSID and 
 * Password of the WiFi network to which your Roland switch is connected
 * IP address of the Roland switch
+* the port number used by the Roland switch
 * maximum tally channel number of the Roland switch.
 
 You'll also need a computer, phone, tablet, or some other device that can connect to a WiFi network and run a web browser as that is the tool you'll use to send the configuration information to the STAC. Here's how you'll do that.
 
-1. Power up the STAC. It will flash the red "configuration required" icon and then hold this icon on the display. The STAC then fires up a WiFi access point so it can communicate with your web browser and waits for the configuration information to be received.
-<center>
-<img src="./images/stac_config_reqd.png">
-</center>
+1. Power up the STAC. It will flash the red "configuration required" icon and then hold this icon on the display. The STAC then fires up a WiFi access point so it can communicate with your web browser and waits for the configuration information to be received.  
+<center>![STACConfgReqd](./images/stac_config_reqd.png)</center>
 
 1. Using a computer, phone, tablet, or some other smarty pants device, open its WiFi settings and pick the SSID of your STAC. The STAC SSID starts with **"STAC\_"** followed by eight characters. Something like **STAC\_4660A124**. Each STAC has its own unique SSID.
 <center>
-<img src="./images/wifi_connect.png">
+![STAC WiFi](./images/wifi_connect.png)
 </center>
-1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890** (Some markdown viewiers have a problem displaying this. The password is the digits 1 to 0. No "*"s.)
+1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is <b>1234567890</b>. 
 
 1. Once connected, on your smart device, fire up your web browser, open a new browser window and enter the IP address of the STAC which is **192.168.6.14** hit "go" or the Return key to connect. The STAC Configuration page will pop up.
 <center>
-<img src="./images/browser_connect.png">
+![STAC Address](./images/browser_connect.png)
 </center>
 
-1. On your browser, fill in the form with the WiFi SSID and Password, the Roland device Smart Tally IP address and the maximum channel number that you want to monitor. Remember, the Roland device must be on the WiFi network that matches this SSID and Password.
+1. On your browser, fill in the form with the WiFi SSID and Password, the Roland device Smart Tally IP address, its port number and the maximum channel number that you want to monitor. Remember, the Roland device must be on the WiFi network that matches this SSID and Password.
 
 1. Once the information has been entered, tap the "Submit" button to send the form to the STAC.
 The STAC will send a confirmation page to your browser, briefly show a confirmation checkmark on the display, and then shut down its WiFi connection.
 <center>
-<img src="./images/browser_complete.png">
+![STAC Configuration Page](./images/browser_complete.png)
 </center>
 
 1. Close the confirmation window in your browser, reconnect your smart device to your preferred WiFi network and you're done. Like dinner.
@@ -118,11 +118,12 @@ After the configuration information is submitted and the STAC confirms receipt, 
 
 But first, a few things about entering the configuration information in your browser:
 
-* The SSID, Roland IP address and the maximum tally channel number are required. The form cannot be submitted with these fields blank.
+* The SSID, Roland IP address, port number and maximum tally channel number are required. The form cannot be submitted with these fields blank.
 * The maximum SSID length is 32 characters
 * The password can be left empty to allow for open WiFi networks. The password is limited to 63 characters.
 * The Roland IP address must be in proper IP address format before the form can be submitted.
-* The maximum tally channel number is set to six (6) by default. The highest number that can be entered is eight (8).
+* The maximum tally channel number is set to <b>6</b> by default. The highest number that can be entered is <b>8</b>. The smallest is <b>1</b>.
+* The port number is set to a default of <b>80</b>. It should only be changed in special situations like described in [Special Configurations](#SpecConfig) below.
 
 Regarding the SSID and Password, be cautious when entering quotes as most devices will by default convert these to "smart quotes" which, as per WiFi standards are not allowed.
 
@@ -130,11 +131,11 @@ If the Submit button is tapped and there is missing or incorrect information ent
 
 The SSID and Password fields stop accepting input after their limits are reached.
 
-Taping the "Reset" button on the browser form will clear all information entered, leaving the form open.
+Taping the "Reset" button on the browser form will clear all information entered and set the port number and number of channels to their defaults, leaving the form open.
 
 At the bottom of the form, the version number of the STAC software is shown as a bit of trivia.
 
-**Some advise:** If you are configuring multiple STACs in one go, it is quite important to close the Confirmation browser window each time before moving onto the next one. Using a desktop computer and browser is recommend. Some browsers, notably the mobile variety, get hung up when connecting to the IP address of the STAC (as each one is the same) even though the STAC and its WiFi SSID are unique.
+**Some advise:** If you are configuring multiple STACs in one go, it is quite important to close the Confirmation browser window each time before moving onto the next one. Using a desktop or laptop computer and browser is recommend. Some browsers, notably the mobile variety, get hung up when connecting to the IP address of the STAC (as each one is the same) even though the STAC and its WiFi SSID are unique.
 <br><br>
 ## <a name="UpandRunning"></a>Up and Running
 
@@ -168,17 +169,17 @@ That was a lot of words. Let's show you how this works in detail for changing th
 
 Power up your STAC. When you see the blue active tally number on the display, press and hold down the button. In about two seconds the display will change from a blue number on black background to an orange number on a blue background. The orange colour is a bit of a heads up to let you know the STAC is in a select state and you can now change or select the value. We use this convention with all the parameters when in a select state.
 <center>
-<img src="./images/initiate.png">
+![Initiate Edit Mode](./images/initiate.png)
 </center>
 
 Now click the button once. The tally number will advance by one. Keep clicking the button and watch how the tally number increases and then wraps around to the number **1**. Keep clicking until the desired tally channel is shown. Or until your finger gets tired. Your call.
 <center>
-<img src="./images/select.png">
+![Changing the value](./images/select.png)
 </center>
 
 Now press and hold the button. After about two seconds the green confirmed checkmark will briefly appear, the STAC will exit select state and the display will show the new active tally channel as a blue number on a black background.
 <center>
-<img src="./images/confirm1.png">
+![Change confirm](./images/confirm1.png)
 </center>Only easy right?
 
 When in a select state, the STAC has a timeout feature. If after entering a select state, no clicks of the display button are detected for about 30 seconds, the select state is cancelled and the display and tally channel will revert back to the value it had before entering select state. From here the button can be clicked to advance to the next parameter or press and hold to enter the select state again.
@@ -205,7 +206,7 @@ The sequence of steps to change the Operating Mode is the same as for setting th
 
 The Operating Mode is displayed as a purple letter on a black background. A **C** means the STAC is in **Camera Operator Mode**. A purple **T** is shown for **Talent Mode**.
 <center>
-<img src="./images/displays_opmode.png">
+![Operating Mode](./images/displays_opmode.png)
 </center>
 To change the Operating Mode:
 
@@ -228,7 +229,7 @@ To accommodate a range of ambient light levels when using the STAC, the brightne
 
 The current brightness level is shown as a white number on a spectacular field of red and green dots. Yes, it looks like Christmas. There are six brightness levels, increasing from **1** (lowest) to **6** (brightest). Bet you didn't see that coming. Anyway, as levels are selected, the display brightness changes to match.
 <center>
-<img src="./images/displays_bright.png">
+![Brightness Select](./images/displays_bright.png)
 </center>
 To change the Brightness Level:
 
@@ -262,7 +263,7 @@ To reconfigure the STAC you'll use the Reset button and Display button in combin
 
 If you did this little dance right, (guess you figured it'll take two hands) the orange reconfiguration icon will stay on after flashing. The STAC is now waiting patiently for the new configuration information to head its way.
 <center>
-<img src="./images/stac_config_change.png">
+![Configuration Change](./images/stac_config_change.png)
 </center>
 If the STAC returns to the tally display, just give the two-button dance another whirl. You got this.
 
@@ -274,7 +275,7 @@ That's all there is to it.
 <br><br>
 ## <a name="FactoryReset"></a>Factory Reset
 
-All righty then. Maybe you want to hand off your STAC to someone else or just for giggles restore the STAC to its "fresh-out-of-the-box" state. Doing this erases the SSID, Password, Roland Smart Tally IP address and Maximum tally channel number from the STAC and sets the active tally channel, operating mode and brightness level to their default values. Those defaults are: 
+All righty then. Maybe you want to hand off your STAC to someone else or just for giggles restore the STAC to its "fresh-out-of-the-box" state. Doing this erases the SSID, Password, Roland Smart Tally IP address, port number and maximum tally channel number from the STAC and sets the active tally channel, operating mode and brightness level to their default values. Those defaults are: 
 
 * Tally Channel 1,
 * Camera Operator mode and
@@ -282,7 +283,7 @@ All righty then. Maybe you want to hand off your STAC to someone else or just fo
 
 To do a factory reset, you'll follow the same procedure as [Reconfiguring the STAC](#ReconfiguringtheSTAC) except, instead of releasing the Display button at step 5, keep holding down the Display button after the reconfiguration icon stops flashing. In about two seconds, the display will show the factory reset icon. Release the Display button. A moment later the STAC will be completely reset. The red Configuration Required icon will flash and then stay on.
 <center>
-<img src="./images/cleanslate.png">
+![Factory Reset](./images/cleanslate.png)
 </center>
 You can remove power if you'd like or, to put the STAC back into service, follow the directions under [First Time Configuration](#FirstTimeConfiguration) above; connecting to the STAC by WiFi and using a browser to bring up the Configuration form and so on.
 
@@ -294,11 +295,22 @@ One more thing...
 
 The sections above show how the Reset button is used with the Display button to reconfigure or factory reset the STAC. 
 
-The other trick is, when used by itself, the Reset button will return the STAC to it's startup sequence. Why would you want to do this? Most common reason is let's say you just confirmed the tally channel or the operating mode but then realized you actually meant to change one or the other. Yoi!
+The other trick is, when used by itself, the Reset button will return the STAC to its startup sequence. Why would you want to do this? Most common reason is let's say you just confirmed the tally channel or the operating mode but then realized you actually meant to change one or the other. Yoi!
 
-In this case, click the reset button. The STAC display will go blank, then the power light will come on, followed by display of the active tally channel. Now you can press and hold to change that or click through to the operating mode and put that thing where you want it. The brightness level can be changed while the STAC is in its operating state so no need to restart the STAC in that case, but you could click the reset buton to get there too.
+In this case, click the reset button. The STAC display will go blank, then the power light will come on, followed by display of the active tally channel. Now you can press and hold to change that or click through to the operating mode and put that thing where you want it. The brightness level can be changed while the STAC is in its operating state so no need to restart the STAC in that case, but you could click the reset button to get there too.
 
 Much easier than removing and reconnecting power.
+
+
+## <a name="SpecConfig"></a>Special Configurations
+
+In most situations the STAC is used to communicate directly with a physical Roland switch or device. When this is the case the IP address and port number entered on the web browser configuration form are the those of that Roland device. Just as described back in [First Time Configuration](#FirstTimeConfiguration).
+
+However, if you are using a STAC as in an environment where the STAC is instead communicating with some other device or service that emulates a Roland Smart Tally switch, it may be required to change the STAC Smart Tally IP address and port number so that the STAC and that system are on the same wavelength. An example would be using the STAC with [Tally Arbiter](http://www.tallyarbiter.com) where tally devices from a variety of providers can be aggregated into a unified tally information system.
+
+Refer to the documentation from the provider of the Roland emulator or service on how to configuration the STAC if this applies to you.
+
+Hey, we kind of got our geek on in here. If this entire section is sounding completely foreign, we  get it. Just ensure when you configure the STAC that the IP address matches the actual Roland device and that the port is set to its default of <b>80</b> and you'll be in business.
 
 <br><br>
 ## <a name="Troubleshooting"></a>Troubleshooting
@@ -368,7 +380,10 @@ Everything else is OK though.</div>
     * Has the IP address of the switch changed? Check with someone that might know. If so, whew&mdash;problem solved. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the new IP Address of the switch, submit that and the other info required and you'll be great.
 
 * *If the STAC has never connected to this switch before:*
-    *  The IP address of the switch was probably entered incorrectly on the web browser Configuration form. Pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the IP Address of the switch, along with the other info required and you'll be good to go.
+    *  The IP address or port number of the switch was probably entered incorrectly on the web browser Configuration form. Pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the IP Address and port number of the switch, along with the other info required and you'll be good to go.
+
+* *If the STAC is being used in an emulated environment:*
+    * The IP address or port number of the STAC and the emulated device are probably not in sync. Check the configuration requirements of the system and change either the configuration of the system or the STAC as in [Reconfiguring the STAC](#ReconfiguringtheSTAC) so they match. See also [Special Configurations](#SpecConfig).
 
 <a name="BPX"></a>**Other Considerations**  
 <div style="margin-left: 2em;">It is possible that the big purple X (BPX) will appear and then a second or two later disappear with the normal channel status display shown.
@@ -401,20 +416,23 @@ After the WiFi connection is re-established, you'll need to click through the no
 <b>What you're seeing:</b>
 <div style="margin-left: 2em;">There is a purple question mark on the display. It may appear intermittently or for longer periods of time.</div>
 <center>
-<img src="./images/err_badreply.png">
+![PQM](./images/err_badreply.png)
 </center>**What's causing it:**  
 <div style="margin-left: 2em;">Ahh, well. What we have here is a failure to communicate. In a way that the STAC understands. Meaning the STAC sent a tally status request to the switch, and a reply was received before the time-out period, but the reply was gibberish.
 </div>
 
 **What to try:**  
-<div style="margin-left: 2em;">Probably not a lot on this one. The STAC and the switch should get things sorted the next time they talk. If not, it's *possible* there are network congestion issues like mentioned in the [Other Considerations](#BPX2) bit in the [Big Purple X?](#BPX) problem above.</div>
+<div style="margin-left: 2em;">Probably not a lot on this one. The STAC and the switch should get things sorted the next time they talk. If not, it's *possible* there are network congestion issues like mentioned in the [Other Considerations](#BPX2) bit in the [Big Purple X?](#BPX) problem above.
+
+If the STAC is being used in an emulated environment as in [Special Configurations](#SpecConfig) it's possible the emulated device is not responding in a way the STAC is expecting. If you think this is the case, take a look at the *STAC Communications.md* document in the repository.
+</div>
 
 ### _The Big Red X_
 
 **What you're seeing:**
 <div style="margin-left: 2em;">Well boss, there is a big red X on the display!
 <center>
-<img src="./images/err_intern.png">
+![BRX](./images/err_intern.png)
 </center></div>
 
 **What's causing it:**
@@ -490,9 +508,11 @@ No warranties are given. The license may not give you all of the permissions nec
 
 ---
 
-###Users Guide History
-**2021-04-01:** Changed all pictures to use the `<img src=" ">` syntax. Fixed a formatting error.
-**2021-03-31:** Added the "Back to the Beginning" section. Other minor editorial changes.  
+###Revision History
+
+**2021-04-05:** Revise to add user configurable Smart Tally device port number. Other minor changes.  
+**2021-04-01:** Changed all pictures to use the `<img src=" ">` syntax. Fixed a formatting error.  
+**2021-03-31:** Add the "Back to the Beginning" section. Other minor editorial changes.  
 **2021-03-29:** First release.
 
 ---
