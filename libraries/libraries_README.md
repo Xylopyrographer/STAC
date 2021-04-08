@@ -30,8 +30,8 @@ I'm not certain where this is kept on all platforms or where it was placed durin
 &mdash; Note &mdash;<br>You will have to repeat these steps whenever M5Stack updates their <br>M5Atom libraries as their new version will overwrite these modified files.|
 :---:
 
----
-<br>
+---  
+
 ## Improved Preferences Library
 After doing a deep dive into the Espressif ESP 32 IDF NVS storage methods and comparing their documentation to the Arduino ESP32 library, I modified the *Preferences.cpp* file to ensure changes made to the NVS when using certain Arduino *Preferences* function calls were committed to NVS. Those changes are documented in the modified *Preferences.h* file here.
 
