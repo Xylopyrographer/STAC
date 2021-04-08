@@ -42,7 +42,7 @@ While not essential for the STAC sketch to compile, I do believe these modified 
 I'm not certain where this is kept on all platforms or where it was placed during your install. Searching for a file named *Preferences.cpp* should turn it up.<br><br>On macOS the default location is:<br><br>
 `/Users/*YOUR_USER_NAME*/Library/Arduino15/packages/esp32/hardware/esp32/1.0.6/libraries/Preferences/src`  
 
-|&mdash; Note &mdash;As newer versions of the ESP32 Arduino libraries are released,the location will change to reflect the version number of those libraries.Thus, in the path above, you may need to replace *1.0.6* with the current version number.|
+|&mdash; Note &mdash;<br>As newer versions of the ESP32 Arduino libraries are released,the location will change to reflect the version number of those libraries.<br>Thus, in the path above, you may need to replace *1.0.6* with the current version number.|
 :--:  
 
 Inside the *src* folder:
