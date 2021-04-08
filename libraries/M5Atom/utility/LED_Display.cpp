@@ -16,7 +16,7 @@ void LED_Display::run(void *data)
 {
     data = nullptr;
 
-    for (int num = 0; num <= 24; num++) // Xylopyrographer was: for (int num = 0; num < 26; num++)
+    for (int num = 0; num <= 24; num++) // was: for (int num = 0; num < 26; num++)
     {
         _ledbuff[num] = 0x000000;
     }

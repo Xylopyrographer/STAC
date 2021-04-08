@@ -1,7 +1,7 @@
-/* STAC (Smart Tally ATOM Client) 
+/* STAC (Smart Tally ATOM Matrix Client) 
  *  
- *  Version: 1.7
- *  2021-04-02
+ *  Version: 1.7.1
+ *  2021-04-07
  *  
  *  Author: Xylopyrographer
  *  
@@ -29,41 +29,37 @@
  *          STAC_XXXXXXXX  
  *      where the X's are a set of 8 alphanumeric characters unique to every ATOM unit.
  *      
- *      Password is:  
+ *      Password is:
  *          1234567890
  *
  *      STAC configuration page is at:  
  *          192.168.6.14
- *
+ *          
+ *  More at: https://github.com/Xylopyrographer/STAC
+ *  
  */
-/*  Release Notes
- *      1.7
- *          - add support for user configurable ST Server port #. Allows STAC to be used in an emulated environment; as in a Tally Arbiter client
- * 
- */
-
 
 #include <WiFi.h>
-#include <M5Atom.h>             // #include's my modified M5Atom.h and M5Atom.cpp library.
-#include <Preferences.h>        // #include's my modified Preferences.cpp file.
+#include <M5Atom.h>             // this is a modified M5Atom library. See the docs in the repository for info.
+#include <Preferences.h>        // suggest using the modified Preferences library. See the docs in the repository for info.
 #define DATA_PIN_LED 27         // for the ATOM display - though abscence of this line seems to make no never mind...
 
-String swVer = "1.7";           // shows up on the web config page
+String swVer = "1.7.1";         // shows up on the web config page
 String apPrefix = "STAC_";      // prefix to use for naming the STAC AP SSID when being configured
 
 char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's web browser; max length of a WiFi SSID is 32 char
 char networkPass[64]{};         // ST server WiFI password. Configured via the user's web browser; max length of a password is 63 char
-char host[16]{};                // IP address of the ST server. Configured via the user's web browser; max length of an IP address is 15 char
+char stIP[16]{};                // IP address of the ST server. Configured via the user's web browser; max length of an IP address is 15 char
 uint16_t stPort;                // HTTP port of the actual or emulated Roland Smart Tally server (switcher). Configured via the user's web browser; 0 to 65353; default is 80
 
-
 bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
-bool debug = false;			    // will send debugging stuff out the on-board USB port of the Atom if true.
+bool debug = false;			    // will send any debugging stuff out the on-board USB port of the Atom if true.
+
 
 // ***** Global Variables *****
 // ~~~~~ State Machine Event Tansition Variables ~~~~~
 
-#define ST_POLL_INTERVAL 0                  // # of ms between polling the Smart Tally server for a tally status change
+#define ST_POLL_INTERVAL 150                // # of ms between polling the Smart Tally server for a tally status change
 #define ST_ATTEMPTS 10                      // # of times we try to connect to the Smart Tally server before giving up
 #define ST_CONNECT_TIMEOUT 500              // # of ms to wait before reattempting to connect to the ST Server after a failed connection attempt
 #define WIFI_CONNECT_TIMEOUT 60000          // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
@@ -130,7 +126,7 @@ typedef struct provision provData_t;
     stswPort        UShort      --> stswPort                    uint16_t        Port number of the actual or emulated Roland Smart Tally device
 */
 
-WiFiClient wfClient;				    // initiate the WiFi library and create a WiFi client object
+WiFiClient stClient;				    // initiate the WiFi library and create a WiFi client object
 
 // ----- Glyphs used by drawGlyph()
 
@@ -270,49 +266,42 @@ TallyState getTallyState(TState tally) {
         stClient.print("GET /tally/" +  TALLY_CHAN + "/status\r\n\r\n");            // Uses the short form of the tally status request
 */
 
-    String reply = "";
+    String reply = "\0\0\0\0\0\0\0\0\0\0\0";
     unsigned long stTimeout;
     int maxloops = 0;
-    tally.tState = "";
+    tally.tState = "nojoy";
     tally.tConnect = false;
     tally.tTimeout = false;
     tally.tNoReply = true;
 
-    if (!wfClient.connected()) {
-        stTimeout = millis() + ST_CONNECT_TIMEOUT;
-        while(!wfClient.connect(host, stPort) && stTimeout >= millis()) {
-            delay(1);
-        }
-        if (wfClient.connected()) {     // we're connected
+    stClient.setTimeout(0);                                 // stClient.readString() is a 1 sec blocking function by default!! This sets the 'wait for' timeout to 0.
+    
+    if (!stClient.connected()) {
+        if(stClient.connect(stIP, stPort)) {
             tally.tConnect = true;
         }
-        else {                          // we timed out
-            tally.tTimeout = true;
-//            wfClient.stop();          // close the connection to the server. Need this if we didn't connect??                   
-            return tally;               // failed to get a connection to the ST Server within the timeout period so bail back to the calling function.
+        else {
+            return tally;
         }
     }
+    stClient.print("GET /tally/");      // send the status request sent to the ST server
+    stClient.print(tally.tChannel);
+    stClient.print("/status\r\n\r\n");
 
-    wfClient.print("GET /tally/");      // send the status request sent to the ST server
-    wfClient.print(tally.tChannel); 
-    wfClient.println("/status\r\n");
-    
-    while (!wfClient.available() && maxloops < 1000) {    // Wait a maximum of 1 second for the ST server's reply to become available
+    while (stClient.available() == 0 && maxloops < 1000) {    // Wait a maximum of 1 second for the ST server's reply to become available
         maxloops++;
-        delay(1);                                         // wait a tick before checking again if there is a response from the ST Server.
+        delay(1);                                             // wait a tick before checking again if there is a response from the ST Server.
     }
-    
-    if (!wfClient.available()) {         // response from the ST Server timed out
-        tally.tTimeout = true;       
+    if (maxloops == 1000) {         // response from the ST Server timed out
+        tally.tTimeout = true;     
         return tally;
     }
-    
-    while (wfClient.available() > 0) reply += wfClient.readString();     // we have a response from the server
-    reply.trim();                                                        // knock any junk off the front and back of the reply.
-    tally.tState = reply;                                                // store the response
-    tally.tConnect = true;                                               // set our control flags
-    tally.tNoReply = false;
-    return tally;                                                        // and head back to the barn
+
+    while (stClient.available() > 0) reply += stClient.readString();        // we have a response from the server
+    reply.trim();                                                           // knock any junk off the front and back of the reply
+    tally.tState = reply;                                                   // store the response
+    tally.tNoReply = false;                                                 // set our control flags
+    return tally;                                                           // and head back to the barn
 
 }   //closing brace for getTallyState()
 
@@ -452,7 +441,7 @@ void drawGlyph(uint8_t glyph[], int colors[]) {
       - or if you like, "0" and "1" in glyph[i] are the background/foreground color selectors at that pixel location.
 */
 
-  for (int i = 0; i < 25; i++) {
+  for (int i = 0; i <= 24; i++) {
     M5.dis.drawpix(i, colors[glyph[i]]);
   }
 }   // closing brace for drawGlyph()
@@ -464,7 +453,7 @@ void drawOverlay(uint8_t glyph[], int ovColor) {
       - ovColor is a CGRB type
 */
 
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i <= 24; i++) {
         if (glyph[i] == 1) M5.dis.drawpix(i, ovColor);
     }
 
@@ -582,7 +571,7 @@ void sendtftf(WiFiClient theClient) {
 provData_t parseForm(String &formData) {
 /*  Extracts the data from the POST response returned by the client web browser
  *      - Example last line of a POST response:
- *        SSID=SandyShores222&pwd=flatBUSH%40%26%24%29%28%3B%3A%2F-3546&stIP=192.168.2.132&stChan=7
+ *        SSID=SandyShores222&pwd=flatBUSH%40%26%24%29%28%3B%3A%2F-3546&stIP=192.168.2.132&stPort=80&stChan=7
  */
 
     String payload = "";
@@ -673,8 +662,8 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
 
     const char* password = "1234567890";        // the password for our WiFi AP
     IPAddress configIP(192, 168, 6, 14);        // sets the IP...
-    IPAddress gateway(192, 168, 6, 14);         // gateway...
-    IPAddress NMask(255, 255, 255, 0);          // and network mask of the AP
+    IPAddress gateway(192, 168, 6, 14);         // ...gateway...
+    IPAddress NMask(255, 255, 255, 0);          // ...and network mask of the AP
     WiFiServer server(80);                      // init a server class & set the AP to listen for inbound connections on port 80
     bool hideSSID = false;                      // false to broadcast the SSID of our AP network, true to hide it
     uint8_t wifiChan = 1;                       // WiFi channel to use. Default is 1, max is 13
@@ -686,10 +675,10 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
 
                                                             // create the device unique AP SSID
     uint32_t chiptID = (uint32_t)(ESP.getEfuseMac() >> 16); // grab the top four bytes of the chip id and...
-    String tempx = ssidPrefix + String(chiptID, HEX);       // use that to create the last part of the unique SSID for our AP
+    String tempx = ssidPrefix + String(chiptID, HEX);       // ...use that to create the last part of the unique SSID for our AP
     tempx.toUpperCase();                                    // flip any hex alphas to upper case
     char apssid[tempx.length() + 1];                        // create the C-string style char array to hold the SSID and...
-    tempx.toCharArray(apssid, tempx.length() + 1);          // copy the String into the apssid char array
+    tempx.toCharArray(apssid, tempx.length() + 1);          // ...copy the String into the apssid char array
 
     // set up the WiFi access point
     WiFi.mode(WIFI_AP);                                                 // configure the WiFi mode to AP 
@@ -697,6 +686,8 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
     WiFi.softAP(apssid, password, wifiChan, hideSSID, maxConnect);      // set the SSID, password, etc. of our AP (all the WiFi stuff)
     WiFi.softAPConfig(configIP, gateway, NMask);                        // set the IP address, gateway and network mask of our AP (all the networking stuff)
     server.begin();                                                     // fire up the AP server
+
+    stClient.setTimeout(250);                     // the Stream.readString() function has a 1s blocking 'wait for' by default. This sets it to 250ms.
 
     // let's go fetch the info from the user's web browser...
     formReceived = false;
@@ -706,7 +697,7 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
             clData = "";                                                                // clear out any old client data received                        
             while (scClient.connected()) {                                              // loop while the client's connected
                 if (scClient.available()) {                                             // if there's something from from the client...
-                    while (scClient.available()) clData += scClient.readString();       // suck in the entire response from the client
+                    while (scClient.available()) clData += scClient.readString();       // suck in the entire response from the client (timeout for the .readString() is set above)
                     if (clData.indexOf("GET / HTTP/") >= 0) {                           // goody! a root request...
                         formReceived = false;                                           // but we're stil waiting on the form...
                         sendForm(scClient, swVersion);                                  // so send the form
@@ -724,7 +715,7 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
                 }   // closing brace for if (scClient.available())               
             }   // closing brace for while (scClient.connected())
         }   // closing brace for if (scClient)
-    } while (!formReceived);
+    } while (!formReceived);                                                            // stay here forever until the POST is received
     
                                             // we got the goods so, shut down the access point
     scClient.stop();                        // stop listening for incoming stuff
@@ -743,22 +734,14 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
 // And so it begins....
 
 void setup() {
-    
+
     provData_t sConfigData;                 // structure to hold the WiFi provisioning data from user's web browser
     bool tpInit;                            // true if the NVS storage has been initialized
     bool provisioned;                       // true if the WiFi provisioning has been done
-    
+
     // M5.begin(SerialEnable = true|false, I2CEnable = true|false, DisplayEnable = true|false);
-    
-    if (debug) { 
-        M5.begin(true, false, true);        // only need the on-board serial port if we're in debug mode...
-        Serial.begin(115200);
-        while (!Serial);                    // wait for serial port to connect. Needed for native USB port only
-    }
-    else {    
-        M5.begin(false, false, true);
-    }
-    delay(25);
+    M5.begin(true, false, true);
+    delay(500);
     M5.dis.clear();
     M5.dis.setBrightness(10);
     M5.dis.drawpix(poPixel, poColor);                   // turn on the power LED
@@ -783,8 +766,8 @@ void setup() {
         if (provisioned) {                                 // if we were previosly provisioned...
             unsigned long resetTime = millis() + 2000;
             while (M5.Btn.read() == 1) {
-                if (millis() >= resetTime) {                // and the button is still down for 2s
-                    drawGlyph(GLF_FM, alertcolor);             // user wants to reset all prefs in NVS
+                if (millis() >= resetTime) {                // and the button is still down for 2s...
+                    drawGlyph(GLF_FM, alertcolor);             // user wants to reset all prefs in NVS (factory reset)
                     drawOverlay(GLF_CK, GRB_COLOR_GREEN);      // confirm to the user...
                     while (M5.Btn.read() == 1);             // wait for the button to be released
                     stcPrefs.begin("STCPrefs", false);      // open the preferences in R/W mode...
@@ -895,19 +878,46 @@ void setup() {
     tempstring.toCharArray(networkPass, tempstring.length());
 
     tempstring = stcPrefs.getString("stswIP") + '\0';           // ST switch IP address. Make it a C-string    
-    tempstring.toCharArray(host, tempstring.length());
+    tempstring.toCharArray(stIP, tempstring.length());
 
     stPort = stcPrefs.getUShort("stswPort");                      // ST port number
  
     stcPrefs.end();                                             // close our preferences namespace
     
     M5.dis.setBrightness(currentBrightness);
-    tallyStatus.tState = "7";    
+    tallyStatus.tState = "7";
     tallyStatus.tConnect = false;
     tallyStatus.tTimeout = true;
     tallyStatus.tNoReply = true;
     wifiStatus.wfconnect = false;
     wifiStatus.timeout = false;
+    
+    Serial.println("\r\n======================================");
+    Serial.println("             STAC");
+    Serial.println("A Smart Tally ATOM Matrix Client");
+    Serial.println("        by: Xylopyrographer");
+    Serial.println("https://github.com/Xylopyrographer/STAC\r\n");
+    Serial.print("    Software Version: ");
+    Serial.println(swVer);
+    Serial.print("    WiFi Network SSID: ");
+    Serial.println(networkSSID);
+    Serial.print("    Smart Tally IP: ");
+    Serial.println(stIP);
+    Serial.print("    Port #: ");
+    Serial.println(stPort);
+    Serial.print("    Operating Mode: ");
+    if (ctMode) {
+        Serial.println("Camera Operator");
+    }
+    else {
+        Serial.println("Talent");
+    }
+    Serial.print("    Active Tally Channel: ");
+    Serial.println(tallyStatus.tChannel);
+    Serial.print("    Max Tally Channel: ");
+    Serial.println(tallyStatus.tChanMax);
+    Serial.println("======================================");
+
 
     delay(1000);                                                // all the background setup is done. Pause for the "GUI"
 
@@ -998,27 +1008,27 @@ void loop() {
 
     M5.update();        // put this at the top of loop() instead of the bottom so it always gets hit
     
-/* ~~~~~ Update Brightness contol logic ~~~~~ 
-*/
+/* ~~~~~ Update Brightness contol logic ~~~~~ */
+
     if (M5.Btn.pressedFor(1500)) {
         updateBrightness();
         M5.dis.clear();
         M5.dis.drawpix(poPixel, poColor);
         nextPollTime = millis();                // force a repoll of the tally state
-        lastTallyState = "";
+        lastTallyState = "11";
     
     }   // closing brace for Update Brightness contol logic
     
-/* ~~~~~ Connect to WiFi control logic ~~~~~
-*/
+/* ~~~~~ Connect to WiFi control logic ~~~~~ */
+
     if (WiFi.status() != WL_CONNECTED) {
         if (wifiStatus.wfconnect) {             // if we had a previous good WiFi connection...
             wifiStatus.wfconnect = false;       // reset the control logic...
             wifiStatus.timeout = false;         
-            tallyStatus.tState = "";
+            tallyStatus.tState = "9";
             tallyStatus.tConnect = false;
             tallyStatus.tTimeout = true;
-            tallyStatus.tNoReply = true;        //  flags & varialbles
+            tallyStatus.tNoReply = true;        // ...flags & varialbles
             if (ctMode) {                                   
                 drawGlyph(GLF_WIFI, alertcolor);            // let the user know we lost WiFi... 
                 flashDisplay(8, 300, currentBrightness);
@@ -1057,9 +1067,9 @@ void loop() {
         }
     }
 
-/* ~~~~~ Get Tally State Control logic ~~~~~ 
-*/ 
-    if (millis() >= nextPollTime && WiFi.status() == WL_CONNECTED) {
+/* ~~~~~ Get Tally State Control logic ~~~~~ */
+
+    if (millis() >= nextPollTime && wifiStatus.wfconnect) {
         tallyStatus = getTallyState(tallyStatus);
         if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {
             if (ctMode) {
@@ -1069,15 +1079,15 @@ void loop() {
                 M5.dis.fillpix(GRB_COLOR_GREEN);        // else change the display to the PVW colour
                 M5.dis.drawpix(poPixel, poColor);       // turn on the power LED
             }
-            lastTallyState = "";
+            lastTallyState = "10";
             nextPollTime = millis();                    // force a re-poll next time through loop()
             return;                                     // assuming this takes you back to the start of loop()?
         }
         nextPollTime = millis() + ST_POLL_INTERVAL;
     }
 
-/* ~~~~~ Update Tally Display control logic ~~~~~
-*/
+/* ~~~~~ Update Tally Display control logic ~~~~~ */
+
     if (tallyStatus.tState != lastTallyState) {
         lastTallyState = tallyStatus.tState;   
         if (tallyStatus.tState == "onair") {                    // was tallyStatus.tState == String("onair")

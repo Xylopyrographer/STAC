@@ -52,7 +52,7 @@ public:
     void setBrightness(uint8_t brightness);
     void drawpix(uint8_t xpos, uint8_t ypos, CRGB Color);
     void drawpix(uint8_t Number, CRGB Color);
-    void fillpix(CRGB Color);
+    void fillpix(CRGB Color);   // this line added 2021-01-29 by Xylopyrographer
     void clear();
 };
 

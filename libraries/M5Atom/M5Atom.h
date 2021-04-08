@@ -27,8 +27,7 @@
     void setBrightness(uint8_t brightness);
     void drawpix(uint8_t xpos, uint8_t ypos, CRGB Color);
     void drawpix(uint8_t Number, CRGB Color);
-    void fillpix(CRGB Color);	// added by Xylopyrographer 2021-01-29
-                                // Also modified LED_Display.h & LED_Display.cpp
+    void fillpix(CRGB Color);	//  Xylopyrographer 2021-01-29: line added. Requires modified LED_Display.h & LED_Display.cpp
     void clear();
 
     Button:

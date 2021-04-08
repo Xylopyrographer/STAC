@@ -1,8 +1,8 @@
-# STAC
-## (Smart Tally Atom Client)
-**A Roland Smart Tally Client**
+# STAC  
+## (Smart Tally Atom Client)  
+**A Roland Smart Tally Client**  
 
-This is an Arduino sketch designed to run on an [M5Stack ATOM Matrix](https://docs.m5stack.com/#/en/core/atom_matrix) board.
+An Arduino sketch designed to run on an [M5Stack ATOM Matrix](https://docs.m5stack.com/#/en/core/atom_matrix) board.
 
 Its purpose is to monitor the tally status of a single video input channel 
 of a Roland video device that implements their proprietary Smart Tally protocol.
@@ -23,32 +23,23 @@ the colour of the display on the ATOM:
 Configuration of the STAC for the WiFi credentials and IP address, port number  
 and number of tally channels of the Roland switch is done using a web browser.
 
-When in its Configuration state the:
+Lots of good information in the *STAC User Guide*, located in the `manual` folder.
 
-* STAC WiFi SSID is:  
-     * **STAC_XXXXXXXX**  
-where the X's are a set of characters unique to every ATOM unit.
+There are other good bits you'll want to read in the `STAC` folder.
 
-* Password is:  
-     * **1234567890**
-    
-* STAC configuration page is at:  
-    * **192.168.6.14**
-
-
-To use this sketch:
+## To use this sketch:
 
 * download the zip file from the **Code** tab
-* unzip the STAC-main.zip file
-* rename the unzipped folder from  *STAC-main* to just *STAC*
-* move the *STAC* folder to your Arduino sketch folder.
+* unzip the `STAC-main.zip` file
+* rename the unzipped folder from  `STAC-main` to just `STAC`
+* move the `STAC` folder to your Arduino sketch folder.
 
-Use of this sketch requires a modified set of libraries. See the *library_README.md* file in the *library* folder.
-
-Additional information is in the User Manual, located in the *manual* folder.
-
+|Use of this sketch requires a modified set of libraries. <br>See the`libraries_README.md` file in the `libraries` folder.|  
+:---:
+<br><br>
 ---
 
-## Revision History
+### Document Revision History
 
-**2021-04-05:** Revise for user configurable port number
+**2021-04-07:** Delete config info. Minor format changes.  
+**2021-04-05:** Revise for user configurable port number.
