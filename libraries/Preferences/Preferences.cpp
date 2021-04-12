@@ -13,8 +13,10 @@
 // limitations under the License.
 
 // Modified 2021-03-23 by Xylopyrographer to add an nvs_commit() to the 
-// .clear(), .remove() and .end() functions as required per
+// clear(), remove() and end() methods as required per
 // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html
+// Modified 2021-04-12 by Xylopyrographer to correct a coding error in writing to the log_e file in 
+//  the clear() and end() methods.
 
 #include "Preferences.h"
 
@@ -58,14 +60,14 @@ bool Preferences::begin(const char * name, bool readOnly, const char* partition_
     return true;
 }
 
-void Preferences::end(){       // modified 2021-03-23 by Xylopyrographer to add an nvs_commit()
+void Preferences::end(){                                         // modified 2021-03-23 by Xylopyrographer to add an nvs_commit()
     if(!_started){
         return;
     }
-    esp_err_t err = nvs_commit(_handle);                         
+    esp_err_t err = nvs_commit(_handle);                         // to undo changes: delete the lines from here...
     if(err){
-        log_e("nvs_commit fail: %s %s", key, nvs_error(err));
-    }
+        log_e("nvs_commit fail: %s", nvs_error(err));
+    }                                                            // to here.
     nvs_close(_handle);
     _started = false;
 }
@@ -74,7 +76,7 @@ void Preferences::end(){       // modified 2021-03-23 by Xylopyrographer to add 
  * Clear all keys in opened preferences
  * */
 
-bool Preferences::clear(){          // modified 2021-03-23 by Xylopyrographer to add an nvs_commit()
+bool Preferences::clear(){                                  // modified 2021-03-23 by Xylopyrographer to add an nvs_commit()
     if(!_started || _readOnly){
         return false;
     }
@@ -83,12 +85,13 @@ bool Preferences::clear(){          // modified 2021-03-23 by Xylopyrographer to
         log_e("nvs_erase_all fail: %s", nvs_error(err));
         return false;
     }
-    err = nvs_commit(_handle)
+    // return true;                                         // to undo changes: uncomment this line and...
+    err = nvs_commit(_handle);                              // delete the lines from from here...
     if(err){
-        log_e("nvs_commit fail: %s %s", key, nvs_error(err));
+        log_e("nvs_commit fail: %s", nvs_error(err));
         return false;
     }
-    return true;
+    return true;                                            // to here.
 }
 
 /*
@@ -104,12 +107,13 @@ bool Preferences::remove(const char * key){                 // modified 2021-03-
         log_e("nvs_erase_key fail: %s %s", key, nvs_error(err));
         return false;
     }
-    err = nvs_commit(_handle);
+    // return true;                                         // to undo changes: uncomment this line and...
+    err = nvs_commit(_handle);                              // delete the lines from from here...
     if(err){
         log_e("nvs_commit fail: %s %s", key, nvs_error(err));
         return false;
     }
-    return true;
+    return true;                                            // to here.
 }
 
 /*
