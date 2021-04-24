@@ -39,7 +39,7 @@ Any other response will cause the STAC to display an error state as described in
 
 ## Other Considerations
 
-The STAC send no identifiable information directly in the status request. Thus in emulated environments, using the requested tally channel number as a STAC  identifier may limit the number of physical STACs that can be used.
+The STAC sends no identifiable information directly in the status request. Thus in emulated environments, using the requested tally channel number as a STAC  identifier may limit the number of physical STACs that can be used.
 
 Other methods, such as using the MAC address or IP address assigned to a STAC from the router, may be considered.
 
