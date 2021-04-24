@@ -1,21 +1,18 @@
-# Release Notes
+# STAC Release Notes
 
-## Version 1.8
-
-__2021-04-24__
+## 1.8
 
 __New Feature__
 
-* Adds Autostart Mode. On startup when autostart is set, if no button press is seen for about 10 seconds, the STAC will jump right to the WiFi connect sequence and then start displaying the tally status of the active channel.
+* Adds Autostart Mode.
+    * On startup when autostart is set, if no button press is seen for about 10 seconds, the STAC will jump right to the WiFi connect sequence and then start displaying the tally status of the active channel.
 More in the User's Guide.
 
 __Fixes__
 
-* When configurin the STAC via a web browser, the SSID and password fields now accepts spaces as given instead of converting them to '+' characters.
+* When configuring the STAC via a web browser, the SSID and password fields now accept spaces as given instead of converting them to '+' characters.
 
-
-
-## Version 1.7.1.1
+## 1.7.1.1
 
 Minor bug fix release.
 
@@ -35,3 +32,14 @@ If you did replace the standard `Preferences.cpp` file, follow the directions in
 My apologies. Nothing like writing code to keep one humble.
 
 
+## 1.7.1
+- improve the ST server poll response time by about a gazillion. As a result...
+- ...the ST\_POLL\_INTERVAL now does indeed govern the time between ST server polls
+- add an information dump to the serial port on startup
+
+## 1.7
+- add support for user configurable ST Server port #.
+    - Allows STAC to be used in an emulated environment; as in a [Tally Arbiter](http://www.tallyarbiter.com) client
+
+## 1.6
+- first public release
