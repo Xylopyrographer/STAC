@@ -53,7 +53,7 @@ uint16_t stPort;                // HTTP port of the actual or emulated Roland Sm
 
 bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
 bool autoStart;                 // initialzed in setup(). true to bypass the normal "click through to confirm start" sequence.
-bool debug = false;			    // will send any debugging stuff out the on-board USB port of the ATOM if true.
+bool debug = false;			        // will send any debugging stuff out the on-board USB port of the ATOM if true.
 
 
 // ***** Global Variables *****
@@ -70,6 +70,7 @@ String lastTallyState = "--nullll--";
 uint8_t btnWas, btnNow;                     // used in the button click detector buttonClicked() and the control logic for this fn
 bool escapeFlag = false;                    // used for getting out of the settings loops in setup()
 unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status
+unsigned long lastPollTime;                 // holds the millis() counter value for the last time the counter was updated.
 
 // ===== Define data strcutures used by the Control loop() =====
 //          - using structures to pass the state conditions from the state functions back to the control loop
@@ -88,6 +89,7 @@ struct TState {
     bool tNoReply;      // true iff (ST Server is connected AND a GET request was sent AND the response was not
                         //     received within the timeout period) OR (tTimeout is true)
     String tState;      // the state of the tally channel being monitored as returned by the querry to the ST Server
+    uint8_t tHistory;   // keeps track of the last 8 server requests
 } tallyStatus;
 
 typedef struct WfState WiFiState;       // going to need a function that returns a WfState structure
@@ -327,7 +329,7 @@ void changeTallyChannel() {
     uint8_t tallyChanNow = tallyStatus.tChannel;     // keep the tally channel state we had on entry
 
     drawGlyph(glyphMap[tallyStatus.tChannel], tallychangecolor);    // display the current tally channel
-    
+   
     while (M5.Btn.read() == 1);                     // don't proeeed until the button is released.
     btnWas = 0;                                     // initialize the click detector
     updateTimeout = millis() + 30000;               // delete this line if you don't want to leave after a period of inactivity
@@ -1155,7 +1157,7 @@ void setup() {
 void loop() {
 
     M5.update();        // put this at the top of loop() instead of the bottom so it always gets hit
-    
+        
     /* ~~~~~ Update Brightness contol logic ~~~~~ */
 
     if (M5.Btn.pressedFor(1500)) {
@@ -1177,6 +1179,7 @@ void loop() {
             tallyStatus.tConnect = false;
             tallyStatus.tTimeout = true;
             tallyStatus.tNoReply = true;        // ...flags & varialbles
+            tallyStatus.tHistory = 0;            
             if (ctMode) {                                   
                 drawGlyph(GLF_WIFI, alertcolor);            // let the user know we lost WiFi... 
                 flashDisplay(8, 300, currentBrightness);
@@ -1218,26 +1221,59 @@ void loop() {
     /* ~~~~~ Get Tally State Control logic ~~~~~ */
 
     if (millis() >= nextPollTime && wifiStatus.wfconnect) {
+      
         tallyStatus = getTallyState(tallyStatus);
+       
         if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {
+
+            unsigned long elapsed_time = nextPollTime-lastPollTime ;                          // Counter to determine the last time the server was polled
+
             if (ctMode) {
-                drawGlyph(GLF_BX, purplecolor);          // throw up the big purple X...
+              Serial.println("Server Timeout : Possible Glitch");                             // Starting to look for possible server glitches
+              tallyStatus.tHistory = tallyStatus.tHistory << 1 ;                              // Shift the old values to the left by 1 bit
+              tallyStatus.tHistory += 1 ;                                                     // Marking the glitch in a bit field
             }
-            else {
-                M5.dis.fillpix(GRB_COLOR_GREEN);        // else change the display to the PVW colour
-                M5.dis.drawpix(poPixel, poColor);       // turn on the power LED
+
+            if ( (tallyStatus.tHistory == 1 ) ||
+                 (tallyStatus.tHistory == 3 ) ||
+                 (tallyStatus.tHistory == 7 ) ||
+                 (tallyStatus.tHistory == 15 ) ||
+                 (tallyStatus.tHistory == 31 ) ||
+                 (tallyStatus.tHistory == 63 ) ||
+                 (tallyStatus.tHistory == 127 ) ||
+                 (tallyStatus.tHistory == 255 ) ) {                                           // If any of the last 8 polls are "on" check
+
+                if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )                            // Check to verify that the elapsed time meets the minimum interval 
+                {
+                    if (ctMode)
+                    {
+                        Serial.println("Server Timeout : Displaying X");                      // Notify to the Serial stream
+                        Serial.println(tallyStatus.tHistory);                                 // Debug history
+                        drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
+                    }
+                    else {
+                        M5.dis.fillpix(GRB_COLOR_GREEN);                                      // else change the display to the PVW colour          
+                        M5.dis.drawpix(poPixel, poColor);                                     // turn on the power LED
+                    }
+                }
             }
+
             lastTallyState = "10";
-            nextPollTime = millis();                    // force a re-poll next time through loop()
-            return;                                     // assuming this takes you back to the start of loop()?
+            lastPollTime = nextPollTime ;                                                     // Keep track of the last poll time
+            nextPollTime = millis() ;                                                         // force a re-poll next time through loop()
+            return;                                                                           // assuming this takes you back to the start of loop()?
         }
+                
+        lastPollTime = nextPollTime ;
         nextPollTime = millis() + ST_POLL_INTERVAL;
     }
 
     /* ~~~~~ Update Tally Display control logic ~~~~~ */
 
     if (tallyStatus.tState != lastTallyState) {
+           
         lastTallyState = tallyStatus.tState;   
+        
         if (tallyStatus.tState == "onair") {                    // was tallyStatus.tState == String("onair")
             M5.dis.fillpix(GRB_COLOR_RED);                      // Change the display to the PGM colour;
         }
@@ -1252,22 +1288,30 @@ void loop() {
                 M5.dis.fillpix(GRB_COLOR_GREEN);                // else change the display to the PVW colour
             }
         }
-        else {
+        else 
+        {
+            // Check to make sure that this is not a one-off and only display the X if the server 
+            // connection does not respond over a 2 second period
+
             // Things have gone wrong big time.
-            
             Serial.println("\r\n!!!!! TALLY CHANNEL IS IN AN *** UNKNOWN *** state. !!!!!\r\n");
            
             if (ctMode) {
-                drawGlyph(GLF_QM, purplecolor);      // throw up a purple "?"...
+                drawGlyph(GLF_QM, purplecolor);               // throw up a purple "?"...
             }
             else {
-                M5.dis.fillpix(GRB_COLOR_GREEN);                // else change the display to the PVW colour
+                M5.dis.fillpix(GRB_COLOR_GREEN);              // else change the display to the PVW colour
             }
             lastTallyState = "";
-            return;                              // and bail back to the start of loop() 
+
+            return;                                           // and bail back to the start of loop() 
         }
-        M5.dis.drawpix(poPixel, poColor);         // turn on the power LED
+
+        M5.dis.drawpix(poPixel, poColor);                     // turn on the power LED
+        
     }
+
+    tallyStatus.tHistory = tallyStatus.tHistory << 1 ;        // Shift tally state bit left by 1
 
     // ~~~~~ End of the Control loop
     
