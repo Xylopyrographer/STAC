@@ -307,7 +307,7 @@ TallyState getTallyState(TState tally) {
         delay(1);                                             // wait a tick before checking again if there is a response from the ST Server.
     }
     if (maxloops == 1000) {         // response from the ST Server timed out
-        tally.tTimeout = true;     
+        tally.tTimeout = true;
         return tally;
     }
 
@@ -1248,7 +1248,6 @@ void loop() {
                     if (ctMode)
                     {
                         Serial.println("Server Timeout : Displaying X");                      // Notify to the Serial stream
-                        Serial.println(tallyStatus.tHistory);                                 // Debug history
                         drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
                     }
                     else {
