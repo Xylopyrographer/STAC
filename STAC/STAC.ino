@@ -294,7 +294,14 @@ TallyState getTallyState(TState tally) {
         if(stClient.connect(stIP, stPort)) {
             tally.tConnect = true;
         }
-        else {
+        else 
+        {
+            Serial.println("Tally Server Connect Failure");                      // Could not connect to Tally
+            Serial.println("Server Timeout : Displaying X - Tally State");       // Notify to the Serial stream
+            drawGlyph(GLF_BX, purplecolor);                                      // throw up the big purple X...
+
+            tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+            tally.tHistory += 1 ;                                                // Marking the glitch in a bit field
             return tally;
         }
     }
@@ -1224,30 +1231,27 @@ void loop() {
       
         tallyStatus = getTallyState(tallyStatus);
        
-        if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {
-
+        if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply)
+        {
             unsigned long elapsed_time = nextPollTime-lastPollTime ;                          // Counter to determine the last time the server was polled
 
-            if (ctMode) {
+            if (tallyStatus.tConnect == false)
+            {
               Serial.println("Server Timeout : Possible Glitch");                             // Starting to look for possible server glitches
-              tallyStatus.tHistory = tallyStatus.tHistory << 1 ;                              // Shift the old values to the left by 1 bit
-              tallyStatus.tHistory += 1 ;                                                     // Marking the glitch in a bit field
+              tallyStatus = getTallyState(tallyStatus);                                       // Check the Tally State again
             }
 
-            if ( (tallyStatus.tHistory == 1 ) ||
-                 (tallyStatus.tHistory == 3 ) ||
-                 (tallyStatus.tHistory == 7 ) ||
-                 (tallyStatus.tHistory == 15 ) ||
-                 (tallyStatus.tHistory == 31 ) ||
-                 (tallyStatus.tHistory == 63 ) ||
-                 (tallyStatus.tHistory == 127 ) ||
-                 (tallyStatus.tHistory == 255 ) ) {                                           // If any of the last 8 polls are "on" check
-
+            if ( (tallyStatus.tHistory == 1 ) ||(tallyStatus.tHistory == 3 ) ||
+                 (tallyStatus.tHistory == 7 ) || (tallyStatus.tHistory == 15 ) ||
+                 (tallyStatus.tHistory == 31 ) || (tallyStatus.tHistory == 63 ) ||
+                 (tallyStatus.tHistory == 127 ) ||(tallyStatus.tHistory == 255 ) )
+            {                                                                                 // If any of the last 8 polls are "on" check
                 if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )                            // Check to verify that the elapsed time meets the minimum interval 
                 {
                     if (ctMode)
                     {
-                        Serial.println("Server Timeout : Displaying X");                      // Notify to the Serial stream
+                        Serial.println("Server Timeout : Displaying X - MainLoop");           // Notify to the Serial stream
+                        Serial.println( tallyStatus.tHistory ) ;
                         drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
                     }
                     else {
@@ -1256,13 +1260,11 @@ void loop() {
                     }
                 }
             }
-
             lastTallyState = "10";
             lastPollTime = nextPollTime ;                                                     // Keep track of the last poll time
             nextPollTime = millis() ;                                                         // force a re-poll next time through loop()
             return;                                                                           // assuming this takes you back to the start of loop()?
-        }
-                
+        }   
         lastPollTime = nextPollTime ;
         nextPollTime = millis() + ST_POLL_INTERVAL;
     }
