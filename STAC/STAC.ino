@@ -298,7 +298,13 @@ TallyState getTallyState(TState tally) {
         {
             Serial.println("Tally Server Connect Failure");                      // Could not connect to Tally
             Serial.println("Server Timeout : Displaying X - Tally State");       // Notify to the Serial stream
-            drawGlyph(GLF_BX, purplecolor);                                      // throw up the big purple X...
+ 
+            if (ctMode)
+                drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
+            else {
+                M5.dis.fillpix(GRB_COLOR_GREEN);                                      // else change the display to the PVW colour          
+                M5.dis.drawpix(poPixel, poColor);                                     // turn on the power LED
+            }
 
             tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
             tally.tHistory += 1 ;                                                // Marking the glitch in a bit field
@@ -1246,12 +1252,12 @@ void loop() {
                  (tallyStatus.tHistory == 31 ) || (tallyStatus.tHistory == 63 ) ||
                  (tallyStatus.tHistory == 127 ) ||(tallyStatus.tHistory == 255 ) )
             {                                                                                 // If any of the last 8 polls are "on" check
+                Serial.println("Inside Server Timeout check");
                 if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )                            // Check to verify that the elapsed time meets the minimum interval 
-                {
+                {                  
                     if (ctMode)
                     {
                         Serial.println("Server Timeout : Displaying X - MainLoop");           // Notify to the Serial stream
-                        Serial.println( tallyStatus.tHistory ) ;
                         drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
                     }
                     else {
