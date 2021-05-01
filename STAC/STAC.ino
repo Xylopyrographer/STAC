@@ -53,8 +53,8 @@ uint16_t stPort;                // HTTP port of the actual or emulated Roland Sm
 
 bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
 bool autoStart;                 // initialzed in setup(). true to bypass the normal "click through to confirm start" sequence.
-bool debug = false;			    // will send any debugging stuff out the on-board USB port of the ATOM if true.
-
+bool debug = false;			        // will send any debugging stuff out the on-board USB port of the ATOM if true.
+bool Accelerometer = false;     // State to determine if an accelerometer is supported by this hardware.
 
 // ***** Global Variables *****
 // ~~~~~ State Machine Event Tansition Variables ~~~~~
@@ -64,6 +64,11 @@ bool debug = false;			    // will send any debugging stuff out the on-board USB 
 #define ST_CONNECT_TIMEOUT 500              // # of ms to wait before reattempting to connect to the ST Server after a failed connection attempt
 #define WIFI_CONNECT_TIMEOUT 60000          // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 #define WIFI_ATTEMPTS 6                     // # of times to try to connect to the WiFi network before giving up
+
+enum class ORIENTATION { UP, DOWN, LEFT, RIGHT } ;              // Enumeration for orientation postions
+float LOW_TOL = 100;                                            // Accelerometer parameters
+float HIGH_TOL = 900;                                           // Accelerometer parameters
+float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0 ;        // Accelerometer parameters
 
 Preferences stcPrefs;                       // holds the operational parameters in NVS for retention across power cycles.
 String lastTallyState = "--nullll--";
@@ -130,9 +135,10 @@ typedef struct provision provData_t;
 
 WiFiClient stClient;				    // initiate the WiFi library and create a WiFi client object
 
-// ----- Glyphs used by drawGlyph()
+#define TOTAL_GLYPHS 30         // Maxmimum number of Glyphs in memory
 
-uint8_t glyphMap[30] [25] = {
+// This is the base set of Glyphs before rotation
+uint8_t baseGlyphMap[TOTAL_GLYPHS][25] = {
     {0,0,1,0,0,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,0,0,1,0,0},    // 0
     {0,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,1,1,0},    // 1
     {0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1,1,1,0},    // 2
@@ -165,6 +171,9 @@ uint8_t glyphMap[30] [25] = {
     {0,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1,0,0},    // S
     
 };
+
+// This is the set of Glyphs that will be used by drawGlyph()
+uint8_t glyphMap[TOTAL_GLYPHS][25] = {0} ;
 
 /* ----- mnemonic define table for the glyphMap[] -----
  *  Need to keep the numbers 0 to 9 at the start of the array and in the order below as latter 
@@ -821,6 +830,100 @@ provData_t getCreds(String &ssidPrefix, String &swVersion) {
 
 }   // closing brace for getCreds()
 
+
+//
+//  Code to retrieve the current orientation of the STAC
+//
+
+ORIENTATION getOrientation( )
+{
+    ORIENTATION stacState = ORIENTATION::UP;
+  
+    if(Accelerometer)                               // Make sure the accelerometer is supported by this HW
+    {
+        float accX=0, accY=0, accZ = 0 ;      
+      
+        M5.IMU.getAccelData(&accX, &accY, &accZ);   // Call into the accelerometer to get the current values 
+        
+        float scaledAccX = accX * 1000;
+        float scaledAccY = accY * 1000;
+        float scaledAccZ = accZ * 1000;
+
+        if( ( abs(scaledAccX) < HIGH_TOL ) && ( abs(scaledAccY) > MID_TOL ) && ( abs(scaledAccZ) < HIGH_TOL ) )
+        {
+            if ( scaledAccY > 0 )                   // Device is oriented Up            
+            {
+                stacState = ORIENTATION::UP;
+                // Serial.println( "Scaled Y > 0,  Device is oriented Up" ) ;
+            }
+            else // scaledAccY < 0                  // Device is oriented Down
+            {
+                stacState = ORIENTATION::DOWN;
+                // Serial.println( "Scaled Y < 0,  Device is oriented Down" ) ;
+            }
+        }
+        else if( ( abs(scaledAccX) > MID_TOL ) && ( abs(scaledAccY) < HIGH_TOL ) && ( abs(scaledAccZ) < HIGH_TOL ) )
+        {
+            if( scaledAccX > 0 )                    // Device is oriented Right
+            {
+                stacState = ORIENTATION::RIGHT;
+                // Serial.println( "Scaled X > 0,  Device is oriented Right" ) ;
+            }
+            else // scaledAccX < 0                  // Device is oriented Left
+            {
+                stacState = ORIENTATION::LEFT;
+                // Serial.println( "Scaled X < 0,  Device is oriented Left" ) ;
+            }
+        }
+        else
+        {
+            // Serial.printf( "Orientation is flat or clost to flat" );
+        }
+    }
+
+    return stacState ;
+}
+
+//
+//  Code to rotate the Glyphs for STAC
+//
+
+void rotateGlyphs( ORIENTATION stacOrientation )
+{
+    // Initalize the rotation vectors
+    int rotate_0[25] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
+    int rotate_90[25] = {20,15,10,5,0,21,16,11,6,1,22,17,12,7,2,23,18,13,8,3,24,19,14,9,4};
+    int rotate_180[25] = {24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0};
+    int rotate_270[25] = {4, 9,14,19,24,3,8,13,18,23,2,7,12,17,22,1,6,11,16,21,0,5,10,15,20};
+  
+    // Initalize the rotation LUT
+    int * rotation_LUT = NULL ;
+  
+    // Determine which rotation to use
+    if ( stacOrientation == ORIENTATION::DOWN )                 // Upside Down
+      rotation_LUT = rotate_180 ;
+    else if ( stacOrientation == ORIENTATION::LEFT )            // Rotated to left 
+      rotation_LUT = rotate_90 ;
+    else if ( stacOrientation == ORIENTATION::RIGHT )           // Rotated to Right
+      rotation_LUT = rotate_270 ;
+    else
+      rotation_LUT = rotate_0 ; 
+  
+    // Perform the rotation
+    for ( int glyphID = 0 ; glyphID< TOTAL_GLYPHS; glyphID++ )
+    {
+        for ( int loop_pix = 0; loop_pix < 25; loop_pix++ )
+        {   
+          glyphMap[glyphID][ loop_pix ] = baseGlyphMap[glyphID][ rotation_LUT[ loop_pix ] ] ;
+        }
+    }
+    
+    return ;
+}
+
+
+
+
 // ***** End Function Definitions *****
 
 // And so it begins...
@@ -1016,7 +1119,15 @@ void setup() {
     Serial.println("======================================");
     // end add to the info dump to the serial port
 
-    delay(1000);                                                // all the background setup is done. Whew. Almost there... Pause for the "GUI"
+    delay(1000);                                                            // all the background setup is done. Whew. Almost there... Pause for the "GUI"
+
+    // Pull data from the accelerometer and determine the orientation
+    Accelerometer = M5.IMU.Init() == 0 ;
+    if( !Accelerometer )
+      Serial.println( "Could not initalize the accelerometer" ) ; 
+
+    ORIENTATION stacOrientation = getOrientation() ;                        // Go check the orientation of the STAC
+    rotateGlyphs( stacOrientation ) ; 
 
     drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);       // do this here as setting the tally channel is the first thing we do in the user setup stuff.
                                                                 // also gives the user some feedback so they can see we've transitioned out of doing all the setup stuff
