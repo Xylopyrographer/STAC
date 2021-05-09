@@ -43,6 +43,10 @@
 #include <M5Atom.h>             // this is a modified M5Atom library. See the docs in the GitHub repository for info.
 #include <Preferences.h>        // suggest using the modified Preferences library. See the docs in the repository for info.
 
+#include <Arduino.h>
+#include "esp32-hal-log.h"
+static const char *TAG = "AW";
+
 String swVer = "1.8";           // shows up on the web config page
 String apPrefix = "STAC_";      // prefix to use for naming the STAC AP SSID when being configured
 
@@ -296,8 +300,8 @@ TallyState getTallyState(TState tally) {
         }
         else 
         {
-            Serial.println("Tally Server Connect Failure");                      // Could not connect to Tally
-            Serial.println("Server Timeout : Displaying X - Tally State");       // Notify to the Serial stream
+            ESP_LOGI(TAG,"Tally Server Connect Failure\n");                      // Could not connect to Tally
+            ESP_LOGI(TAG,"Server Timeout : Displaying X - Tally State\n");       // Notify to the Serial stream
  
             if (ctMode)
                 drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
@@ -854,6 +858,9 @@ void setup() {
     M5.dis.setBrightness(10);
     M5.dis.drawpix(poPixel, poColor);                   // turn on the power LED
 
+    // Set up the ESP Logging event level
+    esp_log_level_set("*",ESP_LOG_VERBOSE);
+
     // send the serial port info dump header
     Serial.println("\r\n\r\n======================================");
     Serial.println("             STAC");
@@ -1243,8 +1250,12 @@ void loop() {
 
             if (tallyStatus.tConnect == false)
             {
-              Serial.println("Server Timeout : Possible Glitch");                             // Starting to look for possible server glitches
-              tallyStatus = getTallyState(tallyStatus);                                       // Check the Tally State again
+              ESP_LOGI(TAG,"Server Timeout : Possible Glitch\n");
+              ESP_LOGI(TAG,"\tConnect Status : %d\n", tallyStatus.tConnect );                  // Starting to look for possible server glitches
+              ESP_LOGI(TAG,"\tTimeout Status : %d\n", tallyStatus.tTimeout );                  // Starting to look for possible server glitches
+              ESP_LOGI(TAG,"\tNoReply Status : %d\n", tallyStatus.tNoReply );                  // Starting to look for possible server glitches
+
+              tallyStatus = getTallyState(tallyStatus);                                       // Check the Tally State again            
             }
 
             if ( (tallyStatus.tHistory == 1 ) ||(tallyStatus.tHistory == 3 ) ||
@@ -1257,7 +1268,7 @@ void loop() {
                 {                  
                     if (ctMode)
                     {
-                        Serial.println("Server Timeout : Displaying X - MainLoop");           // Notify to the Serial stream
+                        ESP_LOGI(TAG,"Server Timeout : Displaying X - MainLoop\n");           // Notify to the Serial stream
                         drawGlyph(GLF_BX, purplecolor);                                       // throw up the big purple X...
                     }
                     else {
