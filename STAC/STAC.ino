@@ -1263,8 +1263,9 @@ void loop() {
                  (tallyStatus.tHistory == 31 ) || (tallyStatus.tHistory == 63 ) ||
                  (tallyStatus.tHistory == 127 ) ||(tallyStatus.tHistory == 255 ) )
             {                                                                                 // If any of the last 8 polls are "on" check
-                Serial.println("Inside Server Timeout check");
-                if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )                            // Check to verify that the elapsed time meets the minimum interval 
+               ESP_LOGI(TAG,"Inside Server Timeout check\n");
+               
+               if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )                            // Check to verify that the elapsed time meets the minimum interval 
                 {                  
                     if (ctMode)
                     {
