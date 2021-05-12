@@ -9,7 +9,7 @@ This python script is so that you can simulate having a Roland V-60HD video swit
 The server supports 3 Smart Tally channels. Each channel switches between off-line, preview and on-air on a 20 second rotation.
 
 
-###Usage
+### Usage
 
 1. Install the Python 3 library
 2. Open the MyTallyServer.py script in the Python IDLE
@@ -27,11 +27,10 @@ When the web page opens up, it should look something like this
 Clicking on the individual channels will tell you if they are unselected, selected (preview) or on-air (live).
 
 
-###Requirements
+### Requirements
 
 This server has been written using Python 3, you can download the latest Python installation from https://www.python.org/
 
-
-###Revision History
-
-2021-05-11 : First release
+---
+### Revision History
+**2021-05-12** : First release
