@@ -22,7 +22,7 @@ To test the server, open a web browser and navigate to
 
 When the web page opens up, it should look something like this
 
-![](images\MyServer_Home.PNG)
+![](images/MyServer_Home.PNG)
 
 Clicking on the individual channels will tell you if they are unselected, selected (preview) or on-air (live).
 
@@ -33,4 +33,4 @@ This server has been written using Python 3, you can download the latest Python 
 
 ---
 ### Revision History
-**2021-05-12** : First release
+**2021-05-11** : First release
