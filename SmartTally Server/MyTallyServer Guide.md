@@ -13,12 +13,12 @@ The server supports 3 Smart Tally channels. Each channel switches between off-li
 
 1. Install the Python 3 library
 2. Open the MyTallyServer.py script in the Python IDLE
-3. Change the IP address on line 7 to match that of your PC
+3. Change the IP address on line 7 to match that of your PC (192.168.x.x)
 4. Run the script (F5)
 
-To test the server, open a web browser and navigate to
+To test the server, open a web browser and navigate to the server, where 192.168.x.x is your servers IP address.
 
-    http://192.168.1.15:8080
+    http://192.168.x.x:8080
 
 When the web page opens up, it should look something like this
 
@@ -34,3 +34,4 @@ This server has been written using Python 3, you can download the latest Python 
 ---
 ### Revision History
 **2021-05-11** : First release
+**2021-05-17** : Minor documentation fix
