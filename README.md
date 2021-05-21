@@ -27,11 +27,12 @@ Lots of good information in the *STAC User Guide*, located in the `manual` folde
 
 There are other good bits you'll want to read in the `STAC` folder.
 
-## To use this sketch:
+### To use this sketch:
 
-* download the zip file from the **Code** tab
-* unzip the `STAC-main.zip` file
-* rename the unzipped folder from  `STAC-main` to just `STAC`
+* on the right side of the window, click the green "Latest" button under "Releases".
+* click "Source code" chosing either (zip) or (tar.gz) as you prefer.
+* unpack the downloaded `STAC-X.X` file
+* rename the resulting folder from  `STAC-X.X` to just `STAC`
 * move the `STAC` folder to your Arduino sketch folder.
 
 |Use of this sketch requires a modified set of libraries. <br>See the`libraries_README.md` file in the `libraries` folder.|  
@@ -41,5 +42,6 @@ There are other good bits you'll want to read in the `STAC` folder.
 
 ### Document Revision History
 
-**2021-04-07:** Delete config info. Minor format changes.  
-**2021-04-05:** Revise for user configurable port number.
+**2021-05-20:** Direction to use the Release version in place of the `main` branch.<br>
+**2021-04-07:** Delete config info. Minor format changes.<br>
+
