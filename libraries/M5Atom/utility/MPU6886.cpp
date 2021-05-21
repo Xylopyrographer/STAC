@@ -127,7 +127,7 @@ void MPU6886::getTempAdc(int16_t *t){
 
 
 
-//!俯仰，航向，横滚：pitch，yaw，roll，指三维空间中飞行器的旋转状态。
+//!俯仰，航向，横滚：pitch，yaw，roll，指三维空间中飞行器的旋转状态。(Refers to the rotation state of the aircraft in three-dimensional space. Pitch, heading, roll)
 void MPU6886::getAhrsData(float *pitch,float *roll,float *yaw){
 
   float accX = 0; 
@@ -218,7 +218,7 @@ void MPU6886::getAres(){
  
 void MPU6886::SetGyroFsr(Gscale scale)
 {
-    //return IIC_Write_Byte(MPU_GYRO_CFG_REG,scale<<3);//设置陀螺仪满量程范围
+    //return IIC_Write_Byte(MPU_GYRO_CFG_REG,scale<<3);//设置陀螺仪满量程范围 (Set the full scale range of the gyroscope)
     unsigned char regdata;	
     regdata = (scale<<3);
     I2C_Write_NBytes(MPU6886_ADDRESS, MPU6886_GYRO_CONFIG, 1, &regdata);
