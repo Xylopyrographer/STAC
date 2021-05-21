@@ -1,6 +1,29 @@
 # STAC Release Notes
 
-## 1.8
+## v1.9
+
+__New Feature__
+
+* Adds Auto Rotate
+    * On startup the STAC determines which way is up and sets the display orientation accordingly. More in the User's Guide.
+
+__Talent Mode__
+
+* When in Talent Mode and WiFi is lost after initial connection on power up or restart, the display switches to the Preview state and remains there until resuming normal operation after the WiFi connection is re-established.
+
+
+__Information Screen__
+
+* Revised the format of the information dump sent to the serial port on startup.
+
+__Internal Improvements__
+
+* WiFi connection time is much quicker.
+* Changes to improve robustness and recovery time if errors occur when communicating with the Smart Tally server.
+
+
+
+## v1.8
 
 __New Feature__
 
@@ -12,7 +35,7 @@ __Fixes__
 
 * When configuring the STAC via a web browser, the SSID and password fields now accept spaces as given instead of converting them to '+' characters.
 
-## 1.7.1.1
+## v1.7.1.1
 
 Minor bug fix release.
 
@@ -32,14 +55,14 @@ If you did replace the standard `Preferences.cpp` file, follow the directions in
 My apologies. Nothing like writing code to keep one humble.
 
 
-## 1.7.1
+## v1.7.1
 - improve the ST server poll response time by about a gazillion. As a result...
 - ...the ST\_POLL\_INTERVAL now does indeed govern the time between ST server polls
 - add an information dump to the serial port on startup
 
-## 1.7
+## v1.7
 - add support for user configurable ST Server port #.
     - Allows STAC to be used in an emulated environment; as in a [Tally Arbiter](http://www.tallyarbiter.com) client
 
-## 1.6
+## v1.6
 - first public release
