@@ -1,7 +1,7 @@
 # STAC Users Guide 
 ## (Smart Tally ATOM Client)
  
-**Author:** Xylopyrographer
+**Authors:** Team STAC
 
 **A Roland Smart Tally Client**
 
@@ -25,7 +25,33 @@ Setup of the STAC is done using its display button, with feedback provided via t
 
 To ensure you see the pictures, make sure the *images* folder is in the same folder as this *STAC Users Manual.md* file.<br><br>
 
-## Getting to Know You
+**Contents**
+
+- [Getting to Know You](#GTKY)
+- [Quick Start](#QuickStart)
+- [First Time Configuration](#FirstTimeConfiguration)
+- [Up and Running](#UpandRunning)
+    - [Setting the Tally Channel](#SettingtheTallyChannel)
+    - [Setting the Operating Mode](#SettingtheOperatingMode)
+    - [Setting the Startup Mode](#Autostart)
+    - [Setting the Brightness Level](#SettingtheBrightnessLevel)
+    - [Setting the Display Orientation](#WhatUp)
+- [Reconfiguring the STAC](#ReconfiguringtheSTAC)
+- [Factory Reset](#FactoryReset)
+- [Back to the Beginning](#BTHB)
+- [Special Configurations](#SpecConfig)
+- [Troubleshooting](#Troubleshooting)
+    - [The WiFi Connect Loop of Death](#WiFiDeathLoop)
+    - [Tally Status not Changing](#NoStatusChange)
+    - [A Big Purple X?](#BPX)
+    - [The Red WiFi Interrupt Screen!](#WiFiInterrupt)
+    - [Purple Question Mark?](#PurpleQMark)
+    - [The Big Red X](#BigRedX)
+- [Acknowledgements](#Acknowledge)
+- [License](#License)
+- [Document Revision History](#RevHistory)
+
+## <a name="GTKY"></a> Getting to Know You
 
 The bits you need to know about when using the STAC are shown in the picture below.  
 <center><img src="./images/STAC_bits.png"></center>  
@@ -40,8 +66,8 @@ The USB port is used to power the STAC. Use one end of a standard USB-C cable to
 On the back of the STAC is a dang tiny 2mm machine screw hole that can be used to attach the STAC to whatever you would like.
 
 Note the ventilation holes on the sides of the STAC. To allow for cooling, these should not be blocked when using the device. The display LED's can get a bit toasty, especially when operating at higher brightness levels.
-<br><br><br><br><br><br>
-## <a name="QuickStart"></a>Quick Start
+
+## <a name="QuickStart"></a> Quick Start
 
 We'll get to the initial configuration (and how to change it) later. Here we'll show the normal operating sequence for using the STAC.
 
@@ -76,7 +102,7 @@ We're going to call this the normal operating state of the STAC.
 So that's the general flow of things. Now let's get to the nitty gritty...
 <br><br>
 
-## <a/ name="FirstTimeConfiguration"></a>First Time Configuration
+## <a name="FirstTimeConfiguration"></a> First Time Configuration
 
 Until you tell it a few things, the STAC is pretty useless. You'll have to configure it.
 
@@ -163,7 +189,7 @@ From here, a single click will move to the next parameter that can be changed. O
 
 That was a lot of words. Let's show you how this works in detail for changing the tally channel. You can then apply that same method to the other three...
 
-### <a name="SettingtheTallyChannel"></a>Setting the Tally Channel
+### <a name="SettingtheTallyChannel"></a> Setting the Tally Channel
 
 Power up your STAC. When you see the blue active tally number on the display, press and hold down the button. In about two seconds the display will change from a blue number on black background to an orange number on a blue background. The orange colour is a bit of a heads up to let you know the STAC is in a select state and you can now change or select the value. We use this convention with all the parameters when in a select state.  
 
@@ -189,7 +215,7 @@ While we're talking reconfiguring, if your STAC is set to monitor, say channel *
 
 And, oh yeah, the STAC remembers the last set Tally Channel across power cycles. Convenient, yes?
 
-### <a name="SettingtheOperatingMode"></a>Setting the Operating Mode
+### <a name="SettingtheOperatingMode"></a> Setting the Operating Mode
 
 Operating mode? Yup.
 
@@ -218,9 +244,11 @@ You can press and hold again to change the Operating Mode or if you click the bu
 
 When in a select state, the STAC has a timeout feature. If after entering the select state, no clicks of the display button are detected for about 30 seconds, the select state is cancelled and the display and Operating Mode will revert back to the value it had before entering the select state. From here the button can be clicked to advance to the next parameter or press and hold to enter the select state again.
 
+**Note:** When the STAC is in Talent Mode, the WiFi connect icons show only on power up or when the STAC is reset. If WiFi is lost after having a WiFi connection, the display will switch to the Preview (green) state until WiFi is reestablished. Once connected, normal display operation will resume. In Camera Operator Mode, the WiFi connect information is always shown.
+
 The STAC also remembers the last set Operating Mode across power cycles. Genius.
 <br><br>
-### <a name="Autostart"></a>Setting the Startup Mode
+### <a name="Autostart"></a> Setting the Startup Mode
 
 Normally when the STAC starts up or is reset you have to "click through" the operating parameters to start the WiFi connect sequence so the STAC will begin to monitor the active channel. If you rarely change those parameters or if the STAC is installed in a place that is tricky to access, the STAC can be set to automatically jump to the WiFi connect sequence without the need to "click through".
 
@@ -257,7 +285,7 @@ When in a select state, the STAC has a timeout feature. If after entering the se
 
 The STAC also remembers the last set Startup Mode across power cycles. It's a wondrous thing.
 
-### <a name="SettingtheBrightnessLevel"></a>Setting the Brightness Level
+### <a name="SettingtheBrightnessLevel"></a> Setting the Brightness Level
 
 To accommodate a range of ambient light levels when using the STAC, the brightness of the display can be changed. As with changing the active tally channel, the method is the same so this section is abbreviated. Check out [Setting the Tally Channel](#SettingtheTallyChannel) above for the extended directors cut.
 
@@ -283,8 +311,18 @@ Here's the bonus feature. *The Brightness Level can be changed while the STAC is
 <center><img src="./images/op_brightchange.png"></center>
 
 The STAC engages its elephant brain to remember the last set Brightness Level across power cycles. One and done!
-<br><br>
-## <a name="ReconfiguringtheSTAC"></a>Reconfiguring the STAC
+
+### <a name="WhatUp"></a> Setting the Display Orientation
+
+As the world turns, it may not always be convenient to mount the STAC with the USB port at the bottom. It'd be nice if the display was always an upright citizen. Well, we got you covered there too.
+
+On startup, the STAC determines which way is up and will rotate the display so that things are always shown right side to. If the STAC is started laying on a flat surface, the USB port is considered down and that will be the baseline for the display.
+
+To change the display orientation, mount or hold the STAC as it will be in use and then click the Reset button on the side. The STAC will restart and set the display orientation appropriately. Is that cool or what!
+
+The STAC does this check on every power up or restart. Orientation from the last power up or restart is not retained. 
+
+## <a name="ReconfiguringtheSTAC"></a> Reconfiguring the STAC
 
 At some point, probably, one or more of the WiFi SSID, Password or Roland device IP address will change. Or maybe you want to take your STAC on the road. Who doesn't like a road trip? In this case you'll want to reconfigure the STAC to match the new settings. We got you covered.
 
@@ -307,8 +345,8 @@ From here follow the directions under [First Time Configuration](#FirstTimeConfi
 If you mysteriously entered this reconfiguration state by accident or you change your mind at this point, click the Reset button and the STAC will return to its normal startup sequence.
 
 That's all there is to it.
-<br><br>
-## <a name="FactoryReset"></a>Factory Reset
+
+## <a name="FactoryReset"></a> Factory Reset
 
 All righty then. Maybe you want to hand off your STAC to someone else or just for giggles restore the STAC to its "fresh-out-of-the-box" state. Doing this erases the SSID, Password, Roland Smart Tally IP address, port number and maximum tally channel number from the STAC and sets the active tally channel, operating mode and brightness level to their default values. Those defaults are: 
 
@@ -325,23 +363,23 @@ You can remove power if you'd like or, to put the STAC back into service, follow
 
 Once you've entered factory reset state, there is no turning back. Not a super big deal, just do the configuration thing once more and you're good to go.
 
-## Back to the Beginning
+## <a name="BTHB"></a> Back to the Beginning
 
 One more thing...
 
 The sections above show how the Reset button is used with the Display button to reconfigure or factory reset the STAC. 
 
-The other trick is, when used by itself, the Reset button will return the STAC to its startup sequence. Why would you want to do this? Most common reason is let's say you just confirmed the tally channel, operating or startup modes but then realized you actually meant to change one or the others. Yoi!
+The other trick is, when used by itself, the Reset button will return the STAC to its startup sequence. Why would you want to do this? Most common reason is let's say you just confirmed the tally channel, operating or startup modes but then realized you actually meant to change one or the others. Or maybe the USB power cable is in the way of something on the rig and you'd like to rotate the STAC to fix that up.
 
-In this case, click the reset button. The STAC display will go blank, then the power light will come on, followed by display of the active tally channel. Now you can press and hold to change that or click through to the operating and startup modes and put those where you want them. The brightness level can be changed while the STAC is in its operating state so no need to restart the STAC in that case, but you could click the reset button to get there too.
+In this case, click the reset button. The STAC display will go blank, the power light will come on, the STAC will determine which way is up, followed by the display of the active tally channel. Now you can press and hold to change that or click through to the operating and startup modes and put those where you want them. The brightness level can be changed while the STAC is in its operating state so no need to restart the STAC in that case, but you could click the reset button to get there too.
 
 Much easier than removing and reconnecting power.
 
-## <a name="SpecConfig"></a>Special Configurations
+## <a name="SpecConfig"></a> Special Configurations
 
 In most situations the STAC is used to communicate directly with a physical Roland switch or device. When this is the case the IP address and port number entered on the web browser configuration form are the those of that Roland device. Just as described in [First Time Configuration](#FirstTimeConfiguration).
 
-However, if you are using a STAC as in an environment where the STAC is instead communicating with some other device or service that emulates a Roland Smart Tally switch, it may be required to change the STAC Smart Tally IP address and port number so that the STAC and that system are on the same wavelength. An example would be using the STAC with [Tally Arbiter](http://www.tallyarbiter.com) where tally devices from a variety of providers can be aggregated into a unified tally information system.
+However, if you are using a STAC in an environment where the STAC is instead communicating with some other device or service that emulates a Roland Smart Tally switch, it may be required to change the STAC Smart Tally IP address and port number so that the STAC and that system are on the same wavelength. An example would be using the STAC with [Tally Arbiter](http://www.tallyarbiter.com) where tally devices from a variety of providers can be aggregated into a unified tally information system.
 
 Refer to the documentation from the provider of the Roland emulator or service on how to configure the STAC if this applies to you.
 
@@ -349,7 +387,7 @@ When using STAC with Tally Arbiter, the method used to identify a specific STAC 
 
 Hey, we kind of got our geek on in here. If this entire section is sounding completely foreign, we  get it. Just ensure when you configure the STAC that the IP address matches the actual Roland device and that the port is set to its default of <b>80</b> and you'll be in business.
 
-## <a name="Troubleshooting"></a>Troubleshooting
+## <a name="Troubleshooting"></a> Troubleshooting
 
 Ahh life. That thing that happens when you're busy making other plans. Believe it or not at times the STAC may get uppity and display a couple of things to let you know it's not quite happy.
 
@@ -359,9 +397,9 @@ The STAC is pretty robust and it will usually correct itself after encountering 
 
 If something is amiss, take a look below at the symptom and a step or two you can take to fix 'er up will be there. If not, shoot us a note and we'll see what we can do.
 
-But before charging forth, know that the STAC will mask most of the errors on the display when its Operating Mode is set to Talent. No need to confuse the on-stage folks.
+But before charging forth, know that the STAC will mask all the errors on the display when its Operating Mode is set to Talent. No need to confuse the on-stage folks.
 
-### <a name="WiFiDeathLoop"></a>_The WiFi Connect Loop of Death_
+### <a name="WiFiDeathLoop"></a> _The WiFi Connect Loop of Death_
 
 **What you're seeing:**<div style="margin-left: 2em;">The STAC display shows the orange connecting to WiFi icon and then after a minute it changes to a flashing red WiFi icon and then back to orange.
 
@@ -381,7 +419,7 @@ This condition is seen in both Operating Modes.
     - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the web browser form. Hey, it happens. We're all human. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the SSID and Password, submit that and the other info required and you'll be great.
 </div>
 
-### _Tally Status not Changing_
+### <a name="NoStatusChange"></a> _Tally Status not Changing_
 
 **What you're seeing:**  
 <div style="margin-left: 2em;">The tally status display on the STAC does not change. It's stuck on green, red or "dotted purple".
@@ -396,7 +434,7 @@ This condition is seen in both Operating Modes.
 * If not, click the Reset button on the side of the STAC and when the tally channel is displayed, follow the steps under [Setting the Tally Channel](#SettingtheTallyChannel) to change the active channel.
 </div>
 
-### <a name="BPX"></a>_A Big Purple X?_
+### <a name="BPX"></a> _A Big Purple X?_
 
 **What you're seeing:**
 <div style="margin-left: 2em;">There is is a big purple X on the display!
@@ -433,7 +471,7 @@ If the BPX appears often but the STAC soon returns to displaying the active chan
 
 If this seems to be the case, have a chat with the some folks about the state of the network.</div>
 
-### _The Red WiFi Interrupt Screen!_
+### <a name="WiFiInterrupt"></a> _The Red WiFi Interrupt Screen!_
 
 **What you're seeing:**
 <div style="margin-left: 2em;">The STAC was operating normally but a suddenly a flashing red WiFi icon appeared on the display, followed by the orange WiFi icon.
@@ -456,7 +494,7 @@ The STAC will
 
 </div>
 <br><br>
-### _Purple Question Mark?_
+### <a name="PurpleQMark"></a> _Purple Question Mark?_
 
 <b>What you're seeing:</b>
 <div style="margin-left: 2em;">There is a purple question mark on the display. It may appear intermittently or for longer periods of time.</div>
@@ -473,7 +511,7 @@ The STAC will
 If the STAC is being used in an emulated environment as in [Special Configurations](#SpecConfig) it's possible the emulated device is not responding in a way the STAC is expecting. If you think this is the case, take a look at the *STAC Communications.md* document in the repository.
 </div>
 
-### _The Big Red X_
+### <a name="BigRedX"></a> _The Big Red X_
 
 **What you're seeing:**
 <div style="margin-left: 2em;">Well boss, there is a big red X on the display!
@@ -488,7 +526,7 @@ If the STAC is being used in an emulated environment as in [Special Configuratio
 
 If it does seem to be mis-behaving for a longer period of time, click the Reset button. You'll have to click through the normal startup tally channel, operating mode and brightness level displays after which the STAC should follow through with the rest of its normal WiFi connect startup sequence and then resume normal operation.</div>
 <br><br>
-## Acknowledgements
+## <a name="Acknowledge"></a> Acknowledgements
 
 Exactly half an ohnosecond into our very first church livestream it became excruciatingly obvious that radio coms alone weren't going to cut it. Our camera operators *needed* a tally light system. The search began.
 
@@ -512,14 +550,16 @@ For the support from the folks that hang around the [reddit](http://reddit.com) 
 
 To the awesome and dedicated folks on our production, tech and worship teams&mdash;applause and praise.
 
+To those that have signed on toexperiences become contributors; I am humbled that you find this work to be of use. It's incredible to be able to learn as you share your knowledge and experiances.
+
 But most of all to my wife who, as companion to a guy who can become obsessively dogged in pursuit of a goal has shown&mdash;once more&mdash;saintly patience and forbearance as I chewed up an inordinate number of hours, days, and weeks to bring this project to fruition. My dear, you are a true angel and I remain your blessed fool. Thank-you.
 
 &nbsp;&nbsp;&nbsp;*- Xylopyrographer*  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*March, 2021*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*April, 2021*
 <br><br><br>
 ---
----
-## LICENSE
+
+## <a name="License"></a> LICENSE
 This work is made available under a Creative Commons NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) license.
 
 This is a human-readable summary of (and not a substitute for) the license. The full licensing terms are available at [https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode) or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042.
@@ -552,8 +592,12 @@ No warranties are given. The license may not give you all of the permissions nec
 <br><br><br><br>
 ---
 
-### Document Revision History  
+### <a name="RevHistory"></a> Document Revision History  
 
+<b>2021-04-30:</b>  
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 1.9.  
+&nbsp;&nbsp;&nbsp;&nbsp;- Add Display Orientation.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Add Contents.  
 **2021-04-15:** Revise for STAC software version 1.8. Add Startup Mode.  
 <b>2021-04-05:</b>  
 &nbsp;&nbsp;&nbsp;&nbsp;- Add user configurable Smart Tally device port number.  
