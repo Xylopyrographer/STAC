@@ -8,6 +8,7 @@ So, I modified the following files to correct this oversight (and tweak a few ot
 * `M5Atom.h`
 * `utility/LED_DisPlay.h`
 * `utility/LED_DisPlay.cpp`
+* `utility/MPU6886.cpp`
 
 To get the STAC sketch to compile, you'll have to replace the files provided by M5Stack with these modified versions. Or, in the STAC sketch, replace every call to `M5.dis.fillpix();` with your own routine.
 
@@ -26,7 +27,8 @@ I'm not certain where this is kept on all platforms or where it was placed durin
 1. Open the `utility` folder that is inside the `Arduino/libraries/M5Atom` folder.
 1. Rename the file `LED_DisPlay.h` to something like `LED_DisPlay.h.orig`
 1. Rename the file `LED_DisPlay.cpp` to something like `LED_Display.cpp.orig`
-1. From the `utility` folder in this repository, copy the modified `LED_Display.h` and `LED_Display.cpp` files into the `Arduino/libraries/M5Atom/utility` folder.
+1. Rename the file `MPU6886.cpp` to something like `MPU6886.cpp.orig`
+1. From the `utility` folder in this repository, copy the modified `LED_Display.h`, `LED_Display.cpp` and `MPU6886.cpp` files into the `Arduino/libraries/M5Atom/utility` folder.
 
 &mdash; Note &mdash;<br>You will have to repeat these steps whenever M5Stack updates their <br>M5Atom libraries as their new version will overwrite these modified files.|
 :---:
