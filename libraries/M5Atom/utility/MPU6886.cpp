@@ -127,7 +127,7 @@ void MPU6886::getTempAdc(int16_t *t){
 
 
 
-//!俯仰，航向，横滚：pitch，yaw，roll，指三维空间中飞行器的旋转状态。(Refers to the rotation state of the aircraft in three-dimensional space. Pitch, heading, roll)
+//!俯仰，航向，横滚：pitch，yaw，roll，指三维空间中飞行器的旋转状态。
 void MPU6886::getAhrsData(float *pitch,float *roll,float *yaw){
 
   float accX = 0; 
@@ -144,32 +144,6 @@ void MPU6886::getAhrsData(float *pitch,float *roll,float *yaw){
   
   MahonyAHRSupdateIMU(gyroX * DEG_TO_RAD, gyroY * DEG_TO_RAD, gyroZ * DEG_TO_RAD, accX, accY, accZ,pitch,roll,yaw);
 
-}
-
-void MPU6886::getAttitude(double *pitch, double *roll)
-{
-    float accX = 0;
-    float accY = 0;
-    float accZ = 0;
-
-    float gyroX = 0;
-    float gyroY = 0;
-    float gyroZ = 0;
-
-    getGyroData(&gyroX, &gyroY, &gyroZ);
-    getAccelData(&accX, &accY, &accZ);
-
-    if ((accX < 1) && (accX > -1))
-    {
-        *pitch = asin(-accX) * 57.295;
-    }
-    if (accZ != 0)
-    {
-        *roll = atan(accY / accZ) * 57.295;
-    }
-
-    ( *pitch ) = _alpha * ( *pitch ) + (1 - _alpha) * _last_theta;
-    ( *roll ) = _alpha * ( *roll ) + (1 - _alpha) * _last_phi;
 }
 
 void MPU6886::getGres(){
@@ -218,7 +192,7 @@ void MPU6886::getAres(){
  
 void MPU6886::SetGyroFsr(Gscale scale)
 {
-    //return IIC_Write_Byte(MPU_GYRO_CFG_REG,scale<<3);//设置陀螺仪满量程范围 (Set the full scale range of the gyroscope)
+    //return IIC_Write_Byte(MPU_GYRO_CFG_REG,scale<<3);//设置陀螺仪满量程范围
     unsigned char regdata;	
     regdata = (scale<<3);
     I2C_Write_NBytes(MPU6886_ADDRESS, MPU6886_GYRO_CONFIG, 1, &regdata);

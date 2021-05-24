@@ -33,5 +33,5 @@ This server has been written using Python 3, you can download the latest Python 
 
 ---
 ### Revision History
-**2021-05-11** : First release
+**2021-05-11** : First release<br>
 **2021-05-17** : Minor documentation fix
