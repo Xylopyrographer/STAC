@@ -1,4 +1,9 @@
 # STAC Release Notes
+## v1.9.1
+
+__Fixes__
+
+Fixes the display glitches during polling of the Smart Tally server.
 
 ## v1.9
 
