@@ -1,7 +1,7 @@
 /* STAC (Smart Tally ATOM Matrix Client) 
  *
- *  Version: 1.9
- *  2021-05-20
+ *  Version: 1.9.1
+ *  2021-05-25
  *  
  *  Authors: Team STAC
  *  
@@ -32,7 +32,7 @@
 #include <WiFi.h>               // this is the esp32 version of this library
 #include <Preferences.h>        // suggest using the modified Preferences library. See the docs in the repository for info.
 
-String swVer = F("1.9");           // shows up on the web config page & stored in NVS
+String swVer = F("1.9.1");         // shows up on the web config page & stored in NVS
 String apPrefix = F("STAC_");      // prefix to use for naming the STAC AP SSID when being configured
 
 char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's web browser; max length of a WiFi SSID is 32 char
@@ -47,7 +47,7 @@ bool Accelerometer = false;     // State to determine if an accelerometer is sup
 // ***** Global Variables *****
 // ~~~~~ State Machine Event Tansition Variables ~~~~~
 
-#define ST_POLL_INTERVAL 177                // # of ms between polling the Smart Tally server for a tally status change
+#define ST_POLL_INTERVAL 175                // # of ms between polling the Smart Tally server for a tally status change
 #define WIFI_CONNECT_TIMEOUT 60000          // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 //#define WIFI_ATTEMPTS 6                     // NOT USED - # of times to try to connect to the WiFi network before giving up
 //#define ST_ATTEMPTS 10                      // NOT USED - # of times we try to connect to the Smart Tally server before giving up
@@ -251,8 +251,11 @@ WiFiState connectToWifi(WfState wifistate) {
     wifistate.wfconnect = false;
     wifistate.timeout = false;
     int wfStatus = WiFi.status();
-    
+
+    WiFi.disconnect(true);
     WiFi.mode(WIFI_STA);                        // set WiFi station mode
+    WiFi.setSleep(false);                       // have to set this mode or else the display goes nuts when polling
+    
     wfTimeout = millis() + WIFI_CONNECT_TIMEOUT;
     WiFi.begin(networkSSID, networkPass);
     
@@ -931,7 +934,7 @@ void setup() {
     String bootVer;                         // the version of software the STAC thinks it has - from NVS storage at boot time
 
     // M5.begin(SerialEnable = true|false, I2CEnable = true|false, DisplayEnable = true|false);
-    M5.begin(true, false, true);
+    M5.begin(true, true, true);
     delay(500);
     M5.Btn.read();                          // initialize the Btn class
     M5.dis.clear();
@@ -961,7 +964,7 @@ void setup() {
     Serial.println(F("   A Smart Tally ATOM Matrix Client"));
     Serial.println(F("            by: Team STAC"));
     Serial.println(F("https://github.com/Xylopyrographer/STAC\r\n"));
-    Serial.print(F("        Software Version:  "));
+    Serial.print(F("     Software Version: "));
     Serial.println(swVer);
     Serial.print(F("   Configuration SSID: "));
     Serial.println(tempx);
