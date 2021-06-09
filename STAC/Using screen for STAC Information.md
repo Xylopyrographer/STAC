@@ -24,21 +24,23 @@ Something like:
 
 ```
 ======================================
-                STAC
+                 STAC
    A Smart Tally ATOM Matrix Client
-         by: Xylopyrographer
+            by: Team STAC
 https://github.com/Xylopyrographer/STAC
 
-    Software Version: 1.8
+     Software Version: 1.9.1
+   Configuration SSID: STAC_78B5927E
+     Configuration IP: 192.168.6.14
+             ------------
     WiFi Network SSID: StreamNet
-    Smart Tally IP: 192.168.4.101
+    Smart Tally IP: 192.168.1.13
     Port #: 80
     Auto start: Disabled
     Operating Mode: Camera Operator
-    Active Tally Channel: 4
+    Active Tally Channel: 1
     Max Tally Channel: 6
     Brightness Level: 1
-    Configuration SSID: STAC_245B937E
 ======================================
 
 ```
