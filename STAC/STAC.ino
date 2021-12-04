@@ -66,6 +66,7 @@ uint8_t btnWas, btnNow;                     // used in the button click detector
 bool escapeFlag = false;                    // used for getting out of the settings loops in setup()
 unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status
 unsigned long lastPollTime;                 // holds the millis() counter value for the last time the counter was updated.
+unsigned long connectionLossCount = 0 ;
 
 // ===== Define data strcutures used by the Control loop() =====
 //          - using structures to pass the state conditions from the state functions back to the control loop
@@ -325,23 +326,42 @@ TallyState getTallyState(TState tally) {
 
     log_i( "Message Sent" ) ;
 
-    int delay_period = 100 ;
-    int timeout_period = 5000 ;    
+    int delay_period = 200 ;
+    int max_timeout_period = 1000 ;    
     maxloops = 0;
-    
-    while ( stClient.available() == 0 && maxloops < timeout_period ) {  // Wait a maximum of 5 second for the ST server's reply to become available
+
+    // Wait a maximum of 1 second for the ST server's reply to become available
+    while ( stClient.available() == 0 && maxloops < max_timeout_period ) 
+    {  
+        if (!stClient.connected()) {
+            tally.tTimeout = true;
+            tally.tNoReply = true;
+            connectionLossCount++;
+            log_i( "Wifi disconnected, returning" ) ;
+            return tally;
+        }    
+        if ( maxloops > 0 ) {
+          log_i( "Wifi not yet available %d ms ... Waiting", maxloops ) ;
+        }
+
         maxloops+=delay_period;
-        delay(delay_period);                                            // wait before checking again if there is a response from the ST Server.
+        delay(delay_period);                                            // wait before checking again to see if there is a response from the ST Server.
     }
     
-    if (maxloops >= timeout_period) {                                   // response from the ST Server timed out
-        log_i( "ST Server Timeout" ) ;
+    if (maxloops >= max_timeout_period) {                               // response from the ST Server timed out
+        connectionLossCount++;
+        drawGlyph(GLF_BX, purplecolor);                                 // throw up the big purple X...
         tally.tTimeout = true;
+        tally.tNoReply = true;
+        log_i( "ST Server Timeout, Count %d, returning", connectionLossCount ) ;
         return tally;
     }
 
-    stClient.setTimeout(0);                                                 // stClient.readString() is a 1 sec blocking function by default
-    while (stClient.available() > 0) reply += stClient.readString();        // we have a response from the server
+    stClient.setTimeout(0);                                             // stClient.readString() is a 1 sec blocking function by default
+
+    while (stClient.available() > 0) {
+      reply += stClient.readString();                                   // we have a response from the server
+    }
 
     log_i( "Response Received" ) ;
 
