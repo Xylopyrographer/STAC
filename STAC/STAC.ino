@@ -335,8 +335,10 @@ TallyState getTallyState(TState tally) {
     {  
         if (!stClient.connected()) {
             tally.tTimeout = true;
-            tally.tNoReply = true;
-            connectionLossCount++;
+            tally.tNoReply = true;           
+            tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+            tally.tHistory += 1 ;    
+            connectionLossCount++;            
             log_i( "Wifi disconnected, returning" ) ;
             return tally;
         }    
@@ -353,6 +355,8 @@ TallyState getTallyState(TState tally) {
         drawGlyph(GLF_BX, purplecolor);                                 // throw up the big purple X...
         tally.tTimeout = true;
         tally.tNoReply = true;
+        tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+        tally.tHistory += 1 ;    
         log_i( "ST Server Timeout, Count %d, returning", connectionLossCount ) ;
         return tally;
     }
@@ -1385,8 +1389,6 @@ void loop() {
 
         if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {          // error fetching the tally status
 
-            unsigned long elapsed_time = nextPollTime-lastPollTime ;                          // Counter to determine the last time the server was polled
-
             if (tallyStatus.tConnect == false)
             {
                 log_i("ts error : connect = %i, timeout = %i, reply = %i", 
@@ -1401,18 +1403,15 @@ void loop() {
             {   
                 log_i( "ts error : history = %d", tallyStatus.tHistory );
 
-                if ( elapsed_time > ST_POLL_INTERVAL*ST_ATTEMPTS )              // Check to verify that the elapsed time meets the minimum interval 
-                {                                    
-                    if (ctMode)
-                    {
-                        log_e("ts error : Displaying X - MainLoop\n");          // Notify to the Serial stream
-                        drawGlyph(GLF_BX, purplecolor);                         // throw up the big purple X...
-                    }
-                    else 
-                    {
-                        M5.dis.fillpix(PVW);                                    // else change the display to the PVW colour
-                        M5.dis.drawpix(PO_PIXEL, PO_COLOR);                     // turn on the power LED
-                    }
+                if (ctMode)
+                {
+                    log_e("ts error : Displaying X - MainLoop\n");          // Notify to the Serial stream
+                    drawGlyph(GLF_BX, purplecolor);                         // throw up the big purple X...
+                }
+                else 
+                {
+                    M5.dis.fillpix(PVW);                                    // else change the display to the PVW colour
+                    M5.dis.drawpix(PO_PIXEL, PO_COLOR);                     // turn on the power LED
                 }
             }
  
@@ -1433,7 +1432,8 @@ void loop() {
     if (tallyStatus.tState != lastTallyState) {
         
         lastTallyState = tallyStatus.tState;   
-        
+        M5.dis.clear();                                         // Clear the display;
+
         if (tallyStatus.tState == "onair") {                    // was tallyStatus.tState == String("onair")
             M5.dis.fillpix(PGM);                                // Change the display to the PGM colour;
         }
