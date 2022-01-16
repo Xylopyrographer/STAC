@@ -93,7 +93,7 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 ## Notes
 
-1. ** Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device. **
+1. **Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.**
 1. The serial data dump on power up or restart when in Peripheral Mode (see the *Using screen for STAC Information.md* document) will report that the STAC is in Peripheral Mode and the brightness level set.
 1. The *Peripheral Mode* section of the *User's Guide* provides more information on the GROVE cable.
 <br><br>
