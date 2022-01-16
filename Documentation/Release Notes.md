@@ -1,4 +1,16 @@
 # STAC Release Notes
+## v1.10
+
+__New Features__
+
+* _Adds Peripheral Mode_
+    * Allows one STAC to be connected to another via their GROVE ports. The STAC configured in Peripheral Mode operates as if in Talent Mode but it receives its tally information from the connected STAC without the need to establish a WiFi connection to the Roland device. More in the *STAC User's Guide* and the *Peripheral Mode Application Note*.
+
+* _Adds Configuration Check_
+    * Previously, the configuration of the STAC would be reset with each software update. After updating to version 1.10 you will have to reconfigure the STAC but from then on new software updates will do a check to see if the existing configuration is compatible with that version. If so, the existing configuration information will be retained. Too cool 🤯.
+ 
+
+
 ## v1.9.1
 
 __Fixes__
