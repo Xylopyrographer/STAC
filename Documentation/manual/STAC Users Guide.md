@@ -1,4 +1,4 @@
-# STAC Users Guide 
+# STAC Users Guide
 ## (Smart Tally ATOM Client)
  
 **Authors:** Team STAC
@@ -11,13 +11,15 @@ Its purpose and sole joy in life is to monitor the tally status of a single vide
 
 The STAC uses WiFi to connect to the same network as that of the Roland switch. It continuously polls the switch for the tally status of the video channel being monitored. For that channel, the STAC will set the colour of the its display:
 
-* When in "Camera Operator" mode, to:  
+* When in "Camera Operator" mode, to:
 	- RED if the channel is in PGM (Program or onair)
 	- GREEN if the channel is in PVW (Preview or selected)
 	- "PURPLE DOTTED" if the channel is not in either PGM or PVW (unselected)
 * When in "Talent" mode, to:  
 	- RED if the channel is in PGM (Program or onair)
 	- GREEN otherwise
+
+There is also a Peripheral Mode that allows a STAC to be connected to another via their GROVE ports. The STAC configured in Peripheral Mode operates as if in Talent Mode without the need to establish a WiFi connection to the Roland switch.
 
 Configuration of the STAC for the WiFi credentials, Roland switch IP address, port number and number of tally channels is done using a web browser.
 
@@ -37,6 +39,7 @@ To ensure you see the pictures, make sure the *images* folder is in the same fol
     - [Setting the Brightness Level](#SettingtheBrightnessLevel)
     - [Setting the Display Orientation](#WhatUp)
 - [Reconfiguring the STAC](#ReconfiguringtheSTAC)
+- [Peripheral Mode](#PeripheralMode)
 - [Factory Reset](#FactoryReset)
 - [Back to the Beginning](#BTHB)
 - [Special Configurations](#SpecConfig)
@@ -51,10 +54,12 @@ To ensure you see the pictures, make sure the *images* folder is in the same fol
 - [License](#License)
 - [Document Revision History](#RevHistory)
 
+<br><br><br><br><br><br><br>
+
 ## <a name="GTKY"></a> Getting to Know You
 
 The bits you need to know about when using the STAC are shown in the picture below.  
-<center><img src="./images/STAC_bits.png"></center>  
+<center><img src="./images/STAC_bits.png"></center>
 The Display is, well, just that. A square matrix of colour LED's used to show: the state of the tally channel being monitored; receive feedback on its operation; and for setup. We'll get to those parts in a while.
 
 The Display is also a button that you'll click and press to select and set various operating parameters for the STAC.
@@ -63,9 +68,13 @@ The Reset Button is used in conjunction with the Display button to reconfigure t
 
 The USB port is used to power the STAC. Use one end of a standard USB-C cable to connect here and the other to whatever matches the power supply being used. FWIW, data is not required, only 5 VDC power. There is no power switch on the STAC so once the cable is connected to a power supply it comes to life and is good to go. The power can be disconnected at any time without concern for the state of the STAC.
 
+The GROVE connector is used when the STAC is operated in [Peripheral Mode](#PeripheralMode). Connecting a cable between two STACs allows the peripheral STAC to be powered by, and receive tally status information from, another STAC. There's a section on this later.
+
 On the back of the STAC is a dang tiny 2mm machine screw hole that can be used to attach the STAC to whatever you would like.
 
 Note the ventilation holes on the sides of the STAC. To allow for cooling, these should not be blocked when using the device. The display LED's can get a bit toasty, especially when operating at higher brightness levels.
+
+<br><br>
 
 ## <a name="QuickStart"></a> Quick Start
 
@@ -346,6 +355,79 @@ If you mysteriously entered this reconfiguration state by accident or you change
 
 That's all there is to it.
 
+## <a name="PeripheralMode"></a> Peripheral Mode
+
+Often on video camera rigs, two STACs are used. One facing the camera operator and one facing the stage talent. Since the units act as an operator-talent pair, Peripheral Mode allows the talent facing STAC to receive its tally information from the camera operator STAC.
+     
+The camera operator STAC becomes the tally controller and the talent STAC becomes a tally peripheral to the controller. This reduces the traffic on the WiFi network and simplifies power cabling at the camera.
+
+**To place a STAC into Peripheral Mode:**
+
+You will need two STAC's. Each STAC must be running software version 1.10 or later. Peripheral Mode is not supported in earlier versions.
+
+First, remove all power from each STAC.
+
+For the STAC you want to operate in Peripheral Mode: 
+
+1. Insert a jumper wire between the holes marked as G22 and G33 on the ATOM rear header block. When identifying the holes, note that the label on the back of the ATOM is offset. Refer to the picture below for correct placement of the jumper. 
+1. Connect the two STACs with a 4-pin GROVE cable.
+1. Connect one end of a USB-C cable to one of the STACs (either one will do) and the other end of the USB-C cable to a 5VDC power supply.
+
+<center>**==Before connecting the GROVE cable, make sure that both STACs are not set to their normal operating state. Power up and confrim the Peripheral Mode STAC is in Peripheral Mode as described below before connecting the GROVE cable.==**</center>
+
+
+<center><img src="./images/cmjumper.png"></center>
+
+<center>Double check that the jumper is connected __exactly__ as shown in the picture.<br> ==**Incorrect placement of the jumper wire can cause permanent damage to the STAC!**==</center>
+
+Only one of the STACs should be powered via its USB-C port. The other STAC is powered through the GROVE cable.
+
+**Do not** connect a USB cable to both STACs when the GROVE cable is connected. Galaxies will collide and other bad things will occur.
+
+Install a jumper in only one of the two STACs. It wouldn't make sense to have two STACs in Peripheral Mode trying to talk to each other.
+
+The jumper should be a piece of insulated 22 AWG (0.65 mm ø) solid copper wire like the kind used for electronic circuit breadboarding. The exposed ends inserted into the holes should be no longer than 5mm (~3/16"). Don't force it. And please, __don't__ use a paper clip! Clippy is not your friend.
+
+
+###Operation
+
+On powerup or restart, a STAC in Peripheral Mode will flash a green "P" on an orange background a few times, then display a green Peripheral Mode confirmation checkmark and then start operating in Peripheral Mode.
+
+<center><img src="./images/perif_mode.png"></center>
+
+All normal operation state and features of the STAC are disabled. The STAC will not connect to a WiFi network, nor poll the Roland switch and it will ignore all Tally Channel, Operating Mode and Startup Mode settings.
+
+In Peripheral Mode, all tally information is provided by the other connected (controller) STAC via the GROVE cable.
+
+The tally display of the STAC will be the same as if it was operating in Talent mode as [described above](#SettingtheOperatingMode). Meaning, the display will show red if the video channel being monitored by the controller STAC is in Program or onair and it will be green otherwise. 
+
+The display Brightness select feature remains enabled, which operates normally as [described above](#SettingtheBrightnessLevel). The brightness level is also retained across power cycles and restarts.
+
+The orentation feature also still works so the Brightness Level numbers will be shown the right way up.
+
+
+###Disabling Peripheral Mode
+
+To disable Peripheral Mode and return the STAC it to its normal operating state:
+
+1. Remove power from the Peripheral Mode STAC.
+1. Remove the GROVE cable connecting the STACs. **Do not** use the GROVE cable to power up two STAC's that are in their normal oprating state.
+1. Remove the Peripheral Mode jumper wire from the rear of the STAC.
+1. Power up the STAC via its USB port.
+
+
+###Notes
+    
+1. It is not required to provision or configure the STAC before Peripheral Mode can be used.
+1. Peripheral Mode retains its own display brightness level independent of the brightness level set when in its normal operating state.
+This value is retained until changed (when in Peripheral Mode) or when a Factory Reset is performed&mdash;in which case the Peripheral Mode display brightness will be set to **1** by default.
+1. It is recommended to place a piece of electrical tape over the jumper wire to secure it in place. Take care not to cover the ventilation holes on the side.
+1. The cable needed to connect the two STACs is known as a GROVE cable, as popularized by [seeed Studio](https://wiki.seeedstudio.com/Grove_System/). More specifically the connector is a 4-pin HY series 2.0mm pitch.
+    - Searching for a 4-pin GROVE cable should turn up a few sources.
+    - Alternately, if searching for an HY-2.0 4-pin cable, make sure to purchase one with "standard" pinout where pin 1 is connected to pin 1, 2 to 2, 3 to 3 and 4 to 4. <br>==**Some companies offer a "reversed" cable (pin 1 to pin 4, 2 to 3, 3 to 2, 4 to 1) which will irreparably damage the STAC if used**==. 
+    - Either "buckled" or "unbuckled" connectors on the cable work. Buckled connectors have a latch that will secure the cable connectors to the STACs.
+
+
 ## <a name="FactoryReset"></a> Factory Reset
 
 All righty then. Maybe you want to hand off your STAC to someone else or just for giggles restore the STAC to its "fresh-out-of-the-box" state. Doing this erases the SSID, Password, Roland Smart Tally IP address, port number and maximum tally channel number from the STAC and sets the active tally channel, operating mode and brightness level to their default values. Those defaults are: 
@@ -353,15 +435,20 @@ All righty then. Maybe you want to hand off your STAC to someone else or just fo
 * Tally Channel 1,
 * Camera Operator Mode 
 * Standard Startup Mode and
-* Brightness Level 1.
+* Brightness Level 1 (for both the normal operating state and Peripheral Mode).
 
 To do a factory reset, you'll follow the same procedure as [Reconfiguring the STAC](#ReconfiguringtheSTAC) except, instead of releasing the Display button at step 5, keep holding down the Display button after the reconfiguration icon stops flashing. In about two seconds, the display will show the factory reset icon. Release the Display button. A moment later the STAC will be completely reset. The red Configuration Required icon will flash and then stay on.
 
 <center><img src="./images/cleanslate.png"></center>
 
-You can remove power if you'd like or, to put the STAC back into service, follow the directions under [First Time Configuration](#FirstTimeConfiguration) above; connecting to the STAC by WiFi and using a browser to bring up the Configuration form and so on.
+You can remove power if you'd like or, to put the STAC back into service, follow the directions under [First Time Configuration](#FirstTimeConfiguration) above; connecting to the STAC by WiFi and using a browser to bring up the Configuration form and so on. If you want to use the STAC in Peripheral Mode, it is not required to configure the STAC first.
+
+If the Peripheral Mode jumper is installed, you will need to remove the jumper before a Factory Reset can be performed.
 
 Once you've entered factory reset state, there is no turning back. Not a super big deal, just do the configuration thing once more and you're good to go.
+
+You cannot do a Factory Reset if the red Configuration Required icon is displayed as the STAC is already in its factory default state.
+
 
 ## <a name="BTHB"></a> Back to the Beginning
 
@@ -375,6 +462,9 @@ In this case, click the reset button. The STAC display will go blank, the power 
 
 Much easier than removing and reconnecting power.
 
+This holds true when the STAC is in Peripheral Mode as well, though the only reason to do this would be to re-orient the "up" position of the STAC so the brightness level numbers are rotated as you would like.
+
+
 ## <a name="SpecConfig"></a> Special Configurations
 
 In most situations the STAC is used to communicate directly with a physical Roland switch or device. When this is the case the IP address and port number entered on the web browser configuration form are the those of that Roland device. Just as described in [First Time Configuration](#FirstTimeConfiguration).
@@ -383,9 +473,12 @@ However, if you are using a STAC in an environment where the STAC is instead com
 
 Refer to the documentation from the provider of the Roland emulator or service on how to configure the STAC if this applies to you.
 
-When using STAC with Tally Arbiter, the method used to identify a specific STAC is via the STAC tally channel number. The maximum tally channel that can be configured on a STAC is **8**. Thus no more than eight STACs can be used in a Tally Arbiter system.
+When using STAC with Tally Arbiter, the method used to identify a specific STAC is via the STAC tally channel number. The maximum tally channel that can be configured on a STAC is **8**. Thus no more than eight STACs can be used in a Tally Arbiter system. Unless a STAC is configured in Peripheral Mode, in which case the maximum number of STACs would be **16** with the understanding that a STAC operating in Peripheral Mode is not receving independent tally information from Tally Arbiter.
 
-Hey, we kind of got our geek on in here. If this entire section is sounding completely foreign, we  get it. Just ensure when you configure the STAC that the IP address matches the actual Roland device and that the port is set to its default of <b>80</b> and you'll be in business.
+Hey, we kind of got our geek on in here. If this entire section is sounding completely foreign, we get it. Just ensure when you configure the STAC that the IP address matches the actual Roland device and that the port is set to its default of <b>80</b> and you'll be in business.
+
+For even more geeky stuff, check out the *Peripheral Mode Application Note.md* in the repository as well.
+
 
 ## <a name="Troubleshooting"></a> Troubleshooting
 
@@ -397,42 +490,42 @@ The STAC is pretty robust and it will usually correct itself after encountering 
 
 If something is amiss, take a look below at the symptom and a step or two you can take to fix 'er up will be there. If not, shoot us a note and we'll see what we can do.
 
-But before charging forth, know that the STAC will mask all the errors on the display when its Operating Mode is set to Talent. No need to confuse the on-stage folks.
+But before charging forth, know that the STAC will mask most errors on the display when its Operating Mode is set to Talent and when it is operating in Peripheral Mode. No need to confuse the on-stage folks.
+
 
 ### <a name="WiFiDeathLoop"></a> _The WiFi Connect Loop of Death_
 
-**What you're seeing:**<div style="margin-left: 2em;">The STAC display shows the orange connecting to WiFi icon and then after a minute it changes to a flashing red WiFi icon and then back to orange.
+**What you're seeing:**<div style="margin-left: 2em;">The STAC display shows the orange connecting to WiFi icon and then after a minute it changes to a flashing red WiFi icon and then back to orange.<br>This condition is seen in both Camera Operator and Talent modes.</div>
 
-This condition is seen in both Operating Modes.
-</div>
 **What's causing it:**<div style="margin-left: 2em;">The STAC is trying to connect to the WiFi network. It tries this for about a minute and if it can't it flashes the red icon to let you know it's trying but there is still no connection. It keeps trying forever.
 </div>
 
-**What to try:**
+**What to try:**<div style="margin-left: 2em;">
 
 * *If the STAC has successfully connected this WiFi network before:*
     - Check that the WiFi access point is turned on.
     - Check that the STAC is within range of the access point. Move it nearer to the access point and see if it can connect.
     * Has the SSID or Password of the network been changed? Check with someone that might know. If so, whew&mdash;problem solved. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the new SSID and Password information, submit that and the other info required and you'll be great.
-
 * *If the STAC has never connected to this network:*  
     - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the web browser form. Hey, it happens. We're all human. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the SSID and Password, submit that and the other info required and you'll be great.
 </div>
 
 ### <a name="NoStatusChange"></a> _Tally Status not Changing_
 
-**What you're seeing:**  
-<div style="margin-left: 2em;">The tally status display on the STAC does not change. It's stuck on green, red or "dotted purple".
+**What you're seeing:**<div style="margin-left: 2em;">The tally status display on the STAC does not change. It's stuck on green, red or "dotted purple" (if in Camera Operator mode).<br>This condition may be seen in all operating Modes.</div>
 
-This condition is seen in both Operating Modes.
-</div>
-**What's causing it:**  
-<div style="margin-left: 2em;">Most likely the STAC is set to monitor a channel on the switch that is not changing.</div>  
+**What's causing it:**<div style="margin-left: 2em;">Most likely the STAC is set to monitor a channel on the switch that is not changing.</div>
+
 **What to try:**<div style="margin-left: 2em;">
 
 * Confirm with the person doing the switching that the correct tally channel is being monitored.
 * If not, click the Reset button on the side of the STAC and when the tally channel is displayed, follow the steps under [Setting the Tally Channel](#SettingtheTallyChannel) to change the active channel.
+* If operating in Peripheral Mode and the controler STAC display is changing but the peripheral STAC is not, it is most likey a problem with the cable connecting the two units. 
+    - Confirm the cable is a "standard" GROVE cable.
+    - Try re-seating the ends of the cable in both STACs.
+    - Try a different cable.
 </div>
+
 
 ### <a name="BPX"></a> _A Big Purple X?_
 
@@ -442,8 +535,9 @@ This condition is seen in both Operating Modes.
 <img src="./images/err_stnoconnect.png">
 </center>
 </div>
-**What's causing it:**
-<div style="margin-left: 2em;">This is the STAC letting you know that it cannot communicate with the Roland switch.  
+
+**What's causing it:**<div style="margin-left: 2em;">Only seen when operating in Camera Operator mode, this is the STAC letting you know that it cannot communicate with the Roland switch.  
+
 Everything else is OK though.</div>
 
 **What to try:**
@@ -474,30 +568,32 @@ If this seems to be the case, have a chat with the some folks about the state of
 ### <a name="WiFiInterrupt"></a> _The Red WiFi Interrupt Screen!_
 
 **What you're seeing:**
-<div style="margin-left: 2em;">The STAC was operating normally but a suddenly a flashing red WiFi icon appeared on the display, followed by the orange WiFi icon.
+<div style="margin-left: 2em;">The STAC was operating normally but suddenly a flashing red WiFi icon appeared on the display, followed by the orange WiFi icon.
 
-This condition is seen in both Operating Modes.</div>
-**What's causing it:**  
+This condition is seen in both Camera Operator and Talent modes (but see also the note below).</div>
+
+**What's causing it:**
 <div style="margin-left: 2em;">The STAC was doing its thing but lost its WiFi connection. Bummer. The STAC is now in its WiFi connect sequence and will keep trying to connect.
 
-If the WiFi connection is re-established, the STAC will resume normal operation, displaying the tally status of the active channel. No need to click through the tally channel, operating mode and brightness confirmation steps.
+If the WiFi connection is re-established, the STAC will automatically resume normal operation, displaying the tally status of the active channel. No need to click through the tally channel, operating mode and brightness confirmation steps.
 
 Re-establishing the WiFi connection and getting everything back in sync with the Roland device may take a bit of time. But it will get there.
 </div>
 
 **What to try:**
 <div style="margin-left: 2em;">If the STAC cannot re-connect to the WiFI network, Check for the same things under [The WiFi Connect Loop of Death](#WiFiDeathLoop).  
-
-, the STAC will attempt to reconnect to the WiFi network. If it does, normal operation will resume.
-
-The STAC will
-
 </div>
-<br><br>
+
+**Note:**
+<div style="margin-left: 2em;">When in Talent Mode and WiFi is lost after initial connection on power up or restart, the display switches to the Preview state and remains there until resuming normal operation after the WiFi connection is re-established.</div>
+
+
 ### <a name="PurpleQMark"></a> _Purple Question Mark?_
 
 <b>What you're seeing:</b>
-<div style="margin-left: 2em;">There is a purple question mark on the display. It may appear intermittently or for longer periods of time.</div>
+<div style="margin-left: 2em;">There is a purple question mark on the display. It may appear intermittently or for longer periods of time.  
+
+This is only seen when in Camera Operator mode.</div>
 
 <center><img src="./images/err_badreply.png"></center>
 
@@ -524,8 +620,10 @@ If the STAC is being used in an emulated environment as in [Special Configuratio
 **What to try:**
 <div style="margin-left: 2em;">With this one there is really nothing to do. The STAC should sort itself out, recover and carry on with its life as normal.
 
-If it does seem to be mis-behaving for a longer period of time, click the Reset button. You'll have to click through the normal startup tally channel, operating mode and brightness level displays after which the STAC should follow through with the rest of its normal WiFi connect startup sequence and then resume normal operation.</div>
+If it does seem to be mis-behaving for a longer period of time, click the Reset button. If not set to autostart, you'll have to click through the normal startup tally channel, operating mode and brightness level displays after which the STAC should follow through with the rest of its normal WiFi connect startup sequence and then resume normal operation.</div>
 <br><br>
+
+
 ## <a name="Acknowledge"></a> Acknowledgements
 
 Exactly half an ohnosecond into our very first church livestream it became excruciatingly obvious that radio coms alone weren't going to cut it. Our camera operators *needed* a tally light system. The search began.
@@ -550,7 +648,7 @@ For the support from the folks that hang around the [reddit](http://reddit.com) 
 
 To the awesome and dedicated folks on our production, tech and worship teams&mdash;applause and praise.
 
-To those that have signed on toexperiences become contributors; I am humbled that you find this work to be of use. It's incredible to be able to learn as you share your knowledge and experiances.
+To those that have signed on to become contributors; I am humbled that you find this work to be of use. It's incredible to be able to learn as you share your knowledge and experiances.
 
 But most of all to my wife who, as companion to a guy who can become obsessively dogged in pursuit of a goal has shown&mdash;once more&mdash;saintly patience and forbearance as I chewed up an inordinate number of hours, days, and weeks to bring this project to fruition. My dear, you are a true angel and I remain your blessed fool. Thank-you.
 
@@ -594,6 +692,7 @@ No warranties are given. The license may not give you all of the permissions nec
 
 ### <a name="RevHistory"></a> Document Revision History  
 
+**2022-01-04:** Revise for STAC software version 1.10, detailing Peripheral Mode operation.<br>
 <b>2021-04-30:</b>  
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 1.9.  
 &nbsp;&nbsp;&nbsp;&nbsp;- Add Display Orientation.<br>
