@@ -1,4 +1,4 @@
-#<center>_Peripheral Mode Application Note_</center>
+#Peripheral Mode Application Note
 
 As described in the *STAC User's Guide*, STAC software starting with version 1.10 adds a Peripheral Mode of operation.
 
