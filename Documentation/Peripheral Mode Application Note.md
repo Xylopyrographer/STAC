@@ -45,7 +45,7 @@ Here's the cool part. This allows the opportunity for developers to use a STAC s
 **Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3 V will irreparably damage the device.**
 <br><br>
 
-##Normal State (Controller) Output Signals
+## Normal State (Controller) Output Signals
 
 Starting with software v1.10, a STAC running it its normal operating state (not in Peripheral Mode) also acts as a controller by outputting the current tally state of the video channel it is monitoring to its GROVE connector. Pins G26 and G32 on this port are set as per the table below.
 
