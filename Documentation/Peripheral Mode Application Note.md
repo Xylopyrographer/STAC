@@ -42,7 +42,7 @@ In Peripheral Mode, the STAC continually monitors the state of G26 and G32 on it
 
 Here's the cool part. This allows the opportunity for developers to use a STAC set in Peripheral Mode as a tally indicator driven by an external piece of gear. Simply connect a cable to the GROVE port, apply power and drive pins G26 and G32 as needed.
 
-<center>==**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3 V will irreparably damage the device.**==</center>
+**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3 V will irreparably damage the device.**
 <br><br>
 
 ##Normal State (Controller) Output Signals
