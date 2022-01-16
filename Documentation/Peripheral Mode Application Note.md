@@ -5,7 +5,7 @@ As described in the *STAC User's Guide*, STAC software starting with version 1.1
 This note goes into what happens behind the scenes with the STAC running a version of software that implements Peripheral Mode: during startup; when operating as a peripheral; and also when in its normal operating state.
 <br><br>
 
-##Initiating Client Mode
+## Initiating Client Mode
 
 A STAC is placed into Peripheral Mode by:
     
@@ -21,7 +21,7 @@ In either case G22 is then driven low.
 After the STAC confirms the jumper is in place, it then configures G26 and G32 on its GROVE (HY2.0-4P) connector as input pins (with weak pull downs) and enters Peripheral Mode.
 <br><br>
 
-##Operation in Peripheral Mode
+## Operation in Peripheral Mode
 
 In Peripheral Mode, all normal operation state and features of the STAC are disabled. The STAC will not connect to a WiFi network and it will ignore any Tally Channel, Operating Mode and Startup Mode settings. The Display Brightness select feature remains enabled as does the orientation feature so the Brightness Select numbers are displayed right side to.
 
@@ -91,7 +91,7 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 <br>
 
-##Notes
+## Notes
 
 1. ==**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.**==
 1. The serial data dump on power up or restart when in Peripheral Mode (see the *Using screen for STAC Information.md* document) will report that the STAC is in Peripheral Mode and the brightness level set.
@@ -100,6 +100,6 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 ---
 
-##Document Revision History  
+## Document Revision History  
 
 **2022-01-04:** First release.<br>
