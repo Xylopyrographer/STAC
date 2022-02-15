@@ -48,7 +48,7 @@ bool Accelerometer = false;     // state to determine if an accelerometer is sup
 
 // ***** Global Variables *****
 
-#define ST_POLL_INTERVAL 175            // # of ms between polling the Smart Tally server for a tally status change
+#define ST_POLL_INTERVAL 300            // # of ms between polling the Smart Tally server for a tally status change
 #define WIFI_CONNECT_TIMEOUT 60000      // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 #define PM_CK_OUT 22                    // ATOM GPIO pin # used for ouput to check to see if the Peripheral Mode jumper is installed
 #define PM_CK_IN 33                     // ATOM GPIO pin # used for input to check to see if the Peripheral Mode jumper is installed
@@ -57,6 +57,7 @@ bool Accelerometer = false;     // state to determine if an accelerometer is sup
 #define TS_1 26                         // ATOM GPIO pin # used as an input if in Peripheral Mode, output otherwise
 #define PREFS_RO true                   // NVS Preferences are Read Only if true
 #define PREFS_RW false                  // NVS Preferences are Read-Write if false
+#define ST_ATTEMPTS 10                  // # of times we try to connect to the Smart Tally server before giving up
 
 enum class ORIENTATION { UP, DOWN, LEFT, RIGHT } ;              // Enumeration for orientation postions
 float LOW_TOL = 100;                                            // Accelerometer parameters
@@ -68,6 +69,8 @@ String lastTallyState = "---null---";
 uint8_t btnWas, btnNow;                     // used in the button click detector buttonClicked() and the control logic for this fn
 bool escapeFlag = false;                    // used for getting out of the settings loops in setup()
 unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status
+unsigned long lastPollTime;                 // holds the millis() counter value for the last time the counter was updated.
+unsigned long connectionLossCount = 0 ;
 
 // ===== Define data strcutures used by the Control loop() =====
 //          - using structures to pass the state conditions from the state functions back to the control loop
@@ -86,6 +89,7 @@ struct TState {
     bool tNoReply;      // true iff (ST Server is connected AND a GET request was sent AND the response was not
                         //     received within the timeout period) OR (tTimeout is true)
     String tState;      // the state of the tally channel being monitored as returned by the querry to the ST Server
+    uint8_t tHistory;   // keeps track of the last 8 server requests
 } tallyStatus;
 
 typedef struct WfState WiFiState;       // going to need a function that returns a WfState structure
@@ -310,20 +314,26 @@ TallyState getTallyState(TState tally) {
     tally.tTimeout = false;
     tally.tNoReply = true;
 
-    if (!stClient.connected()) {
+    if (!stClient.connected()) 
+    {
         maxloops = 0;
-        while (!breakFlag && maxloops < 10) {
+        while (!breakFlag && maxloops < ST_ATTEMPTS) 
+        {
             if(stClient.connect(stIP, stPort, 100)) {
                 tally.tConnect = true;
                 breakFlag = true;
             }
             else {
+                log_i( "Not Connected" ) ;
                 maxloops++;
                 delay(10);
             }
         }
-        if (maxloops == 10) {
+
+        if (maxloops == ST_ATTEMPTS) {
             tally.tTimeout = true;
+            tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+            tally.tHistory += 1 ;                                                // Marking the glitch in a bit field
             return tally;
         }
     }
@@ -332,18 +342,51 @@ TallyState getTallyState(TState tally) {
     stClient.print(tally.tChannel);
     stClient.print("/status\r\n\r\n");
 
+    log_i( "Message Sent" ) ;
+
+    int delay_period = 200 ;
+    int max_timeout_period = 1000 ;    
     maxloops = 0;
-    while (stClient.available() == 0 && maxloops < 1000) {    // Wait a maximum of 1 second for the ST server's reply to become available
-        maxloops++;
-        delay(1);                                             // wait a tick before checking again if there is a response from the ST Server.
+
+    // Wait a maximum of 1 second for the ST server's reply to become available
+    while ( stClient.available() == 0 && maxloops < max_timeout_period ) 
+    {  
+        if (!stClient.connected()) {
+            tally.tTimeout = true;
+            tally.tNoReply = true;           
+            tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+            tally.tHistory += 1 ;    
+            connectionLossCount++;            
+            log_i( "Wifi disconnected, returning" ) ;
+            return tally;
+        }    
+        if ( maxloops > 0 ) {
+          log_i( "Wifi not yet available %d ms ... Waiting", maxloops ) ;
+        }
+
+        maxloops+=delay_period;
+        delay(delay_period);                                            // wait before checking again to see if there is a response from the ST Server.
     }
-    if (maxloops == 1000) {         // response from the ST Server timed out
-        tally.tTimeout = true;     
+    
+    if (maxloops >= max_timeout_period) {                               // response from the ST Server timed out
+        connectionLossCount++;
+        drawGlyph(GLF_BX, purplecolor);                                 // throw up the big purple X...
+        tally.tTimeout = true;
+        tally.tNoReply = true;
+        tally.tHistory = tally.tHistory << 1 ;                               // Shift the old values to the left by 1 bit
+        tally.tHistory += 1 ;    
+        log_i( "ST Server Timeout, Count %d, returning", connectionLossCount ) ;
         return tally;
     }
 
-    stClient.setTimeout(0);                                                 // stClient.readString() is a 1 sec blocking function by default
-    while (stClient.available() > 0) reply += stClient.readString();        // we have a response from the server
+    stClient.setTimeout(0);                                             // stClient.readString() is a 1 sec blocking function by default
+
+    while (stClient.available() > 0) {
+      reply += stClient.readString();                                   // we have a response from the server
+    }
+
+    log_i( "Response Received" ) ;
+
     reply.trim();                                                           // knock any junk off the front and back of the reply
     tally.tState = reply;                                                   // store the response
     tally.tNoReply = false;                                                 // set our control flags
@@ -362,7 +405,7 @@ void changeTallyChannel() {
     uint8_t tallyChanNow = tallyStatus.tChannel;     // keep the tally channel state we had on entry
 
     drawGlyph(glyphMap[tallyStatus.tChannel], tallychangecolor);    // display the current tally channel
-    
+   
     while (M5.Btn.read() == 1);                     // don't proeeed until the button is released.
     btnWas = 0;                                     // initialize the click detector
     updateTimeout = millis() + 30000;               // delete this line if you don't want to leave after a period of inactivity
@@ -1429,7 +1472,7 @@ void setup() {
 void loop() {
 
     M5.update();        // put this at the top of loop() instead of the bottom so it always gets hit
-    
+        
     /* ~~~~~ Update Brightness contol logic ~~~~~ */
 
     if (M5.Btn.pressedFor(1500)) {
@@ -1455,6 +1498,7 @@ void loop() {
             stClient.stop();                        //  stop the stClient
             WiFi.disconnect();                      //  kill the WiFi
             log_w("WiFi connection lost :(");
+
             if (!ctMode) {                          //  if in talent mode...
                 M5.dis.fillpix(PVW);                //    set the display to PVW
                 M5.dis.drawpix(PO_PIXEL, PO_COLOR); //    turn on the power LED
@@ -1501,24 +1545,45 @@ void loop() {
     if ((millis() >= nextPollTime) && wifiStatus.wfconnect) {
         
         tallyStatus = getTallyState(tallyStatus);
-        if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {    // error fetching the tally status
 
-            digitalWrite(TS_1, LOW);                    // output the tally state to the GROVE pins
-            digitalWrite(TS_0, LOW);
+        digitalWrite(TS_1, LOW);                    // output the tally state to the GROVE pins
+        digitalWrite(TS_0, LOW);
             
-            log_e("ts error: connect = %i, timeout = %i, reply = %i", tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply);
-            
-            if (ctMode) {
-                drawGlyph(GLF_BX, purplecolor);          // throw up the big purple X...
+        if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {          // error fetching the tally status
+
+            if (tallyStatus.tConnect == false)
+            {
+                log_i("ts error : connect = %i, timeout = %i, reply = %i", 
+                      tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply);        // Display log message to serial stream
+                tallyStatus = getTallyState(tallyStatus);                                       // Check the Tally State again            
             }
-            else {
-                M5.dis.fillpix(PVW);                    // else change the display to the PVW colour
-                M5.dis.drawpix(PO_PIXEL, PO_COLOR);     // turn on the power LED
+
+            if ( (tallyStatus.tHistory == 1 ) || (tallyStatus.tHistory == 3 ) ||
+                 (tallyStatus.tHistory == 7 ) || (tallyStatus.tHistory == 15 ) ||
+                 (tallyStatus.tHistory == 31 ) || (tallyStatus.tHistory == 63 ) ||
+                 (tallyStatus.tHistory == 127 ) || (tallyStatus.tHistory == 255 ) )
+            {   
+                log_i( "ts error : history = %d", tallyStatus.tHistory );
+
+                if (ctMode)
+                {
+                    log_e("ts error : Displaying X - MainLoop\n");          // Notify to the Serial stream
+                    drawGlyph(GLF_BX, purplecolor);                         // throw up the big purple X...
+                }
+                else 
+                {
+                    M5.dis.fillpix(PVW);                                    // else change the display to the PVW colour
+                    M5.dis.drawpix(PO_PIXEL, PO_COLOR);                     // turn on the power LED
+                }
             }
+ 
             lastTallyState = "---null---";
+            lastPollTime = nextPollTime ;               // Keep track of the last poll time
             nextPollTime = millis();                    // force a re-poll next time through loop()
             return;                                     // go back to the start of loop()
         }
+
+        lastPollTime = nextPollTime ;
         nextPollTime = millis() + ST_POLL_INTERVAL;
 
     }
@@ -1528,10 +1593,13 @@ void loop() {
     if (tallyStatus.tState != lastTallyState) {
         
         lastTallyState = tallyStatus.tState;   
-        if (tallyStatus.tState == "onair") {
+
+        M5.dis.clear();                                         // Clear the display;
+
+        if (tallyStatus.tState == "onair") {                    // was tallyStatus.tState == String("onair")
             digitalWrite(TS_1, HIGH);                           // output the tally state to the GROVE pins
             digitalWrite(TS_0, HIGH);
-            M5.dis.fillpix(PGM);                                // Change the display to the PGM colour
+            M5.dis.fillpix(PGM);                                // Change the display to the PGM colour;
         }
         else if (tallyStatus.tState == "selected") {
             digitalWrite(TS_1, HIGH);                           // output the tally state to the GROVE pins
@@ -1548,7 +1616,11 @@ void loop() {
                 M5.dis.fillpix(PVW);                           // else change the display to the PVW colour
             }
         }
-        else {
+        else 
+        {
+            // Check to make sure that this is not a one-off and only display the X if the server 
+            // connection does not respond over a 2 second period
+
             // Things have gone wrong big time.
             digitalWrite(TS_1, LOW);                   // output the tally state to the GROVE pins
             digitalWrite(TS_0, LOW);
@@ -1569,6 +1641,8 @@ void loop() {
         M5.dis.drawpix(PO_PIXEL, PO_COLOR);            // turn on the power LED
 
     }
+
+    tallyStatus.tHistory = tallyStatus.tHistory << 1 ;        // Shift tally state bit left by 1
 
     // ~~~~~ End of the Control loop
     
