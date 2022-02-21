@@ -46,7 +46,7 @@ To ensure you see the pictures, make sure the *images* folder is in the same fol
 - [Troubleshooting](#Troubleshooting)
     - [The WiFi Connect Loop of Death](#WiFiDeathLoop)
     - [Tally Status not Changing](#NoStatusChange)
-    - [A Big Purple X?](#BPX)
+    - [Unable to Connect : A Big Purple X?](#BPX)
     - [The Red WiFi Interrupt Screen!](#WiFiInterrupt)
     - [Purple Question Mark?](#PurpleQMark)
     - [The Big Red X](#BigRedX)
@@ -526,8 +526,9 @@ But before charging forth, know that the STAC will mask most errors on the displ
     - Try a different cable.
 </div>
 
+</br>
 
-### <a name="BPX"></a> _A Big Purple X?_
+### <a name="BPX"></a> _Unable to Connect : A Big Purple X?_
 
 **What you're seeing:**
 <div style="margin-left: 2em;">There is is a big purple X on the display!
@@ -536,9 +537,22 @@ But before charging forth, know that the STAC will mask most errors on the displ
 </center>
 </div>
 
-**What's causing it:**<div style="margin-left: 2em;">Only seen when operating in Camera Operator mode, this is the STAC letting you know that it cannot communicate with the Roland switch.  
+**What's causing it:**
 
-Everything else is OK though.</div>
+* This is only seen when operating in Camera Operator mode, this is the STAC letting you know that it cannot communicate with the Roland switch.
+
+* The purple X appears because the STAC has not received a response from the Roland in sufficient time.  Sometimes this is because the server is down, but other times it may be due to latency over the wireless connection. 
+
+* Everything else is OK though.
+
+</br>
+
+In order to prevent un-necessary confusion to the camera operator, whereby the STAC switches in and out of the purple X due to network latency issues, we have added timeout tracking.
+
+Timeout tracking monitors the last 8 connection attempts to the Roland device.  Each time an attempt is made to connect to the device, a maximum of 10 (_configurable_) attempts are allowed. It the attempts are unsuccessful, or the connection is terminated before the Roland Tally status is received, then the timeout tracking is maked as a failure.
+
+The purple X is only shown if the most recent attempt was a failure, but log file commands are written to the debug log for informational purposes. The polling interval (ms) is set as an attribute in the code ( _TODO : Add to embedded web server_ ), changing the polling interval can help on networks with high latency, or many STAC devices all talking to the same Roland device.
+
 
 **What to try:**
 
@@ -546,12 +560,15 @@ Everything else is OK though.</div>
     * Check that the Roland switch is turned on.
     * Check that the switch is connected to the WiFi network.
     * Has the IP address of the switch changed? Check with someone that might know. If so, whew&mdash;problem solved. Just pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the new IP Address of the switch, submit that and the other info required and you'll be great.
+    * Try changing the polling interval, you may be polling the Wifi network too frequently, and overloading the router.
 
 * *If the STAC has never connected to this switch before:*
     *  The IP address or port number of the switch was probably entered incorrectly on the web browser Configuration form. Pop up to the section on [Reconfiguring the STAC](#ReconfiguringtheSTAC). Check and re-enter the IP Address and port number of the switch, along with the other info required and you'll be good to go.
 
 * *If the STAC is being used in an emulated environment:*
     * The IP address or port number of the STAC and the emulated device are probably not in sync. Check the configuration requirements of the system and change either the configuration of the system or the STAC as in [Reconfiguring the STAC](#ReconfiguringtheSTAC) so they match. See also [Special Configurations](#SpecConfig).
+    * Verify that you do not have a firewall blocking the simulators connection.  Although it is connecting over port 80, we have seen some firewall realted connectivity issues. 
+
 
 <a name="BPX"></a>**Other Considerations**  
 <div style="margin-left: 2em;">It is possible that the big purple X (BPX) will appear and then a second or two later disappear with the normal channel status display shown.
@@ -564,6 +581,10 @@ If the BPX appears often but the STAC soon returns to displaying the active chan
 * the network is busy with other traffic (live streaming being a big one) causing delays in the communication between the switch and the STAC.
 
 If this seems to be the case, have a chat with the some folks about the state of the network.</div>
+
+
+
+</br>
 
 ### <a name="WiFiInterrupt"></a> _The Red WiFi Interrupt Screen!_
 
