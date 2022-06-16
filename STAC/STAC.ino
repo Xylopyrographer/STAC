@@ -45,11 +45,18 @@
  *      
  *   Version: 1.11_ß9
  *      - compiles and runs under arduino-esp32 core v1.0.6 and v2.0.3-rc1
- *      - change 'stIP' to use type 'IPAddress' instead of 'char[]'.
+ *        - when using core v2.0.3 & greater, the WiFi authentication/encryption 
+ *          mode of the STAC when it is being provisioned is now WAP2-PSK (AES).
+ *      - change 'stIP' to use data type 'IPAddress' instead of 'char[]'.
  *      - fixed the "set" order in STACWiFi.h so setting the hostname works with core 1.0.6 and 2.0.3-rc1.
- *      - fixed a coding error in 'getCreds()' in STACWeb.h that greatly improved error handling.
- *      - added 'fetchInfo()' function to 'STACUtil.h'
+ *      - fixed a coding error in 'getCreds()' in STACWeb.h that greatly improves error handling.
+ *      - added 'fetchInfo()' function to 'STACUtil.h'.
+ *      - removed all references to btnWas & btnNow.
  *      - house cleaning.
+ *      
+ *    Version: 1.11-RC1
+ *      - compiles and runs under arduino-esp32 core v1.0.6 and v2.0.3
+ 
  *
  *  2022-03-30
  *  
@@ -58,7 +65,7 @@
  *  A Roland Smart Tally Client
  *     An Arduino sketch designed to run on an M5Stack ATOM Matrix board.
  *     Its purpose is to monitor the tally status of a single video input channel 
- *     of a Roland device that implements their proprietary Smart Tally protocol.
+ *     of a Roland device that implements their Smart Tally protocol.
  *     The sketch uses WiFi to connect to the same network as the Roland device.
  *     For the Roland video input channel being monitored, STAC will set
  *     the colour of the display on the ATOM:
@@ -78,7 +85,7 @@
 */
 
 
-String swVer = ("1.11_Beta9");    // version of this software. Shows up on the web config page & is stored in NVS
+String swVer = ("1.11-RC1");      // version of this software. Shows up on the web config page & is stored in NVS
 String idPrefix = ("STAC-");      // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 2       // version of the normal operating mode (NOM) Preferences information layout in NVS
 
@@ -91,14 +98,16 @@ String idPrefix = ("STAC-");      // prefix to use for naming the STAC AP SSID &
 #include <JC_Button.h>          // for driving the ATOM display button.
 #include <I2C_MPU6886.h>        // for driving the ATOM IMU.
 
-#define DIS_BUTTON 39           // pin attached to the display button
-#define DB_PULLUP 1             // 1 to use internal GPIO pullup, 0 to use an external pullup on the DIS_BUTTON pin
+#define DIS_BUTTON 39           // GPIO pin attached to the display button
+#define DB_PULLUP 1             // 1 to use internal GPIO pullup, 0 to use an external pullup on the DIS_BUTTON pin.
+                                //  - this is here as work is starting on porting STAC to platforms other than the ATOM MATRIX.
+                                //  - if the GPIO pin chosen to emulate the MATRIX display button does not have an internal
+                                //    pullup resistor, an external one should be used and DB_PULLUP set to 0.
 
 // Create the objects we need to talk to the ATOM hardware.
 Button dButt(DIS_BUTTON, 20, DB_PULLUP, true);          // display Button(pin, dbTime, puEnable, invert) instantiates a button object.
 I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);    // IMU (default address is 0x68, Wire1 is an I2C bus on user defined pins - done in setup() )
 CRGB leds[25];                                          // buffer for the 25 LEDs of the display
-
 WiFiClient stClient;		    // initiate the WiFi library and create a WiFi client object
 Preferences stcPrefs;           // holds the operational parameters in NVS for retention across restarts and power cycles.
 
@@ -129,10 +138,8 @@ uint16_t stPort;                // HTTP port of the actual or emulated Roland Sm
 bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
 bool autoStart;                 // initialzed in setup(). true to bypass the normal "click through to confirm start" sequence.
 uint8_t currentBrightness;      // Atom display brightness. Initialzed in setup()
-
-String lastTallyState;                      // tally state before the call to getTallyState().
-//uint8_t btnWas, btnNow;                     // used in the button click detector buttonClicked() and the control logic for this fn.
-unsigned long stsPollInt;                   // # of ms between polling the Smart Tally server for a tally status change. Configured via the user's web browser, then set from NVS.
+String lastTallyState;          // tally state before the call to getTallyState().
+unsigned long stsPollInt;       // # of ms between polling the Smart Tally server for a tally status change. Configured via the user's web browser, then set from NVS.
 unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status.
 //unsigned long lastPollTime;                 // holds the millis() counter value for the last time the counter was updated.
 //unsigned long connectionLossCount = 0;      // used for ST Server stats
@@ -212,7 +219,8 @@ typedef struct provision provData_t;
         swVersion       String      --> bootVer                     String          The STAC software version it was operating with before its last power down
         prefVer         UShort      --> NOM_PREFS_VERSION           uint16_t        The version number of the NVS Preferences layout the STAC had at boot time.
                                                                                      - Used to decide if we can reuse the existing NVS preferences values after a softwate update
-                                                                                     - Means the user doesn't have to reconfigure the STAC if the NVS layout hasn't changed across software versions
+                                                                                     - Means the user doesn't have to reconfigure the STAC if the NVS layout hasn't changed 
+                                                                                       across software versions
  
   Name space: PModePrefs - used when the STAC is operating in Peripheral Mode
   
@@ -246,7 +254,7 @@ void setup() {
     provData_t sConfigData;                 // structure to hold the WiFi provisioning data from user's web browser
     bool provisioned;                       // true if the WiFi provisioning has been done
     String bootVer;                         // the version of software the STAC thinks it has - from NVS storage at boot time
-    uint16_t bootPrefs;                     // the version of the normal operating mode preferecnes layout the STAC thinks it has - from NVS storage at boot time
+    uint16_t bootPrefs;                     // the version of the normal operating mode preferences layout the STAC thinks it has - from NVS storage at boot time
     bool escapeFlag = false;                // used for getting out of the settings loops.
 
     dButt.begin();
@@ -294,7 +302,7 @@ void setup() {
 
     drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);       // do this here as setting the tally channel is the first thing we do in the user setup stuff.
                                                                 //   - also gives the user some feedback so they can see we've transitioned out of doing all the setup bits
-    while ( dButt.read() );                                  // wait for button to be released
+    while ( dButt.read() );                                     // wait for button to be released
 
     bool asBypass = false;                                      // get set up for the auto start detect and control stuff
     if (autoStart) {                                            // if we're in auto start mode...
@@ -303,8 +311,8 @@ void setup() {
         bool nextonstate = false;
         unsigned long asTimeOut =  millis() + 20000;                // autostart timeout is 20 seconds
         unsigned long nextFlash = millis() + 1000;                  // flash the corners every second while waiting for autostart to time out.
-        while (asTimeOut >= millis() && dButt.read() == 0) {        //  pause until we time out (continue with auto start)
-            if (nextFlash <= millis()) {                            //   have some fun & flash the four corner LED's while waiting :)
+        while ( asTimeOut >= millis() && dButt.read() == 0 ) {      // pause until we time out (continue with auto start)
+            if ( nextFlash <= millis() ) {                          // have some fun & flash the four corner LED's while waiting :)
                 pulsePix(nextonstate, GRB_AS_PULSE_COLOR);
                 nextonstate = !nextonstate;
                 nextFlash = millis() + 1000;
@@ -323,7 +331,6 @@ void setup() {
     */
     if (!asBypass) {                                              // skip everything here if autostart kicked in
         escapeFlag = false;
-        // btnWas = 0;
         
         do  {
             dButt.read();                                               // read & refresh the state of the button
