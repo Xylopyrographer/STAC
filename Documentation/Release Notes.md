@@ -1,4 +1,31 @@
 # STAC Release Notes
+## v2.0
+
+__New Features__
+
+* _Configurable Polling Interval_
+  
+  * The amount of time, in milliseconds, between polls of the Smart Tally Server can now be set when configuring the STAC.
+
+__Internal Improvements__
+
+  * The STAC ID is now used as the WiFi hostname, making each STAC uniquely identifiable in the attached devices table of the WiFi router.
+
+  * The WiFi authentication/encryption mode of the STAC when it is being provisioned is now WAP2-PSK (AES).
+
+  *  When operating in busy networks, the "Big Purple X" won't flicker, only activating when there is a number of consecutive communications errors with the Smart Tally Server.
+
+  * Added a "Big Orange X" display error when the STAC cannot connect to the Smart Tally Server. Helps with troubleshooting to distinguish between "Big Purple X" and "Purple Question Mark" type errors.
+
+  * Revised the format of the information dump sent to the serial port on startup.
+  
+  * A bunch of house cleaning and other tweaks to speed things up and what not. You know, the usual stuff developers do when realizing they shouldn't have done something a certain way to begin with.
+  
+  * Now based on arduino-esp32 core v2.0.3 or greater.
+ 
+  * A new "_Detailed Release Notes_" document intended for developers is in the `STAC/Code` folder.
+
+
 ## v1.10
 
 __New Features__

@@ -1,15 +1,17 @@
-/* STAC (Smart Tally ATOM Matrix Client)
+/*  STAC (Smart Tally ATOM Client)
  *
- *  Version: 1.10
- *  2022-01-02
- *  
+ *  Version: 2.0
+ *  2022-07-01
+ *
  *  Authors: Team STAC
  *  
  *  A Roland Smart Tally Client
  *     An Arduino sketch designed to run on an M5Stack ATOM Matrix board.
+ *
  *     Its purpose is to monitor the tally status of a single video input channel 
- *     of a Roland device that implements their proprietary Smart Tally protocol.
+ *     of a Roland device that implements their Smart Tally protocol.
  *     The sketch uses WiFi to connect to the same network as the Roland device.
+ *
  *     For the Roland video input channel being monitored, STAC will set
  *     the colour of the display on the ATOM:
  *      + when in "Camera Operator" mode, to:
@@ -20,57 +22,76 @@
  *          - RED if the channel is in PGM (Progam or onair)
  *          - GREEN otherwise
  *     
- *  Configuration of the STAC for the WiFi credentials and IP address, port number  
- *  and number of tally channels of the Roland switch is done using a web browser.
+ *  Configuration of the STAC for the WiFi credentials and IP address, port number, number of
+ *  tally channels and the polling interval of the Roland switch is done using a web browser.
  *
  *  More at: https://github.com/Xylopyrographer/STAC
  *  
 */
 
+String swVer = ("2.0");           // version of this software. Shows up on the web config page & is stored in NVS
+String idPrefix = ("STAC-");      // prefix to use for naming the STAC AP SSID & STA hostname
+#define NOM_PREFS_VERSION 2       // version of the normal operating mode (NOM) Preferences information layout in NVS
 
-#include <M5Atom.h>             // this is a modified M5Atom library. See the docs in the GitHub repository for info
-#include <WiFi.h>               // this is the esp32 version of this library
-#include <Preferences.h>        // suggest using the modified Preferences library. See the docs in the repository for info
-#include <nvs_flash.h>          // used to wipe the NVS space when doing a factory reset
+#include <WiFi.h>
+#include <Preferences.h>
+#include <Wire.h> 
+#include <FastLED.h>            // for driving the ATOM matrix display
+#include <JC_Button.h>          // for driving the ATOM display button.
+#include <I2C_MPU6886.h>        // for driving the ATOM IMU.
 
-String swVer = F("1.10");       // version of this software. Shows up on the web config page & is stored in NVS
-#define NOM_PREFS_VERSION 1     // version of the normal operating mode Preferences information layout in NVS
-String apPrefix = F("STAC_");   // prefix to use for naming the STAC AP SSID when being configured
+#define DIS_BUTTON 39           // GPIO pin attached to the display button
 
-char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's web browser; max length of a WiFi SSID is 32 char
-char networkPass[64]{};         // ST server WiFI password. Configured via the user's web browser; max length of a password is 63 char
-char stIP[16]{};                // IP address of the ST server. Configured via the user's web browser; max length of an IP address is 15 char
-uint16_t stPort;                // HTTP port of the actual or emulated Roland Smart Tally server (switcher). Configured via the user's web browser; 0 to 65353; default is 80
+// Create the objects we need to talk to the ATOM hardware.
+Button dButt(DIS_BUTTON, 20, 1, true);          // display Button(pin, dbTime, puEnable, invert) instantiates a button object.
+I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);    // IMU (default address is 0x68, Wire1 is an I2C bus on user defined pins - done in setup() )
+CRGB leds[25];                                          // buffer for the 25 LEDs of the display
+WiFiClient stClient;		    // initiate the WiFi library and create a WiFi client object
+Preferences stcPrefs;           // holds the operational parameters in NVS for retention across restarts and power cycles.
 
-bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
-bool autoStart;                 // initialzed in setup(). true to bypass the normal "click through to confirm start" sequence.
-bool Accelerometer = false;     // state to determine if an accelerometer is supported by this hardware.
-
-// ***** Global Variables *****
-
-#define ST_POLL_INTERVAL 175            // # of ms between polling the Smart Tally server for a tally status change
 #define WIFI_CONNECT_TIMEOUT 60000      // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
+
+#define PO_PIXEL 12                     // the pixel position # of the display to use as the Power On indicator
+
 #define PM_CK_OUT 22                    // ATOM GPIO pin # used for ouput to check to see if the Peripheral Mode jumper is installed
 #define PM_CK_IN 33                     // ATOM GPIO pin # used for input to check to see if the Peripheral Mode jumper is installed
 #define PM_CK_CNT 5                     // # of times to toggle PM_CK_OUT to test that the Peripheral Mode jumper is installed
 #define TS_0 32                         // ATOM GPIO pin # used as an input if in Peripheral Mode, output otherwise
 #define TS_1 26                         // ATOM GPIO pin # used as an input if in Peripheral Mode, output otherwise
-#define PREFS_RO true                   // NVS Preferences are Read Only if true
-#define PREFS_RW false                  // NVS Preferences are Read-Write if false
+
+#define PREFS_RO true                   // NVS Preferences namespace is Read Only if true
+#define PREFS_RW false                  // NVS Preferences namespace is Read-Write if false
+
+
+// ***** Global Variables *****
+
+String stacID;                  // generated in setup(). The unique STAC ID used for the AP SSID & STA hostname
+char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's web browser; max length of a WiFi SSID is 32 char
+char networkPass[64]{};         // ST server WiFI password. Configured via the user's web browser; max length of a password is 63 char
+IPAddress stIP;                 // IP address of the ST server. Configured via the user's web browser
+uint16_t stPort;                // HTTP port of the actual or emulated Roland Smart Tally server (switcher). Configured
+                                //  via the user's web browser; 0 to 65353; default is 80
+
+bool ctMode;                    // initialzed in setup(). "Camera Operator" or "Talent" mode. True for camera operator mode, false for talent mode.
+bool autoStart;                 // initialzed in setup(). true to bypass the normal "click through to confirm start" sequence.
+uint8_t currentBrightness;      // Atom display brightness. Initialzed in setup()
+String lastTallyState;          // tally state before the call to getTallyState().
+unsigned long stsPollInt;       // # of ms between polling the Smart Tally server for a tally status change. Configured via the user's web browser, then set from NVS.
+unsigned long nextPollTime;     // holds a millis() counter value used to determine when the ST Server is next polled for the tally status.
+
+bool junkReply;                 // true iff we received a reply from the ST server but it was garbage
+uint8_t tNoReplyCount;          // STS "no reply from ST server" error accumulator
+uint8_t tJunkCount;             // STS junk reply error accumulator
+
+
+bool Accelerometer = false;     // state to determine if an accelerometer is supported by this hardware.
 
 enum class ORIENTATION { UP, DOWN, LEFT, RIGHT } ;              // Enumeration for orientation postions
 float LOW_TOL = 100;                                            // Accelerometer parameters
 float HIGH_TOL = 900;                                           // Accelerometer parameters
 float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0 ;        // Accelerometer parameters
 
-Preferences stcPrefs;                       // holds the operational parameters in NVS for retention across restarts and power cycles.
-String lastTallyState = "---null---";
-uint8_t btnWas, btnNow;                     // used in the button click detector buttonClicked() and the control logic for this fn
-bool escapeFlag = false;                    // used for getting out of the settings loops in setup()
-unsigned long nextPollTime;                 // holds a millis() counter value used to determine when the ST Server is next polled for the tally status
-
-// ===== Define data strcutures used by the Control loop() =====
-//          - using structures to pass the state conditions from the state functions back to the control loop
+// ===== Define data structures used by our various functions =====
 
 struct WfState {
     bool wfconnect;     // true iff we are connected to the WiFi network
@@ -84,862 +105,81 @@ struct TState {
     bool tConnect;      // true iff there is a connection to the ST Server
     bool tTimeout;      // true iff an attempt to connect to the ST Server timed out
     bool tNoReply;      // true iff (ST Server is connected AND a GET request was sent AND the response was not
-                        //     received within the timeout period) OR (tTimeout is true)
+                        //  received within the timeout period)
     String tState;      // the state of the tally channel being monitored as returned by the querry to the ST Server
 } tallyStatus;
 
 typedef struct WfState WiFiState;       // going to need a function that returns a WfState structure
 typedef struct TState TallyState;       // going to need a function that returns a TState structure
 
-struct provision {                      // structure that holds the credentials data from the WiFi config routines
+struct provision {                      // structure that holds the provisioning data from the WiFi config routines
     String pSSID;
     String pPass;
     String pSwitchIP;
     uint16_t pPort;
     uint8_t ptChanMax;
+    unsigned long pPollInt;
 };
-
 typedef struct provision provData_t;
-
-/* ~~~~~ NVS Items ~~~~~
-
-  Stuff we're putting into NVS for retention across power cycles
-  Use [.put | .get] "NVS type" to access
-  
-  Name space: STCPrefs          // used when the STAC is in its normal operating state
-  Keys:
-  
-    NVS Key         NVS type    --> app identifier              app type        comment
-    -------         --------    --------------------            --------        -------------------------------------------------
-    nvsInit         Bool        --> tpInit                      bool            true if the STCPrefs NVS namespace and its key:value pairs have been created
-    curBright       UChar       --> currentBrightness           uint8_t         display brightness when in normal operating state
-    talChan         UChar       --> tallyStatus.tChannel        uint8_t         tally channel being monitored.
-    talMax          UChar       --> tallyStatus.tMax            uint8_t         max tally channel #
-    ctMde           Bool        --> ctMode                      bool            "camera operator" or "talent mode"
-    pVis            Bool        --> provisioned                 bool            true if the WiFi credentials in NVS are non-zero
-    aStart          Bool        --> autoStart                   bool            true if the STAC should autostart on power up or reset
-    stnSSID         String      --> stSSID                      String          SSID of the WiFi network to connect to     
-    stnPass         String      --> stPass                      String          password of the WiFi network to connect to
-    stswIP          String      --> stswIP                      String          IP address of the Roland Smart Tally device being monitored
-    stswPort        UShort      --> stswPort                    uint16_t        Port number of the actual or emulated Roland Smart Tally device
-    swVersion       String      --> bootVer                     String          The software version the STAC had from NVS storage at boot time
-    prefVer         UShort      --> NOM_PREFS_VERSION           uint16_t        The version number of the NVS Preferences layout the STAC had at boot time.
-                                                                                 - Used to decide if we can reuse the existing NVS preferences values after a softwate update
-                                                                                 - Means the user doesn't have to reconfigure the STAC if the NVS layout hasnt changed across software versions
- 
-  Name space: PModePrefs        // used when the STAC is operating in Peripheral Mode
-   Keys:
-  
-    NVS Key         NVS type    --> app identifier              app type        comment
-    -------         --------    --------------------            --------        -------------------------------------------------
-    pmbrightness    UChar       --> pmBright                    uint8_t         display brightness when operating in Peripheral Mode
-    
-~~~~~ End NVS Items ~~~~~
-*/
-
-WiFiClient stClient;		    // initiate the WiFi library and create a WiFi client object
-
-#define TOTAL_GLYPHS 31         // number of glyphs in the baseGlyphMap array below
-
-// This is the base set of Glyphs before rotation
-const static uint8_t baseGlyphMap[TOTAL_GLYPHS][25] = {
-    {0,0,1,0,0,0,1,0,1,0,0,1,0,1,0,0,1,0,1,0,0,0,1,0,0},    // 0
-    {0,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,1,1,0},    // 1
-    {0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1,1,1,0},    // 2
-    {0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,0,1,1,0,0},    // 3
-    {0,1,0,1,0,0,1,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,0},    // 4
-    {0,1,1,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,1,1,0},    // 5
-    {0,0,1,1,0,0,1,0,0,0,0,1,1,1,0,0,1,0,1,0,0,1,1,1,0},    // 6
-    {0,1,1,1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0},    // 7
-    {0,1,1,1,0,0,1,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,1,1,0},    // 8
-    {0,1,1,1,0,0,1,0,1,0,0,1,1,1,0,0,0,0,1,0,0,1,1,0,0},    // 9
-    {0,1,0,1,0,0,1,0,1,0,0,0,1,0,0,0,1,0,1,0,0,1,0,1,0},    // X
-    {0,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,1,0,0,0,1,0,1,0},    // WiFi logo
-    {1,1,0,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,0,1},    // ST
-    {0,0,1,1,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,1,0},    // C
-    {0,1,1,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0},    // T
-    {0,0,1,0,0,0,0,0,1,0,1,1,1,1,1,0,0,0,1,0,0,0,1,0,0},    // RA - right arrow
-    {0,0,1,0,0,0,1,0,0,0,1,1,1,1,1,0,1,0,0,0,0,0,1,0,0},    // LA - left arrow
-    {0,1,0,1,0,0,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,1,1,1,0},    // HF - smiley face
-    {1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,1},    // BX - big X
-    {1,1,1,1,1,1,0,0,0,1,1,0,0,0,1,1,0,0,0,1,1,1,1,1,1},    // FM - frame
-    {1,0,1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,1,0,1,0,1},    // DF - dotted frame
-    {0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0},    // QM - question mark
-    {1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1},    // CBD - checkerboard
-    {0,0,0,0,1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0},    // CK - checkmark
-    {0,1,1,1,0,0,1,1,1,0,0,1,1,1,0,0,1,1,1,0,0,1,1,1,0},    // EN space - fills the innermost three columns
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},    // EM space - fills the entire display
-    {0,0,0,0,0,0,1,1,1,0,0,1,1,1,0,0,1,1,1,0,0,0,1,1,0},    // dot
-    {0,0,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,0,0,0,1,1,1,0,0},    // WiFi congig
-    {0,0,1,0,0,0,1,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,0,1,0},    // A
-    {0,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1,0,0},    // S
-    {0,1,1,0,0,0,1,0,1,0,0,1,1,0,0,0,1,0,0,0,0,1,0,0,0},    // P
-};
-
-// glyphMap is the baseGlyphMap rotated according to the vertical orientation of the STAC
-uint8_t glyphMap[TOTAL_GLYPHS][25] = {0};
-
-/* ----- mnemonic define table for the glyphMap[] -----
- *  Need to keep the numbers 0 to 9 at the start of the array and in the order below as latter 
- *  functions that index into the glyphMap[] directly depend on this order to retrieve the 
- *  correct bitmap corresponding to that number.
-*/
-
-#define GLF_0 glyphMap[0]       // the number 0
-#define GLF_1 glyphMap[1]       // the number 1
-#define GLF_2 glyphMap[2]       // the number 2
-#define GLF_3 glyphMap[3]       // the number 3
-#define GLF_4 glyphMap[4]       // the number 4
-#define GLF_5 glyphMap[5]       // the number 5
-#define GLF_6 glyphMap[6]       // the number 6
-#define GLF_7 glyphMap[7]       // the number 7
-#define GLF_8 glyphMap[8]       // the number 8
-#define GLF_9 glyphMap[9]       // the number 9
-#define GLF_X glyphMap[10]      // the letter X
-#define GLF_WIFI glyphMap[11]   // WiFi icon
-#define GLF_ST glyphMap[12]     // Smart Tally icon
-#define GLF_C glyphMap[13]      // the letter C
-#define GLF_T glyphMap[14]      // the letter T
-#define GLF_RA glyphMap[15]     // right arrow
-#define GLF_LA glyphMap[16]     // left arrow
-#define GLF_HF glyphMap[17]     // smimley face
-#define GLF_BX glyphMap[18]     // big X
-#define GLF_FM glyphMap[19]     // frame
-#define GLF_DF glyphMap[20]     // dotted frame
-#define GLF_QM glyphMap[21]     // question mark
-#define GLF_CBD glyphMap[22]    // checkerboard pattern
-#define GLF_CK glyphMap[23]     // checkmark
-#define GLF_EN glyphMap[24]     // en space
-#define GLF_EM glyphMap[25]     // em space
-#define GLF_DOT glyphMap[26]    // dot
-#define GLF_CFG glyphMap[27]    // WiFi config icon
-#define GLF_A glyphMap[28]      // the letter A
-#define GLF_S glyphMap[29]      // the letter S
-#define GLF_P glyphMap[30]      // the letter P
-
-// ~~~~~ Colour value definitions for the Atom display ~~~~~
-#define GRB_COLOR_WHITE 0xffffff
-#define GRB_COLOR_BLACK 0x000000
-#define GRB_COLOR_RED 0x00ff00
-#define GRB_COLOR_ORANGE 0x65ff00
-#define GRB_COLOR_YELLOW 0xffff00
-#define GRB_COLOR_GREEN 0xff0000
-#define GRB_COLOR_BLUE 0x0000ff
-#define GRB_COLOR_DKBLUE 0x00007f
-#define GRB_COLOR_PURPLE 0x008080
-#define GRB_COLOR_DKPRPLE 0x003838
-#define GRB_COLOR_TEAL 0xe60062
-#define GRB_COLOR_DKTEAL 0x600026
-#define PVW GRB_COLOR_GREEN
-#define PGM GRB_COLOR_RED
-
-
-// ----- Colour pairs for drawing glyphs with drawGlyph() -----
-//          - the first colour in the pair is the background colour; the second, the foreground colour.
-int programcolor[] = {GRB_COLOR_RED, GRB_COLOR_RED};
-int previewcolor[] = {GRB_COLOR_GREEN, GRB_COLOR_GREEN};
-int unselectedcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_PURPLE};
-int gtgcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_GREEN};
-int warningcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_ORANGE};
-int alertcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_RED};
-int bluecolor[] = {GRB_COLOR_BLACK, GRB_COLOR_BLUE};
-int purplecolor[] = {GRB_COLOR_BLACK, GRB_COLOR_PURPLE};
-int tealcolor[] = {GRB_COLOR_BLACK, GRB_COLOR_TEAL};
-int brightnessset[] = {GRB_COLOR_GREEN, GRB_COLOR_RED};             // colors when displaying the brightness level
-int brightnesschange[] = {GRB_COLOR_WHITE, GRB_COLOR_WHITE};        // colors when changing the brightness level
-int tallychangecolor[] = {GRB_COLOR_DKBLUE, GRB_COLOR_ORANGE};      // colors when changing the tally channel
-int tallymodecolor[] = {GRB_COLOR_DKPRPLE, GRB_COLOR_ORANGE};       // colors when changing the tally mode
-int startchangecolor[] = {GRB_COLOR_DKTEAL, GRB_COLOR_ORANGE};      // colors when changing the startup mode
-int perifmodecolor[] = {GRB_COLOR_ORANGE, GRB_COLOR_GREEN};         // colors when starting in Peripheral Mode
-#define PO_COLOR GRB_COLOR_ORANGE                                   // color to use for the Power On indicator pixel(s)
-
-#define PO_PIXEL 12                     // the pixel position # of the display to use as the Power On indicator
-uint8_t currentBrightness;              // Atom display brightness. Initialzed in setup()
 
 // ***** End Global Variables *****
 
+/* ~~~~~~ NVS Items ~~~~~~ */
+/*
+
+  Stuff we're putting into NVS for retention across power cycles. Uses the 'Preferences' library to manage.
+
+  Name space: STCPrefs - used when the STAC is in its normal operating mode
+   
+   This defines the layout and structure for the NOM_PREFS_VERSION
+
+    NOTE:
+        Any change to the table below requires that the NOM_PREFS_VERSION #define above be incremented.
+     
+    Keys:
+      
+        NVS Key         NVS type    --> app identifier              app type        comment
+        -------         --------    --------------------            --------        -------------------------------------------------
+        nvsInit         Bool        --> tpInit                      bool            true if the STCPrefs NVS namespace and its key:value pairs have been created
+        curBright       UChar       --> currentBrightness           uint8_t         display brightness when in normal operating state
+        talChan         UChar       --> tallyStatus.tChannel        uint8_t         tally channel being monitored.
+        talMax          UChar       --> tallyStatus.tMax            uint8_t         max tally channel #
+        ctMde           Bool        --> ctMode                      bool            true for "camera operator" mode, false for "talent" mode
+        pPoll           ULong       --> stsPollInt                  unsigned long   # of ms between polling the Smart Tally server for a tally status change
+        pVis            Bool        --> provisioned                 bool            true if the WiFi credentials in NVS are non-zero
+        aStart          Bool        --> autoStart                   bool            true if the STAC should autostart on power up or reset
+        stnSSID         String      --> stSSID                      String          SSID of the WiFi network to connect to     
+        stnPass         String      --> stPass                      String          password of the WiFi network to connect to
+        stswIP          String      --> stIP                        IPAddress       IP address of the Roland Smart Tally device being monitored
+        stswPort        UShort      --> stPort                      uint16_t        Port number of the actual or emulated Roland Smart Tally device
+        swVersion       String      --> bootVer                     String          The STAC software version it was operating with before its last power down
+        prefVer         UShort      --> NOM_PREFS_VERSION           uint16_t        The version number of the NVS Preferences layout the STAC had at boot time.
+                                                                                     - Used to decide if we can reuse the existing NVS preferences values after a software update
+                                                                                     - Means the user doesn't have to reconfigure the STAC if the NVS layout hasn't changed 
+                                                                                       across software versions
+ 
+  Name space: PModePrefs - used when the STAC is operating in Peripheral Mode
+  
+   Keys:
+
+    NVS Key         NVS type    --> app identifier              app type        comment
+    -------         --------    --------------------            --------        -------------------------------------------------
+    pmbrightness    UChar       --> pmBright                    uint8_t         display brightness when operating in Peripheral Mode
+
+*/
+/*~~~~~ End NVS Items ~~~~~*/
 
 // ***** Function Definitions *****
 
-WiFiState connectToWifi(WfState wifistate) {
-/*  This is the "Connect to WiFi" function
-*/
-    unsigned long wfTimeout;
-    wifistate.wfconnect = false;
-    wifistate.timeout = false;
-    int wfStatus = WiFi.status();
-
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_STA);                        // set WiFi station mode
-    WiFi.setSleep(false);                       // have to set this mode or else the display goes nuts when polling
-    
-    wfTimeout = millis() + WIFI_CONNECT_TIMEOUT;
-    WiFi.begin(networkSSID, networkPass);
-    
-    while ((wfStatus != WL_CONNECTED) && (wfTimeout >= millis())) {
-        delay(250);                             // take a pause as it takes some time for the WiFi routines to do their thing in the backgroud
-        wfStatus = WiFi.status();
-    }
-    
-    if (wfStatus == WL_CONNECTED) {
-        wifistate.wfconnect = true;
-    }
-    else {
-        WiFi.disconnect();
-        wifistate.timeout = true;
-    }
-    return wifistate;
-    
-}    // closing brace for connectToWifi()
-
-TallyState getTallyState(TState tally) {
-/*  Establishes the connection to the Smart Tally server and returns the response  after the server is sent a GET request.
-    The long form of the GET request returns an HTTP header, followed by the payload (status state).
-    The short form of the GET request returns only the status state.
-    This function only sends and responds to the short form.
-     
-        stClient.print("GET /tally/" +  TALLY_CHAN + "/status HTTP/1.0\r\n\r\n");   // Uses the long form of the tally status request
-        stClient.print("GET /tally/" +  TALLY_CHAN + "/status\r\n\r\n");            // Uses the short form of the tally status request
-*/
-
-    String reply = "\0\0\0\0\0\0\0\0\0\0\0";
-    int maxloops;
-    bool breakFlag = false;
-    tally.tState = "---null---";
-    tally.tConnect = false;
-    tally.tTimeout = false;
-    tally.tNoReply = true;
-
-    if (!stClient.connected()) {
-        maxloops = 0;
-        while (!breakFlag && maxloops < 10) {
-            if(stClient.connect(stIP, stPort, 100)) {
-                tally.tConnect = true;
-                breakFlag = true;
-            }
-            else {
-                maxloops++;
-                delay(10);
-            }
-        }
-        if (maxloops == 10) {
-            tally.tTimeout = true;
-            return tally;
-        }
-    }
-    
-    stClient.print("GET /tally/");      // send the status request sent to the ST server
-    stClient.print(tally.tChannel);
-    stClient.print("/status\r\n\r\n");
-
-    maxloops = 0;
-    while (stClient.available() == 0 && maxloops < 1000) {    // Wait a maximum of 1 second for the ST server's reply to become available
-        maxloops++;
-        delay(1);                                             // wait a tick before checking again if there is a response from the ST Server.
-    }
-    if (maxloops == 1000) {         // response from the ST Server timed out
-        tally.tTimeout = true;     
-        return tally;
-    }
-
-    stClient.setTimeout(0);                                                 // stClient.readString() is a 1 sec blocking function by default
-    while (stClient.available() > 0) reply += stClient.readString();        // we have a response from the server
-    reply.trim();                                                           // knock any junk off the front and back of the reply
-    tally.tState = reply;                                                   // store the response
-    tally.tNoReply = false;                                                 // set our control flags
-    return tally;                                                           // and head back to the barn
-
-}   // closing brace for getTallyState()
-
-
-void changeTallyChannel() {
-/*  Allows the user to select the active tally channel. 
- *      - function will return after a period of inactivity, restoring
- *        the active channel to what it was prior to the call
-*/
-
-    unsigned long updateTimeout;
-    uint8_t tallyChanNow = tallyStatus.tChannel;     // keep the tally channel state we had on entry
-
-    drawGlyph(glyphMap[tallyStatus.tChannel], tallychangecolor);    // display the current tally channel
-    
-    while (M5.Btn.read() == 1);                     // don't proeeed until the button is released.
-    btnWas = 0;                                     // initialize the click detector
-    updateTimeout = millis() + 30000;               // delete this line if you don't want to leave after a period of inactivity
-     
-    do {
-        if (millis() >= updateTimeout) {            // remove this if clause if you don't want to leave after a period of inactivity
-            tallyStatus.tChannel = tallyChanNow;    // we timed out, user didn't confirm the change, so restore the tally channel as it was on entry...
-            return;                                 // and head back to the barn
-        }
-        btnNow = M5.Btn.read();                     // read & refresh the state of the button
-        if (buttonClicked()) {
-            updateTimeout = millis() + 30000;      // kick the timeout timer (delete this line if you don't want to leave after a period of inactivity)
-            if (tallyStatus.tChannel >= tallyStatus.tChanMax) tallyStatus.tChannel = 1; // loop the channel number back to 1 if it would otherwise exceed the max channel #
-            else tallyStatus.tChannel++;
-            drawGlyph(glyphMap[tallyStatus.tChannel], tallychangecolor);
-        }
-        if (M5.Btn.pressedFor(1500)) {                              // user wants to confirm the change and exit so...
-            drawGlyph(GLF_CK, gtgcolor);
-            if (tallyChanNow != tallyStatus.tChannel) {                 // if the active channel changed...
-                stcPrefs.begin("STCPrefs", PREFS_RW);                   //   open up the pref namespace for R/W
-                stcPrefs.putUChar("talChan", tallyStatus.tChannel);     //   save the new tally channel in NVS
-                stcPrefs.end();                                         //   close the prefs namespace
-            }    
-            while (M5.Btn.read() == 1);                             // don't proeeed until the button is released.
-            delay(500);
-            return;
-        }
-    } while (true);
-    return;
-    
-}   // closing brace for changeTallyChannel()
-
-void changeTallyMode() {
-/*  Allows the user to flip the STAC operaing mode
-    between "camera operator" and "talent"
- *      - function will return after a period of inactivity, restoring
- *        the operating mode to what it was prior to the call
-*/
-    unsigned long updateTimeout;
-    bool ctModeNow = ctMode;
-
-    if (ctMode) drawGlyph(GLF_C, tallymodecolor);   // display the current tally mode...
-    else drawGlyph(GLF_T, tallymodecolor);
- 
-    while (M5.Btn.read() == 1);                     // don't proeeed until the button is released
-    btnWas = 0;                                     // initialize the click detector
-    updateTimeout = millis() + 30000;               // initialize the timeout timer 
-     
-    do {
-        if (millis() >= updateTimeout) {
-            ctMode = ctModeNow;                     // we timed out, user didn't confirm the change, restore the ctMode as it was on entry...
-            return;                                 // and head back to the barn
-        }
-
-        btnNow = M5.Btn.read();                             // read & refresh the state of the button
-        if (buttonClicked()) {
-            updateTimeout = millis() + 30000;               // kick the timeout timer
-            ctMode = !ctMode;                               // btn clicked so we want to flip the current ctMode...
-            if (ctMode) drawGlyph(GLF_C, tallymodecolor);   // and display the new operating mode
-            else drawGlyph(GLF_T, tallymodecolor);
-        }
-        if (M5.Btn.pressedFor(1500)) {              // user wants to confirm the change and exit so...
-            drawGlyph(GLF_CK, gtgcolor);
-            if (ctModeNow != ctMode) {                  // if the tally mode changed...
-                stcPrefs.begin("STCPrefs", PREFS_RW);   //   open up the pref namespace for R/W
-                stcPrefs.putBool("ctMde", ctMode);      //   save the new ctMode in NVS
-                stcPrefs.end();                         //   close the prefs namespace
-            }
-            while (M5.Btn.read() == 1);             // don't proeeed until the button is released
-            delay(500);
-            return;
-        }
-    } while (true);
-
-}   // closing brace for changeTallyMode()
-
-void changeStartupMode() {
-/*  Allows the user to flip the STAC startup mode
- *  between "Auto" and "Standard"
- *      - function will return after a period of inactivity, restoring
- *        the startup mode to what it was prior to the call
-*/
-    unsigned long updateTimeout;
-    bool suModeNow = autoStart;
-    if (autoStart) drawGlyph(GLF_A, startchangecolor);     // display the current startup mode
-    else drawGlyph(GLF_S, startchangecolor);
-
-    while (M5.Btn.read() == 1);                     // don't proeeed until the button is released
-    btnWas = 0;                                     // initialize the click detector
-    updateTimeout = millis() + 30000;               // initialize the timeout timer 
-     
-    do {
-        if (millis() >= updateTimeout) {
-            autoStart = suModeNow;                  // we timed out, user didn't confirm the change, restore the startup mode as it was on entry...
-            return;                                 // and head back to the barn
-        }
-
-        btnNow = M5.Btn.read();                             // read & refresh the state of the button
-        if (buttonClicked()) {
-            updateTimeout = millis() + 30000;               // kick the timeout timer
-            autoStart = !autoStart;                         // btn clicked so we want to flip the current startup mode...
-            if (autoStart) drawGlyph(GLF_A, startchangecolor);     // and display the new operating mode
-            else drawGlyph(GLF_S, startchangecolor);
-        }
-        if (M5.Btn.pressedFor(1500)) {              // user wants to confirm the change and exit so...
-            drawGlyph(GLF_CK, gtgcolor);
-            if (suModeNow != autoStart) {               // if the startup mode changed...
-                stcPrefs.begin("STCPrefs", PREFS_RW);   //   open up the pref namespace for R/W              
-                stcPrefs.putBool("aStart", autoStart);  //   save the new autoStart mode in NVS
-                stcPrefs.end();                         //   close the prefs namespace
-            }
-            while (M5.Btn.read() == 1);             // don't proeeed until the button is released
-            delay(500);
-            return;
-        }
-    } while (true);
-
-}   // closing brace for changeStartupMode()
-
-uint8_t updateBrightness(Preferences& prefSpace, char * nameSpace, char * keyName, uint8_t brightness) {
-/*  Allows the user to select the brightness of the display. 
- *      - function will return after a period of inactivity, restoring
- *        the brightness to what it was prior to the call
-*/
-    unsigned long updateTimeout;                    // delete this line if you don't want to bug out after a period of inactivity
-    uint8_t brightnessNow = brightness;
-    
-    drawGlyph(GLF_EM, brightnesschange);                            // fill the display...
-    drawOverlay(GLF_EN, GRB_COLOR_BLACK);                           // blank out the inside three columns...
-    drawOverlay(glyphMap[brightness / 10], GRB_COLOR_ORANGE);       // and overlay the brightness setting number
-        
-    while (M5.Btn.read() == 1);                     // don't proeeed until the button is released.
-    btnWas = 0;                                     // initialize the click detector
-    updateTimeout = millis() + 30000;               // delete this line if you don't want to bug out after a period of inactivity
-
-    do {
-        if (millis() >= updateTimeout) {         // delete this if clause if you don't want to bug out after a period of inactivity
-            brightness = brightnessNow;          // we timed out, user didn't confirm the change, restore currentBrightness as it was on entry...
-            M5.dis.setBrightness(brightness);    // reset the display to that brightness...
-            return brightness;                   // and head back to the barn
-        }
-        btnNow = M5.Btn.read();                         // read & refresh the state of the button
-        if (buttonClicked()) {
-            updateTimeout = millis() + 30000;           // delete this line if you don't want to bug out after a period of inactivity
-            if (brightness >= 60) brightness = 10;
-            else brightness = brightness + 10;                    
-            M5.dis.setBrightness(brightness);                            // set the display to the new brightness setting
-            drawOverlay(GLF_EN, GRB_COLOR_BLACK);                        // blank out the inside three columns...
-            drawOverlay(glyphMap[brightness / 10], GRB_COLOR_ORANGE);    // and overlay the new brightness setting number
-        }
-        if (M5.Btn.pressedFor(1500)) {                              // user wants to confirm the change and exit so...
-            drawGlyph(GLF_CK, gtgcolor);                            // let the user know we're good to go
-            if (brightnessNow != brightness) {                      // if the brightness level changed...
-                prefSpace.begin(nameSpace, PREFS_RW);               // open up the pref namespace for R/W
-                prefSpace.putUChar(keyName, brightness);            // save the new brightness in NVS
-                prefSpace.end();                                    // close the prefs namespace
-            }
-            while (M5.Btn.read() == 1);                             // don't proeeed until the button is released.
-            delay(500);
-            return brightness;
-        }
-    } while (true);
-    return brightness;
-    
-}    // closing brace for updateBrightness()
-
-void drawGlyph(uint8_t glyph[], int colors[]) {
-/*  Draws a bit mapped image onto the Atom display.
-      - glyph[] is the bitmap array of the glyph to draw.
-      - in the pair of colors[]; a "0" at glyph[i] will draw color[0]; a "1", color[1]
-      - or if you like, "0" and "1" in glyph[i] are the background/foreground color selectors at that pixel location.
-*/
-
-  for (int i = 0; i <= 24; i++) {
-    M5.dis.drawpix(i, colors[glyph[i]]);
-  }
-}   // closing brace for drawGlyph()
-
-void drawOverlay(uint8_t glyph[], int ovColor) {
-/*  Overlays a bit mapped image onto the Atom display.
-      - glyph[] is the bitmap array of the glyph to draw.
-      - a "1" at glyph[i] will draw ovColor at that pixel location; a "0" will leave that pixel as it is
-      - ovColor is a CGRB type
-*/
-
-    for (int i = 0; i <= 24; i++) {
-        if (glyph[i] == 1) M5.dis.drawpix(i, ovColor);
-    }
-
-}   // closing brace for drawOverlay()
-
-void flashDisplay(int count, int rate, int brightness) {
-/*  Flashes the display brightness between 0 and the "brightness" level passed.
-    - "count" is the number of times to flash the display
-    - "rate" is the speed at which the display flashes in ms
-    - function is blocking
-    - on exit, the display brightness remains at the brightness level passed
-*/
-
-    for (int i = 0; i < count; i++) {
-        M5.dis.setBrightness(0);
-        delay(rate / 2);
-        M5.dis.setBrightness(brightness);
-        delay(rate / 2);
-    }
-    
-}   // closing brace for flashDisplay()
-
-void pulsePix(bool state, CRGB colour) {
-/*  turns the four outermost pixels of the display off or on
- *  depending on the state of "state" and using the colour "colour"
- */
-    if (state) {
-        M5.dis.drawpix(0, colour);
-        M5.dis.drawpix(4, colour);
-        M5.dis.drawpix(20, colour);
-        M5.dis.drawpix(24, colour);
-    }
-    else {
-        M5.dis.drawpix(0, GRB_COLOR_BLACK);
-        M5.dis.drawpix(4, GRB_COLOR_BLACK);
-        M5.dis.drawpix(20, GRB_COLOR_BLACK);
-        M5.dis.drawpix(24, GRB_COLOR_BLACK);
-    }
-    
-}   // closing brace for pulsePix()
-
-boolean buttonClicked() {
-/* Non-blocking funtion that returns true if the display button 
-   has been clicked since the last time the function was called
-   (looks for a "last time it was 1" to a "now it is 0" state).
-   Returns false otherwise.
- 
-   Requires two variables to be declared within the same scope from where this function is called:
-       - uint8_t btnWas = 0, btnNow;
-   The value of "btnWas" must be set to 0 before every use of this fn
-       btnWas = 0;
-*/ 
-    bool bc = false;
-    
-    if (btnNow == 1) {
-        btnWas = btnNow;
-    }
-    else if (btnNow == 0 && btnWas == 1) {
-        btnWas = 0;
-        bc = true;
-    }
-    return bc;
-    
-}    // closing brace for buttonClicked()
-
-void sendForm(WiFiClient theClient, String &swVer) {
-/* Sends the HTML configuration form web page to the user's browser
- HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
- and a content-type so the client knows what's coming, then a blank line
- then an optional payload (data) and then a blank line
-*/
-  
-    theClient.println(F("HTTP/1.1 200 OK"));
-    theClient.println(F("Content-type: text/html"));
-    theClient.println(F("Accept-Language: en-us"));
-    theClient.println(F("Cache-Control: no-store"));
-    theClient.println(F("Connection: Keep-Alive"));
-    theClient.println();
-    theClient.println(F("<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>"));
-    theClient.println(F("<link rel=\"icon\" href=\"data:,\">"));   // prevent 'favicon' requests
-    theClient.println(F("<body><h1 align=\"center\"><font face=\"Helvetica, Arial, sans-serif\">STAC Configuration</font></h1><div align=\"center\">"));
-    theClient.println(F("<form method=\"post\"><font face=\"Helvetica, Arial, sans-serif\">"));
-    theClient.println(F("<label for=\"SSID:\">Network SSID:</label><input id=\"SSID\" name=\"SSID\" autofocus=\"\" required=\"\" type=\"text\" maxlength=\"32\"><br><br>"));
-    theClient.println(F("<label for=\"Password:\">Password:</label><input id=\"pwd\" name=\"pwd\" type=\"text\" size=\"20\" maxlength=\"63\"><br><br>"));
-    theClient.println(F("<label for=\"Smart Tally IP:\">Smart Tally IP:</label><input id=\"stIP\" name=\"stIP\" size=\"15\" "));
-    theClient.println(F("pattern=\"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$\" required=\"\" type=\"text\"><br><br>"));
-    theClient.println(F("<label for=\"stPort\">port #:</label><input id=\"stPort\" name=\"stPort\" size=\"5\" min=\"0\" max=\"65353\" required=\"\" type=\"number\" value=\"80\"><br><br>"));
-    theClient.println(F("<label for=\"stChan\"># of channels:</label><input id=\"stChan\" name=\"stChan\" size=\"3\" min=\"1\" max=\"8\" required=\"\" type=\"number\" value=\"6\"><br><br>"));
-    theClient.println(F("<input value=\"Submit\" type=\"submit\">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<input type=\"Reset\"></font></form><br>"));
-    theClient.print(F("<p align=\"center\"><font face=\"Helvetica, Arial, sans-serif\">STAC software version: "));
-    theClient.print(swVer);
-    theClient.println(F("</font></p></body>"));
-    theClient.println();
-    theClient.println();
-     
-}   // closing brace for sendForm()
-
-void send404(WiFiClient theClient) {
-/*  Sends a "not found" HTML response to the user's web browser
- */
-
-    theClient.println(F("HTTP/1.1 404 Not Found"));
-    theClient.println(F("Cache-Control: no-store, max-age=0"));
-    theClient.println(F("Connection: Keep-Alive"));
-    theClient.println();
-    theClient.println();
-
-}   // closing brace for send404()
-
-void sendtftf(WiFiClient theClient) {
-/*  Sends the HTML page acknowledging receipt of the 
- *  configuration data back to the users web browser.
- */
-
-    theClient.println(F("HTTP/1.1 200 OK"));
-    theClient.println(F("Content-type: text/html"));
-    theClient.println(F("Cache-Control: no-store"));
-    theClient.println(F("Clear-Site-Data: \"*\""));
-    theClient.println(F("Connection: closed"));
-    theClient.println();
-    theClient.println(F("<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=0.86, maximum-scale=1.0, minimum-scale=0.86\"></head><body>"));
-    theClient.println(F("<div align=\"center\"><h1><font face=\"Helvetica, Arial, sans-serif\">"));
-    theClient.println(F("STAC configuration received.<br>"));
-    theClient.println(F("</font></h1><font size=\"+2\" face=\"Helvetica, Arial, sans-serif\">"));
-    theClient.println(F("Close this window and reconnect <br>"));
-    theClient.println(F("to your regular WiFi network.<br><br>"));
-    theClient.println(F("Consult the manual <br>"));
-    theClient.println(F("if you need to reconfigure this device."));
-    theClient.println(F("</font></div></body></html>"));
-    theClient.println();
-    theClient.println();
-    theClient.flush();      // wait and make sure everything has been sent 
-                            // (important to do this time as we shut down the AP after sending this response back to the user's browser)
-    
-}   // closing brace for sendtftf()
-
-provData_t parseForm(String &formData) {
-/*  Extracts the data from the POST response returned by the client web browser
- *      - Example last line of a POST response:
- *        SSID=SandyShores222&pwd=flatBUSH%40%26%24%29%28%3B%3A%2F-3546&stIP=192.168.2.132&stPort=80&stChan=7
- */
-
-    String payload = "";
-    String tempString;
-    unsigned int llIndex;
-    provData_t stCred;
- 
-    llIndex = formData.lastIndexOf("SSID=");                                // the last line of the POST reply is the only thing we want
-    if (llIndex != -1) payload = formData.substring(llIndex);               // throw away everything except the last line
-    else payload = formData;                                                // should never need this check but just in case...
-    payload.trim();                                                         // knock any junk off the front and back of the last line of the reply
-    
-    // parse the payload from the end of the string to the start
-    tempString = payload.substring(payload.lastIndexOf("&") + 8);           // pull out the max # of tally channels; 8 = length of "&stChan="...
-    stCred.ptChanMax = (uint8_t)tempString.toInt();                         // convert (cast) it to an 8-bit uint and save it   
-    payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the tally channel
-
-    tempString = payload.substring(payload.lastIndexOf("&") + 8);           // pull out the port #; 8 = length of "&stPort="...
-    stCred.pPort = (uint16_t)tempString.toInt();                            // convert (cast) it to a uint16_t and save it      
-    payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the port number
-
-    stCred.pSwitchIP = payload.substring(payload.lastIndexOf("&") + 6);     // pull out IP address of the Roland switch and save it; 6 = length of "&stIP=" 
-    payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the IP address
-    
-    tempString = payload.substring(payload.lastIndexOf("&") + 5);           // pull out the WiFi password; 5 = length of "&pwd="...
-    stCred.pPass = decodeURL(tempString.c_str());                           // decode the password and save it
-    payload = payload.substring(0, payload.lastIndexOf("&"));               // throw away the part of payload that held the password
-    
-    tempString = payload.substring(5);                                      // pull out the SSID of the WiFi network; 5 = length of "SSID="
-
-    stCred.pSSID = decodeURL(tempString.c_str());                           // decode the SSID and save it
-
-    return stCred;
-
-}   // closing brace for parseForm()
-
-String decodeURL(const char* ptr) {
-/* Converts a URL encoded string back to its plain text form 
-   
-   Usage: 
-    const char* stringToDecode = "abcd%24%26%40%29%28-987";
-    String decodedString = decodeURL(stringToDecode);
-     - or, putting it another way -
-    String stringToDecode = "abcd%24%26%40%29%28-987";
-    String decodedString = decodeURL(stringToDecode.c_str());
-
-   Example:
-    Encoded URL: abcd%24%26%40%29%28-987
-    Decoded plain text: abcd$&@)(-987
-
-   Modified 2021-04-23 to decode + chars to spaces
-
-Credit to reddit user u/truetofiction
-Source: https://www.reddit.com/r/arduino/comments/m2uw0g/replacing_hex_with_ascii/
-*/
-
-    const size_t size = strlen(ptr);                // size of the string, in characters
-    String buffer;  
-    buffer.reserve(size);                           // buffer on heap in String object
-
-     for (size_t i = 0; i < size; i++) {
-        char c = ptr[i];                            // get character       
-        if (c == '%' && i + 2 < size) {             // if hex follows...
-            char tmp[3]{};
-            memcpy(tmp, &ptr[i + 1], 2);            // make a temporary copy of the hex data (i+1, i+2)
-            c = (char) strtol(tmp, nullptr, 16);    // convert from hex string to long (ASCII)
-            i += 2;                                 // skip the characters we just processed for the next loop
-        }
-        else {
-            if (c == '+') {
-                c = ' ';                            // decode a + to a space
-            }
-        }
-        buffer.concat(c);                           // save the current character
-    }
-    return buffer;
-
-}   // closing brace for decodeURL()
-
-provData_t getCreds(String &ssidPrefix, String &swVersion) {
-/*  Big honkin' routine that retrevies the configuration/provisiong data for 
- *  the WiFi network that the Roland switch is connected to.
- *      - sets the STAC as a WiFi access point using a device unique SSID
- *      - waits for the user's web browser to connect
- *      - sends the form to the browser for the user to fill out
- *      - waits for the form to be returned
- *      - confirms to the user that the form was received (on the browser and on the STAC)
- *      - shuts down the access point
- *      - returns the configuration/provisiong data to the calling function
- *      - and then goes for a beer.
- *
- *  The IP and password for the access point are set in this function.
- */
-
-    provData_t stProv;                          // structure to hold the data from the web page form from the user
-
-    const char* password = "1234567890";        // the password for our WiFi AP
-    IPAddress configIP(192, 168, 6, 14);        // sets the IP...
-    IPAddress gateway(192, 168, 6, 14);         // ...gateway...
-    IPAddress NMask(255, 255, 255, 0);          // ...and network mask of the AP
-    WiFiServer server(80);                      // init a server class & set the AP to listen for inbound connections on port 80
-    bool hideSSID = false;                      // false to broadcast the SSID of our AP network, true to hide it
-    uint8_t wifiChan = 1;                       // WiFi channel to use. Default is 1, max is 13
-    uint8_t maxConnect = 1;                     // maximum # of client connections allowed to our AP
-    WiFiClient scClient;                        // we need a WiFi client to talk to the user's web browser
-    
-    String clData = "";                         // for holdng the input from the user's web browser
-    bool formReceived;                          // true when we get the POST form back from the user's web browser
-
-                                                            // create the device unique AP SSID
-    uint32_t chiptID = (uint32_t)(ESP.getEfuseMac() >> 16); // grab the top four bytes of the chip id and...
-    String tempx = ssidPrefix;
-    tempx.concat(String(chiptID, HEX));                     // ...use that to create the last part of the unique SSID for our AP
-    tempx.toUpperCase();                                    // flip any hex alphas to upper case
-    char apssid[tempx.length() + 1];                        // create the C-string style char array to hold the SSID and...
-    tempx.toCharArray(apssid, tempx.length() + 1);          // ...copy the String into the apssid char array
-
-    // set up the WiFi access point
-    WiFi.mode(WIFI_AP);                                                 // configure the WiFi mode to AP 
-    while (WiFi.getMode() != 2) delay(10);                              // best practise to ensure we're configured in AP mode. "2" = "WIFI_AP_CONNECTED" (or something like it).
-    WiFi.softAP(apssid, password, wifiChan, hideSSID, maxConnect);      // set the SSID, password, etc. of our AP (all the WiFi stuff)
-    WiFi.softAPConfig(configIP, gateway, NMask);                        // set the IP address, gateway and network mask of our AP (all the networking stuff)
-    server.begin();                                                     // fire up the AP server
-
-    // let's go fetch the info from the user's web browser...
-    formReceived = false;
-    do {
-        scClient = server.available();                                                  // listen for incoming clients
-        if (scClient) {                                                                 // if a new client connects...
-            clData = "";                                                                // clear out any old client data received                        
-            while (scClient.connected()) {                                              // loop while the client's connected
-                if (scClient.available()) {                                             // if there's something from from the client...
-                    while (scClient.available()) clData += scClient.readString();       // suck in the entire response from the client (timeout for the .readString() is set above)
-                    if (clData.indexOf("GET / HTTP/") >= 0) {                           // goody! a root request...
-                        formReceived = false;                                           // but we're stil waiting on the form...
-                        sendForm(scClient, swVersion);                                  // so send the form
-                        break;                                                          // break out of while (scClient.connected())
-                    }           
-                    else if (clData.indexOf("POST /") >= 0) {                           // incoming form response from the user's web browser!!
-                        formReceived = true;                                            // this is the data we're looking for!
-                        sendtftf(scClient);                                             // acknowledge to the user receipt of the form and send the "so long and thanks for all the fish" page
-                        break;                                                          // break out of while (scClient.connected())
-                    }
-                    else                                                                // the client is asking for somethig we don't have
-                    formReceived = false;                                               // this isn't the reply we're looking for.                   
-                    send404(scClient);                                                  // send a no can do response
-                    break;                                                              // break out of while (scClient.connected())
-                }   // closing brace for if (scClient.available())               
-            }   // closing brace for while (scClient.connected())
-        }   // closing brace for if (scClient)
-    } while (!formReceived);                                                            // stay here forever until the POST is received
-    
-                                            // we got the goods so, shut down the access point
-    scClient.stop();                        // stop listening for incoming stuff
-    delay(500);                             // seems to be needed for the client browser to accept the final response
-    server.end();                           // close the connection
-    delay(500);                             // seems to be needed for the client browser to accept the final response
-    WiFi.disconnect();                      // 
-    WiFi.mode(WIFI_MODE_NULL);              // turn off the WiFi AP
-    
-    stProv = parseForm(clData);             // extract the data from the POSTed form...
-    return stProv;                          // and head back to the barn
-
-}   // closing brace for getCreds()
-
-ORIENTATION getOrientation( ) {
-    /* Code to retrieve the current orientation of the STAC.
-        - uses the IMU built into the ATOM to return one of 
-          four possible orientations, UP, DOWN, LEFT, RIGHT
-     */
-     
-    ORIENTATION stacState = ORIENTATION::UP;
-  
-    float accX=0, accY=0, accZ = 0 ;      
-  
-    M5.IMU.getAccelData(&accX, &accY, &accZ);   // Call into the accelerometer to get the current values 
-    
-    float scaledAccX = accX * 1000;
-    float scaledAccY = accY * 1000;
-    float scaledAccZ = accZ * 1000;
-
-    if( ( abs(scaledAccX) < HIGH_TOL ) && ( abs(scaledAccY) > MID_TOL ) && ( abs(scaledAccZ) < HIGH_TOL ) )
-    {
-        if ( scaledAccY > 0 )                   // Device is oriented Up            
-        {
-            stacState = ORIENTATION::UP;
-            log_i( "Scaled Y > 0,  Device is oriented Up" ) ;
-        }
-        else // scaledAccY < 0                  // Device is oriented Down
-        {
-            stacState = ORIENTATION::DOWN;
-            log_i( "Scaled Y < 0,  Device is oriented Down" ) ;
-        }
-    }
-    else if( ( abs(scaledAccX) > MID_TOL ) && ( abs(scaledAccY) < HIGH_TOL ) && ( abs(scaledAccZ) < HIGH_TOL ) )
-    {
-        if( scaledAccX > 0 )                    // Device is oriented Right
-        {
-            stacState = ORIENTATION::RIGHT;
-            log_i( "Scaled X > 0,  Device is oriented Right" ) ;
-        }
-        else // scaledAccX < 0                  // Device is oriented Left
-        {
-            stacState = ORIENTATION::LEFT;
-            log_i( "Scaled X < 0,  Device is oriented Left" ) ;
-        }
-    }
-    else
-    {
-        log_i( "Orientation is flat: setting orientation Up." );
-    }  
-
-    return stacState ;
-    
-}   // closing brace for getOrientation()
-
-void rotateGlyphs( ORIENTATION stacOrientation ) {
-    /*  Rotates the entire glyph matrix in memory depending upon the vertical orientation of the STAC
-    */
-     
-    // Initalize the rotation vectors
-    int rotate_0[25] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
-    int rotate_90[25] = {20,15,10,5,0,21,16,11,6,1,22,17,12,7,2,23,18,13,8,3,24,19,14,9,4};
-    int rotate_180[25] = {24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0};
-    int rotate_270[25] = {4,9,14,19,24,3,8,13,18,23,2,7,12,17,22,1,6,11,16,21,0,5,10,15,20};
-  
-    // Initalize the rotation LUT
-    int * rotation_LUT = NULL;
-  
-    // Determine which rotation to use
-    if ( stacOrientation == ORIENTATION::DOWN )                 // Upside Down
-      rotation_LUT = rotate_180;
-    else if ( stacOrientation == ORIENTATION::LEFT )            // Rotated to left 
-      rotation_LUT = rotate_90;
-    else if ( stacOrientation == ORIENTATION::RIGHT )           // Rotated to Right
-      rotation_LUT = rotate_270;
-    else
-      rotation_LUT = rotate_0; 
-
-    // Perform the rotation
-    for ( int glyphID = 0 ; glyphID < TOTAL_GLYPHS; glyphID++ )
-    {
-        for ( int loop_pix = 0; loop_pix < 25; loop_pix++ )
-        {
-          glyphMap[glyphID][ loop_pix ] = baseGlyphMap[glyphID][ rotation_LUT[ loop_pix ] ] ;
-        }
-    }
-
-    return;
-
-}   // closing brace for rotateGlyphs()
+// The include order is significant
+#include "./STACLib/STACUtil.h"             // utility functions
+#include "./STACLib/STACGlyph.h"            // definition of display glyphs and colors
+#include "./STACLib/STACDis.h"              // routines for manupulating & drawing on the display
+#include "./STACLib/STACWeb.h"              // the embeded web server funtions - for provisioning
+#include "./STACLib/STACIMU.h"              // on-board IMU routines
+#include "./STACLib/STACSTS.h"              // functions to retreive status from the Smart Tally Server (STS)
+#include "./STACLib/STACWiFi.h"             // connect to & manage the WiFi
+#include "./STACLib/STACOpModes.h"          // routines to change the run-time operating modes at startup 
 
 // ***** End Function Definitions *****
 
@@ -950,16 +190,34 @@ void setup() {
     provData_t sConfigData;                 // structure to hold the WiFi provisioning data from user's web browser
     bool provisioned;                       // true if the WiFi provisioning has been done
     String bootVer;                         // the version of software the STAC thinks it has - from NVS storage at boot time
-    uint16_t bootPrefs;                     // the version of the normal operating mode preferecnes layout the STAC thinks it has - from NVS storage at boot time
+    uint16_t bootPrefs;                     // the version of the normal operating mode preferences layout the STAC thinks it has - from NVS storage at boot time
+    bool escapeFlag = false;                // used for getting out of the settings loops.
 
-    // M5.begin(SerialEnable = true|false, I2CEnable = true|false, DisplayEnable = true|false);
-    M5.begin(true, true, true);
-    delay(500);
-    M5.Btn.read();                          // initialize the Btn class
-    M5.dis.clear();
-    M5.dis.setBrightness(10);
-    M5.dis.drawpix(PO_PIXEL, PO_COLOR);       // turn on the power LED
-//    delay(500);
+    // initialize the WiFi state flags
+    wifiStatus.wfconnect = false;
+    wifiStatus.timeout = false;
+    
+    // initialize the tally state varialbles and flags
+    lastTallyState = "NO_TALLY";
+    tallyStatus.tState = "NO_INIT";
+    tallyStatus.tConnect = false;
+    tallyStatus.tTimeout = true;
+    tallyStatus.tNoReply = true;
+    
+    // initialize the STS error accumulators
+    tNoReplyCount = 0;
+    tJunkCount = 0;
+
+    dButt.begin();
+    Wire1.begin( 25, 21, 100000L );             // enable the I2C bus (SDA pin, SCL pin, Clock frequency)
+    FastLED.addLeds<WS2812B, 27>(leds, 25);     // matrix display of 25 RGB LED's on pin 27
+    Serial.begin(115200);
+    delay(250);
+
+    dButt.read();                         // initialize the Btn class
+    disClear();
+    disSetBright(10);
+    disDrawPix(PO_PIXEL, PO_COLOR);       // turn on the power LED
 
     /*
      * Setting up to figure out the orientation of the STAC & then create a copy
@@ -967,7 +225,7 @@ void setup() {
     */
     
     ORIENTATION stacOrientation;                     // Pull data from the accelerometer and determine the orientation
-    Accelerometer = M5.IMU.Init() == 0;
+    Accelerometer = imu.begin() != -1;
     if ( !Accelerometer ) {
         log_e( "Could not initalize the IMU." );
         stacOrientation = ORIENTATION::UP;           // Set the default orientation of the STAC
@@ -976,343 +234,38 @@ void setup() {
         stacOrientation = getOrientation();          // Go check the orientation of the STAC    
     }
     rotateGlyphs(stacOrientation) ;                  // create the rotated glyph matrix
+    Wire1.flush();                                   // done with the IMU; release all I2C bus resources, power down peripheral
     
-    // create the unique STAC configuration SSID
-    uint32_t chiptID = (uint32_t)(ESP.getEfuseMac() >> 16);     // grab the top four bytes of the chip id and...  
-    String tempx =  apPrefix + String(chiptID, HEX);            // ...use that to create the last part of the unique SSID for our AP
-    tempx.toUpperCase();                                        // flip any hex alphas to upper case
+    // create the unique STAC ID
+    uint32_t chiptID = (uint32_t)(ESP.getEfuseMac() >> 16);     // grab the top four bytes of the chip id and  
+    stacID = idPrefix + String(chiptID, HEX);                   //  use that to create the last part of the unique STAC ID
+    stacID.toUpperCase();                                       // flip any hex alphas to upper case
 
-    // send the serial port info dump header
-    Serial.print(F("\r\n\r\n"));                                // clear out the serial buffer
-    Serial.println(F("\r\n\r\n======================================="));
-    Serial.println(F("                 STAC"));
-    Serial.println(F("   A Smart Tally ATOM Matrix Client"));
-    Serial.println(F("            by: Team STAC"));
-    Serial.println(F("https://github.com/Xylopyrographer/STAC\r\n"));
-    Serial.print(F("     Software Version: "));
-    Serial.println(swVer);
-    Serial.print(F("   Configuration SSID: "));
-    Serial.println(tempx);
-    Serial.println(F("     Configuration IP: 192.168.6.14"));
-    Serial.println(F("             ------------"));
-    // end send the serial port info dump header
-
-    
-// =================== START CODE FOR PERIPHERAL MODE OERATION ===================
-
-    bool pmBitOut = 0;                      // we'll set the PM_CK_OUT pin to this value
-    bool pmBitIn = 0;                       // we'll read the PM_CK_IN pin into this
-    bool inPMode = false;                   // true if we decide we're in Peripheral Mode, false otherwise.
-    unsigned long nextCheck;                // compare system ms against this value to decide if we should go look for a tally status change
-
-    pinMode(PM_CK_OUT, OUTPUT);             // we toggle this pin to see if PM_CK_IN follows
-    pinMode(PM_CK_IN, INPUT_PULLDOWN);      // we read this pin to see if it follows PM_CK_OUT
-
-    // If the Peripheral Mode jumper wire is in place, the PM_CK_IN pin should follow the state of the PM_CK_OUT pin as we toggle it a few times.
-
-    for (int i = 1; i <= PM_CK_CNT; i++) {
-        pmBitOut = !pmBitOut;
-        digitalWrite(PM_CK_OUT, pmBitOut);
-        delay(i * 13);
-        pmBitIn = digitalRead(PM_CK_IN);
-        if (pmBitIn != pmBitOut) {
-            digitalWrite(PM_CK_OUT, LOW);
-            break;                          // input failed to match output so, assume no jumper & get outta Dodge.
-        }
-        if (i == PM_CK_CNT) {
-            digitalWrite(PM_CK_OUT, LOW);
-            inPMode = true;                 // if all "ins" matched all "outs", assume jumper is in place, so let's go in to Peripheral Mode
-        }
-    }
-
-    if (inPMode) {
-        // ~~~~~~~~~~~~~~ Start all the initialization stuff for Peripheral Mode ~~~~~~~~~~~~~~        
-        Preferences pmPrefs;                // need a Preferences struct to read, write & retain the Peripheral Mode display brightness level.
-        uint8_t pmBright;                   // holds the current brightness level of the display
-        uint8_t tsNow = 0;                  // holds the tally state after doing a read of the GROVE pins
-        uint8_t tsLast = 0xff;              // holds tally state of the previous read of the GROVE pins (init to an impossible value to force tally refresh)
-        pinMode(TS_0, INPUT_PULLDOWN);      // set the ATOM GROVE GPIO pins to inputs with the internal pulldown active 
-        pinMode(TS_1, INPUT_PULLDOWN);
-
-        // Time to go figure out if we've ever operated in Peripheral Mode before & do the first time set up NVS if needed
-        pmPrefs.begin("PModePrefs", PREFS_RO);              // open or create the Pref namespace
-        pmBright = pmPrefs.getUChar("pmbrightness", 0xff);  // check to see if we've operated in PMode before. pmBright == 0xff if 1st time
-        pmPrefs.end();
-
-        if (pmBright == 0xff) {                             // first time ever in Peripheral Mode
-            pmPrefs.begin("PModePrefs", PREFS_RW);
-            pmPrefs.getUChar("pmbrightness");               // create the key
-            pmPrefs.putUChar("pmbrightness", 10);           // save the default value to NVS
-            pmPrefs.end();
-            pmBright = 10;          
-        }
-
-        Serial.println(F("     OPERATING IN PERIPHERAL MODE"));          // finish the serial port information dump 
-        Serial.print(F("          Brightness Level: "));
-        Serial.println(pmBright / 10);
-        Serial.println(F("======================================="));
-
-        M5.dis.setBrightness(pmBright);                 // set the display brightness
-
-        // confirm to the user that we're in Peripheral Mode
-        drawGlyph(GLF_P, perifmodecolor);               // draw the "in Peripheral Mode" thingy           
-        flashDisplay(4, 500, pmBright);                 // flashy thingy
-        delay(1000);
-        M5.dis.clear();
-        drawGlyph(GLF_CK, perifmodecolor);              // draw the "in Peripheral Mode" confirmation
-        delay(1000);
-        M5.dis.clear();
-        // confirmation done
-        
-        M5.dis.drawpix(PO_PIXEL, PO_COLOR);             // turn on the power LED
-        while (M5.Btn.read() == 1);                     // wait for the button to be released
-        M5.dis.fillpix(PVW);                            // set the display to PVW
-        M5.dis.drawpix(PO_PIXEL, PO_COLOR);             // turn on the power LED
-  
-        // ~~~~~~~~~~~~~~ Finished all the initialization stuff for Peripheral Mode ~~~~~~~~~~~~~~
-
-        nextCheck = millis();                       // force a recheck of the tally state
-
-        do {                                        // We don't leave setup() if we're in Peripheral Mode
-            M5.update();
-            if (millis() >= nextCheck) {
-                tsNow = ((digitalRead(TS_1) ? 2 : 0) + (digitalRead(TS_0) ? 1 : 0));              
-                if (tsNow != tsLast) {
-                    tsLast = tsNow;
-                    if (tsNow == 3) {
-                        M5.dis.fillpix(PGM);                            // set the display to PGM
-                    }
-                    else {
-                        M5.dis.fillpix(PVW);                            // set the display to PVW
-                    }
-                    M5.dis.drawpix(PO_PIXEL, PO_COLOR);                 // turn on the power LED
-                }
-                nextCheck = millis() + 75;                
-            }
-
-            if (M5.Btn.pressedFor(1500)) {          // user wants to change the display brightness level
-                pmBright = updateBrightness(pmPrefs, "PModePrefs", "pmbrightness", pmBright);
-                M5.dis.clear();
-                M5.dis.setBrightness(pmBright);      // set the display brightness               
-                M5.dis.fillpix(PVW);                 // set the display to PVW
-                M5.dis.drawpix(PO_PIXEL, PO_COLOR);  // turn on the power LED
-                tsLast = 0xff;                       // to force a tally sate refresh: set the last tally state to an impossible value
-                nextCheck = millis();                // ... and set the check time to now
-            }   // closing brace for Update Brightness contol logic
-
-        } while (true); // closing statement for the do loop
-
-   }    // closing brace for "if (inPMode)"
-
-// =================== END CODE FOR PERIPHERAL MODE OERATION ===================
-
-    // ~~~~~~~~~~~~~~ Start all the checks for provisioning & initialization stuff for normal operating mode ~~~~~~~~~~~~~~
-    
-    stcPrefs.begin("STCPrefs", PREFS_RO);                   // open our preferences in R/O mode.
-    provisioned = stcPrefs.getBool("pVis", false);          // check to see if we've been provisioned already. provisioned = false if namespace doesn't exist
-    bootPrefs = stcPrefs.getUShort("prefVer", 0);           // get the preferences layout version version stored in NVS
-                                                            //   - it'll be 0 if this key doesn't exist (because older software versions didn't store it in NVS)
-    stcPrefs.end();
-
-    if (provisioned && (bootPrefs != NOM_PREFS_VERSION)) {    // if we've been provisioned before but the current Prefs layout is different than the last boot...
-        
-        stcPrefs.begin("STCPrefs", PREFS_RW);   // open the namespace in R/W mode
-        stcPrefs.clear();                       // wipe our namespace...
-        stcPrefs.end();                         // close the preferences...
-        provisioned = false;                    // we are no longer provisioned       
-    }
-
-
-    if (!provisioned) {                         // if not ever provisioned before, or we wiped the namespace because of a new Preferences layout...
-        // add to the serial port info dump
-        Serial.println(F("   ***** STAC NOT PROVISIONED *****"));
-        Serial.println(F("======================================="));
-        // end add to the serial port info dump
-                
-        stcPrefs.begin("STCPrefs", PREFS_RW);   // create and open the namespace in R/W mode     
-                                                // we need to create the namespace key entries first by 'reading' or 'getting' the key.
-        stcPrefs.getBool("pVis");
-        stcPrefs.getBool("ctMde");
-        stcPrefs.getBool("aStart");
-        stcPrefs.getUChar("curBright");
-        stcPrefs.getUChar("talChan");
-        stcPrefs.getUChar("talMax");
-        stcPrefs.getUShort("stswPort");
-        stcPrefs.getString("swVersion");
-        stcPrefs.getString("stnSSID");
-        stcPrefs.getString("stnPass");
-        stcPrefs.getString("stswIP");
-        stcPrefs.getUShort("prefVer");          // the namespace key entries are now created.
-                                                
-        stcPrefs.putBool("pVis", false);        // now store the initial "factory default" values
-        stcPrefs.putString("swVersion", swVer);
-        stcPrefs.putUChar("curBright", 10);
-        stcPrefs.putUChar("talChan", 1);
-        stcPrefs.putUChar("talMax", 6);
-        stcPrefs.putBool("ctMde", true);
-        stcPrefs.putBool("aStart", false);
-        stcPrefs.putUShort("prefVer", NOM_PREFS_VERSION);
-        stcPrefs.end();                         // "factory default" values are saved
-                                                
-        drawGlyph(GLF_CFG, alertcolor);                     // let the user know this is a first time run - configuration required
-        flashDisplay(4, 500, 20);
-        M5.dis.setBrightness(10);
-        
-        while (M5.Btn.read() == 1);                         // wait for the button to be released
-        
-    }   // end brace for if (!provisioned)
-
-    if (M5.Btn.read() && provisioned) {                     // if the button is down at restart and we are provisioned...
-        drawGlyph(GLF_CFG, warningcolor);                   //     (let the user know they are about to change the provisioning info)
-        flashDisplay(4, 500, 20);
-        M5.dis.setBrightness(10);
-        unsigned long resetTime = millis() + 2000;
-        provisioned = false;                                // ... then the user wants to reconfigure the STAC, unless...
-        while (M5.Btn.read()) {
-            if (millis() >= resetTime) {                    // ... the button is long pressed, in which case...
-                drawGlyph(GLF_FM, alertcolor);              // ... the user wants to do a factory reset.
-                drawOverlay(GLF_CK, GRB_COLOR_GREEN);       // confirm to the user...
-                
-                // add to the serial port info dump
-                Serial.println(" ***** PERFORMING FACTORY RESET *****");
-                Serial.println("Erasing non volitile partition \"nvs\"...");
-                Serial.printf("    - Erased status = %X", (uint32_t)nvs_flash_erase());
-                Serial.println();
-                Serial.println("Initializing non volitile partition \"nvs\"...");
-                Serial.printf("    - Initialized status = %X", (uint32_t)nvs_flash_init());
-                Serial.println("\r\n              Restarting...");
-                Serial.println("           Take the red pill!");
-                Serial.println("       See you on the other side.");
-                Serial.println("=======================================\r\n\r\n");
-                // end add to the serial port info dump
-                
-//                stcPrefs.begin("STCPrefs", PREFS_RW);       // open the preferences in R/W mode...
-//                stcPrefs.clear();                           // wipe our namespace...
-//                stcPrefs.end();                             // close the preferences...
-
-                while (M5.Btn.read());                      // wait for the button to be released            
-                delay(1000);                                // wait a bit for the "GUI"
-                M5.dis.clear();                             // clear the display
-                ESP.restart();                              // restart the STAC
-            }
-        }
-    }   // closing brace for if button down
-        
-    if (!provisioned) {
-        Serial.println(F(" ***** WAITING FOR PROVISIONING *****"));
-        Serial.println(F("======================================="));
-
-        sConfigData = getCreds(apPrefix, swVer);            // go get the WiFi provisioning data from the user's web browser
-        
-        drawGlyph(GLF_CK, gtgcolor);                        // confirm to the user we got the provisioning data
-        delay(1000);                                        // park a bit for the "GUI"
-        
-        stcPrefs.begin("STCPrefs", PREFS_RW);               // open our preferences in R/W mode
-        stcPrefs.putString("stnSSID", sConfigData.pSSID);   // save the provisioning data
-        stcPrefs.putString("stnPass", sConfigData.pPass);
-        stcPrefs.putString("stswIP", sConfigData.pSwitchIP);
-        stcPrefs.putUShort("stswPort", sConfigData.pPort);
-        stcPrefs.putUChar("talMax", sConfigData.ptChanMax);
-        if (stcPrefs.getUChar("talChan") > sConfigData.ptChanMax) {     // make sure the active tally channel is not > max tally
-            stcPrefs.putUChar("talChan", 1);
-        }
-        stcPrefs.putBool("pVis", true);
-        stcPrefs.end();
-        provisioned = true;
-        Serial.println(F("  ***** PROVISIONING COMPLETE *****"));
-        Serial.println(F("======================================="));
-    }
-
-    // go get & set the runtime ops parms from NVS :)     
-    stcPrefs.begin("STCPrefs", PREFS_RO);                       // open our preferences in R/O mode
-    currentBrightness = stcPrefs.getUChar("curBright");         // read and set the operational parameters from NVS
-    tallyStatus.tChannel = stcPrefs.getUChar("talChan");
-    tallyStatus.tChanMax = stcPrefs.getUChar("talMax");
-    ctMode = stcPrefs.getBool("ctMde");
-    autoStart = stcPrefs.getBool("aStart");
-    
-    String tempstring;   
-    tempstring = stcPrefs.getString("stnSSID");                 // ST WiFi SSID  
-    tempstring.concat('\0');                                    // Make it a C-string  
-    tempstring.toCharArray(networkSSID, tempstring.length());   
-
-    tempstring = stcPrefs.getString("stnPass");                 // ST WiFi Password      
-    tempstring.concat('\0');                                    // Make it a C-string  
-    tempstring.toCharArray(networkPass, tempstring.length());
-
-    tempstring = stcPrefs.getString("stswIP");                  // ST switch IP address    
-    tempstring.concat('\0');                                    // Make it a C-string  
-    tempstring.toCharArray(stIP, tempstring.length());
-
-    stPort = stcPrefs.getUShort("stswPort");                    // ST port number
- 
-    stcPrefs.end();                                             // close our preferences namespace
-    // runtime ops parms are set
-
-    M5.dis.setBrightness(currentBrightness);
-    tallyStatus.tState = "---null---";                                   // initialize the control flags
-    tallyStatus.tConnect = false;
-    tallyStatus.tTimeout = false;
-    tallyStatus.tNoReply = true;
-    wifiStatus.wfconnect = false;
-    wifiStatus.timeout = false;
-
-    M5.dis.clear();
-    M5.dis.drawpix(PO_PIXEL, GRB_COLOR_GREEN);                   // turn the power LED green
-
-    // add to the info dump to the serial port   
-    Serial.print(F("    WiFi Network SSID: "));
-    Serial.println(networkSSID);
-    Serial.print(F("    Smart Tally IP: "));
-    Serial.println(stIP);
-    Serial.print(F("    Port #: "));
-    Serial.println(stPort);
-    Serial.print(F("    Auto start: "));
-        if (autoStart) Serial.println(F("Enabled"));
-        else Serial.println(F("Disabled"));
-    Serial.print(F("    Operating Mode: "));
-        if (ctMode) Serial.println(F("Camera Operator"));
-        else Serial.println(F("Talent"));
-    Serial.print(F("    Active Tally Channel: "));
-    Serial.println(tallyStatus.tChannel);
-    Serial.print(F("    Max Tally Channel: "));
-    Serial.println(tallyStatus.tChanMax);
-    Serial.print(F("    Brightness Level: "));
-    Serial.println(currentBrightness / 10);
-    Serial.println(F("======================================"));
-    // end add to the info dump to the serial port
-
-    pinMode(TS_0, OUTPUT);      // ATOM GROVE connector GPIO pin - used to set the state of an attached STAC set in Client Mode
-    pinMode(TS_1, OUTPUT);      // ATOM GROVE connector GPIO pin - used to set the state of an attached STAC set in Client Mode
-    digitalWrite(TS_0, LOW);    // set any attached Client Mode STAC to PVW
-    digitalWrite(TS_1, LOW);    // set any attached Client Mode STAC to PVW
-    
-    delay(1000);                                                // all the background setup is done. Whew. Almost there... Pause for the "GUI"
-    
-    // ~~~~~~~~~~~~~~ End all the checks for provisioning & initialization stuff for normal operating mode ~~~~~~~~~~~~~~
-
+    // THE FOLLOWING 3 HEADER FILES MUST STAY HERE AND IN THIS ORDER - relative position to each other and the code above and below is important!
+    #include "./STACLib/STACInfoHeader.h"           // send the serial port info dump header
+    #include "./STACLib/STACPeripheral.h"           // do all the Peripheral Mode checks and run in PM if set
+    #include "./STACLib/STACProvision.h"            // do all the checks for provisioning & initialization for Normal Operating Mode
 
     drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);       // do this here as setting the tally channel is the first thing we do in the user setup stuff.
-                                                                // also gives the user some feedback so they can see we've transitioned out of doing all the setup stuff
-    while (M5.Btn.read() == 1);                                 // wait for button to be released
+                                                                //   - also gives the user some feedback so they can see we've transitioned out of doing all the setup bits
+    while ( dButt.read() );                                     // wait for button to be released
 
     bool asBypass = false;                                      // get set up for the auto start detect and control stuff
-    if (autoStart) {                                                // if we're in auto start mode...
+    if (autoStart) {                                            // if we're in auto start mode...
         asBypass = true;
-        CRGB asPulseColour = 0xee0000;
-        pulsePix(true, asPulseColour);                             // ...turn on the four corner LEDs
+        pulsePix(true, GRB_AS_PULSE_COLOR);                         // ...turn on the four corner LEDs
         bool nextonstate = false;
         unsigned long asTimeOut =  millis() + 20000;                // autostart timeout is 20 seconds
         unsigned long nextFlash = millis() + 1000;                  // flash the corners every second while waiting for autostart to time out.
-        while (asTimeOut >= millis() && M5.Btn.read() == 0) {       // ...pause until we time out (continue with auto start)
-            if (nextFlash <= millis()) {                            // ...have some fun & flash the four corner LED's while waiting :)
-                pulsePix(nextonstate, asPulseColour);
+        while ( asTimeOut >= millis() && dButt.read() == 0 ) {      // pause until we time out (continue with auto start)
+            if ( nextFlash <= millis() ) {                          // have some fun & flash the four corner LED's while waiting :)
+                pulsePix(nextonstate, GRB_AS_PULSE_COLOR);
                 nextonstate = !nextonstate;
                 nextFlash = millis() + 1000;
             }
         }
-        if (M5.Btn.read() == 1) {                                   // unless the button is pressed, in which case...
-            asBypass = false;                                       // ...cancel auto start
+        if ( dButt.read() ) {                                  // unless the button is pressed, in which case...
+            asBypass = false;                                  //   ...cancel auto start
         }
     }
 
@@ -1323,25 +276,24 @@ void setup() {
      *  "Setting up to display the current tally channel"
     */
     if (!asBypass) {                                              // skip everything here if autostart kicked in
-//        drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);   // display the current tally channel and... (put this back if this routine is not the first in the setup sequence)    
-//        while (M5.Btn.read() == 1);   // wait for button to be released. If this routine ever gets moved from being the first thing after the autostart check, this has to go back here
         escapeFlag = false;
-        btnWas = 0;
         
         do  {
-            btnNow = M5.Btn.read();                     // read & refresh the state of the button
-            if (buttonClicked()) escapeFlag = true;           
-            if (M5.Btn.pressedFor(1500)) {
+            dButt.read();                                               // read & refresh the state of the button
+            if ( dButt.wasReleased() ) {
+                escapeFlag = true;
+            }
+            if ( dButt.pressedFor(1500) ) {
                 changeTallyChannel();
                 drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);   // display the (new) current tally channel
-                btnWas = 0;     // reset the click detector & loop back to the top of the do loop. Need to keep this here!
             }
-        } while (!escapeFlag);
+        } while ( !escapeFlag );
+        dButt.read();
     }
 
     /* Setting up to display & change the current tally mode
      * 
-     * If the button is clicked, drop out
+     * If the button is clicked, drop out.
      * If the button is long pressed, call changeTallyMode() and return to the start of
      *  "setting up to display the current tally mode"
     */
@@ -1349,25 +301,26 @@ void setup() {
         if (ctMode) drawGlyph(GLF_C, purplecolor);              // display the current tally mode...
         else drawGlyph(GLF_T, purplecolor);
         
-        while (M5.Btn.read() == 1);                             // wait for button to be released
+        while ( dButt.read() );                                 // wait for button to be released
         escapeFlag = false;
-        btnWas = 0;
         
         do  {
-            btnNow = M5.Btn.read();                             // read & refresh the state of the button
-            if (buttonClicked()) escapeFlag = true;
-            if (M5.Btn.pressedFor(1500)) {
+            dButt.read();                      // read & refresh the state of the button
+            if ( dButt.wasReleased() ) {
+                escapeFlag = true;             // if button was clicked, exit
+                }
+            if ( dButt.pressedFor(1500) ) {
                 changeTallyMode();
                 if (ctMode) drawGlyph(GLF_C, purplecolor);      // display the (new) current tally mode...
                 else drawGlyph(GLF_T, purplecolor);
-                btnWas = 0;     // reset the click detector & loop back to the top of the do loop. Need to keep this here!
             }
-        } while (!escapeFlag);
+        } while ( !escapeFlag );
+        dButt.read();
     }
 
     /* Setting up to display & change the startup mode
      *  
-     * If the button is clicked, drop out
+     * If the button is clicked, drop out.
      * If the button is long pressed, call changeStartupMode() and return to the start of
      *  "Setting up to display & change the startup mode"
     */
@@ -1375,26 +328,27 @@ void setup() {
         if (autoStart) drawGlyph(GLF_A, tealcolor);             // display the current startup mode
         else drawGlyph(GLF_S, tealcolor);
         
-        while (M5.Btn.read() == 1);                             // wait for button to be released
+        while ( dButt.read() );                             // wait for button to be released
         escapeFlag = false;
-        btnWas = 0;
         
         do  {
-            btnNow = M5.Btn.read();                             // read & refresh the state of the button
-            if (buttonClicked()) escapeFlag = true;           
-            if (M5.Btn.pressedFor(1500)) {
+            dButt.read();                                   // read & refresh the state of the button
+            if ( dButt.wasReleased() ) {
+                escapeFlag = true;
+            }
+            if ( dButt.pressedFor(1500) ) {
                 changeStartupMode();
                 if (autoStart) drawGlyph(GLF_A, tealcolor);     // display the current startup mode              
                 else drawGlyph(GLF_S, tealcolor);
-                btnWas = 0;     // reset the click detector & loop back to the top of the do loop. Need to keep this here!
             }
         } while (!escapeFlag);
+        dButt.read();
     }
 
     /* Setting up to display & change the current display brightness level
      * 
-     * If the button is clicked, drop out
-     * If the button is long pressed, call changeBrightness() and return to the start of
+     * If the button is clicked, drop out.
+     * If the button is long pressed, call updateBrightness() and return to the start of
      *  "Setting up to display the current brightness level"
     */
     if (!asBypass) {                                                        // skip everything here if autostart kicked in
@@ -1402,81 +356,113 @@ void setup() {
         drawOverlay(GLF_EN, GRB_COLOR_BLACK);                               // blank out the inside three columns...
         drawOverlay(glyphMap[currentBrightness / 10], GRB_COLOR_WHITE);     // and overlay the brightness setting number
     
-        while (M5.Btn.read() == 1);                                         // wait for button to be released
+        while ( dButt.read() );                                         // wait for button to be released
         escapeFlag = false;
-        btnWas = 0;
         
         do  {
-            btnNow = M5.Btn.read();                                         // read & refresh the state of the button
-            if (buttonClicked()) escapeFlag = true;
-            if (M5.Btn.pressedFor(1500)) {
+            dButt.read();
+            if ( dButt.wasReleased() ) {
+                escapeFlag = true;
+            }
+            if ( dButt.pressedFor(1500) ) {
                 currentBrightness = updateBrightness(stcPrefs, "STCPrefs", "curBright", currentBrightness);          
                 drawGlyph(GLF_CBD, brightnessset);                                  // draw the checkerboard test pattern...
                 drawOverlay(GLF_EN, GRB_COLOR_BLACK);                               // blank out the inside three columns...
                 drawOverlay(glyphMap[currentBrightness / 10], GRB_COLOR_WHITE);     // and overlay the (new) brightness setting number
-                btnWas = 0;     // reset the click detector & loop back to the top of the do loop. Need to keep this here!
            }
-        } while (!escapeFlag);
+        } while ( !escapeFlag );
+        dButt.read();
     }
     
-    M5.dis.clear();
-    M5.dis.drawpix(PO_PIXEL, GRB_COLOR_GREEN);
+    disClear();
+    disDrawPix(PO_PIXEL, GRB_COLOR_GREEN);
     delay (1000);                // chill for a second for the sake of the "GUI"
+ 
     nextPollTime = millis();     // set the initial value for the ST Server poll timer to now
+
+    log_e( "::: Leaving setup(): status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
+            tallyStatus.tState, lastTallyState,  tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
 
 }   // closing brace for setup()
 
+
 void loop() {
 
-    M5.update();        // put this at the top of loop() instead of the bottom so it always gets hit
-    
     /* ~~~~~ Update Brightness contol logic ~~~~~ */
-
-    if (M5.Btn.pressedFor(1500)) {
-        digitalWrite(TS_1, HIGH);                       // set any connected Client Mode STAC to PVW
-        digitalWrite(TS_0, LOW);
+    
+    dButt.read();                        // put this at the top of loop() instead of the bottom so it always gets hit
+    if ( dButt.pressedFor(1500) ) {              // user wants to change the display brightness
+        GROVE_UNKNOWN;                           // output the tally state to the GROVE pins
         currentBrightness = updateBrightness(stcPrefs, "STCPrefs", "curBright", currentBrightness);
-        M5.dis.clear();
-        M5.dis.drawpix(PO_PIXEL, PO_COLOR);
+        if ( !ctMode ) {                        // if in talent mode
+            disFillPix(PVW);                    //  set the display to PVW
+        }
+        else {
+            disClear();
+        }
+        disDrawPix(PO_PIXEL, PO_COLOR);
+    
+        // reset the tally state varialbles and flags
+        lastTallyState = "NO_TALLY";
+        tallyStatus.tState = "NO_INIT";
+        tallyStatus.tConnect = false;
+        tallyStatus.tTimeout = true;
+        tallyStatus.tNoReply = true;
+
+        // reset the STS error accumulators
+        tNoReplyCount = 0;
+        tJunkCount = 0;
+
         nextPollTime = millis();                // force a repoll of the tally state
-        lastTallyState = "---null---";
-    
+
     }   // closing brace for Update Brightness contol logic
-    
+
     /* ~~~~~ Connect to WiFi control logic ~~~~~ */
 
-    if (WiFi.status() != WL_CONNECTED) {
+    if ( WiFi.status() != WL_CONNECTED ) {
 
-        log_i("no WiFi");
-
+        log_e( "No WiFi connection." );
+        
         bool leaveDisplayGreen = false;
 
         if (wifiStatus.wfconnect) {                 // if we had a previous good WiFi connection...
+            GROVE_UNKNOWN;                          //  output the tally state to the GROVE pins
             stClient.stop();                        //  stop the stClient
             WiFi.disconnect();                      //  kill the WiFi
-            log_w("WiFi connection lost :(");
-            if (!ctMode) {                          //  if in talent mode...
-                M5.dis.fillpix(PVW);                //    set the display to PVW
-                M5.dis.drawpix(PO_PIXEL, PO_COLOR); //    turn on the power LED
-                leaveDisplayGreen = true;           //    let the downstream code know to not futz with the display 
+            log_e( "WiFi connection lost :(" );
+
+            if (!ctMode) {                          // if in talent mode...
+                disFillPix(PVW);                    //  set the display to PVW
+                disDrawPix(PO_PIXEL, PO_COLOR);     //  turn on the power LED
+                leaveDisplayGreen = true;           //  let the downstream code know to not futz with the display 
             }
             else {
                 drawGlyph(GLF_WIFI, alertcolor);            // let the user know we lost WiFi...
                 flashDisplay(8, 300, currentBrightness);
                 delay(1500);
             }
-            wifiStatus.wfconnect = false;       // reset the control logic...
-            wifiStatus.timeout = false;         
-            tallyStatus.tState = "---null---";
+            // reset the WiFi control flags
+            wifiStatus.wfconnect = false;
+            wifiStatus.timeout = false;
+            
+            // reset the tally state varialbles and flags
+            lastTallyState = "NO_TALLY";
+            tallyStatus.tState = "NO_INIT";
             tallyStatus.tConnect = false;
-            tallyStatus.tTimeout = false;
-            tallyStatus.tNoReply = true;        // ...flags & varialbles
+            tallyStatus.tTimeout = true;
+            tallyStatus.tNoReply = true;
+    
+            // reset the STS error accumulators
+            tNoReplyCount = 0;
+            tJunkCount = 0;
         }
 
         if (!leaveDisplayGreen) drawGlyph(GLF_WIFI, warningcolor);          // draw the "attempting to connect to WiFi" thing on the display
         while (!wifiStatus.wfconnect) {
             wifiStatus = connectToWifi(wifiStatus);
-            if (wifiStatus.timeout) log_w("WiFi connect attempt timed out");
+            if (wifiStatus.timeout) {
+                log_e( "WiFi connect attempt timed out." );
+            }
             if (wifiStatus.timeout && !leaveDisplayGreen) {
                 drawGlyph(GLF_WIFI, alertcolor);            // let the user know we timed out trying to connect to WiFi... 
                 flashDisplay(8, 300, currentBrightness);
@@ -1485,93 +471,155 @@ void loop() {
             }
         }
 
-        if (!leaveDisplayGreen) {
-            drawGlyph(GLF_WIFI, gtgcolor);          // draw the "connected to WiFi" thing on the display.
-            log_i("WiFi connected");
+        log_e( "WiFi connected." );
+
+        if ( !leaveDisplayGreen ) {
+            drawGlyph(GLF_WIFI, gtgcolor);      // draw the "connected to WiFi" thing on the display.
             delay(1500);
-            M5.dis.clear();
-            M5.dis.drawpix(PO_PIXEL, PO_COLOR);
+            disClear();
+            disDrawPix(PO_PIXEL, PO_COLOR);
         }
         nextPollTime = millis();                // force a repoll of the ST server
 
-    }
-
-    /* ~~~~~ Get Tally State Control logic ~~~~~ */
-
-    if ((millis() >= nextPollTime) && wifiStatus.wfconnect) {
-        
-        tallyStatus = getTallyState(tallyStatus);
-        if (!tallyStatus.tConnect || tallyStatus.tTimeout || tallyStatus.tNoReply) {    // error fetching the tally status
-
-            digitalWrite(TS_1, LOW);                    // output the tally state to the GROVE pins
-            digitalWrite(TS_0, LOW);
-            
-            log_e("ts error: connect = %i, timeout = %i, reply = %i", tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply);
-            
-            if (ctMode) {
-                drawGlyph(GLF_BX, purplecolor);          // throw up the big purple X...
-            }
-            else {
-                M5.dis.fillpix(PVW);                    // else change the display to the PVW colour
-                M5.dis.drawpix(PO_PIXEL, PO_COLOR);     // turn on the power LED
-            }
-            lastTallyState = "---null---";
-            nextPollTime = millis();                    // force a re-poll next time through loop()
-            return;                                     // go back to the start of loop()
-        }
-        nextPollTime = millis() + ST_POLL_INTERVAL;
-
-    }
+    }   // closing brace for "Connect to WiFi control logic"
 
     /* ~~~~~ Update Tally Display control logic ~~~~~ */
 
-    if (tallyStatus.tState != lastTallyState) {
+    if ( millis() >= nextPollTime ) {             // we _just_ did a WiFi check so no need to repeat that here
+        log_e( " " );
+        log_e( "*** STS Start Check: status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
+               tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
+
+        tallyStatus = getTallyState(tallyStatus);
+
+        log_e( "STS End Check: status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
+                tallyStatus.tState, lastTallyState, tallyStatus.tConnect,    tallyStatus.tTimeout, tallyStatus.tNoReply );
+
+        // handle the normal operating conditions first...
+        if ( tallyStatus.tConnect && !tallyStatus.tNoReply ) {
+            // we have a reply from the STS, lets go figure out what to do with it
+            nextPollTime = millis() + stsPollInt;                                               
+            junkReply = false;
         
-        lastTallyState = tallyStatus.tState;   
-        if (tallyStatus.tState == "onair") {
-            digitalWrite(TS_1, HIGH);                           // output the tally state to the GROVE pins
-            digitalWrite(TS_0, HIGH);
-            M5.dis.fillpix(PGM);                                // Change the display to the PGM colour
-        }
-        else if (tallyStatus.tState == "selected") {
-            digitalWrite(TS_1, HIGH);                           // output the tally state to the GROVE pins
-            digitalWrite(TS_0, LOW);
-            M5.dis.fillpix(PVW);                                // Change the display to the PVW colour
-        }
-        else if (tallyStatus.tState == "unselected") {
-            digitalWrite(TS_1, LOW);                           // output the tally state to the GROVE pins
-            digitalWrite(TS_0, HIGH);
-            if (ctMode) {                                       // if in camera operator mode
-                drawGlyph(GLF_DF, unselectedcolor);             // Change the display to the unselected glyph and colour
-            }
-            else {
-                M5.dis.fillpix(PVW);                           // else change the display to the PVW colour
-            }
-        }
+            if ( tallyStatus.tState != lastTallyState ) {
+
+                log_e( "TS change: status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
+                        tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
+
+                if ( tallyStatus.tState == "onair" ) {
+                    GROVE_PGM;                                      // output the tally state to the GROVE pins
+                    disFillPix(PGM);                                // change the display to the PGM colour;
+                }
+                else if ( tallyStatus.tState == "selected" ) {
+                    GROVE_PVW;                                      // output the tally state to the GROVE pins
+                    disFillPix(PVW);                                // change the display to the PVW colour
+                }
+                else if ( tallyStatus.tState == "unselected" ) {
+                    GROVE_NO_SEL;                                   // output the tally state to the GROVE pins
+                    if ( ctMode ) {                                   // if in camera operator mode
+                        drawGlyph(GLF_DF, unselectedcolor);         //  change the display to the unselected glyph and colour
+                    }
+                    else {
+                        disFillPix(PVW);                           // else change the display to the PVW colour
+                    }                  
+                }
+                else {
+                    // catchall code block only executed if we get a junk reply from the STS
+                    nextPollTime = millis() + 50;                  // set the "re-poll on error" time
+                    log_e( "STS error: junk reply = %s, last tally = %s, connect = %i, timeout = %i, noreply = %i", 
+                            tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
+                    junkReply = true;                             // we got a reply from the ST server, but it's garbage
+                    tJunkCount++;                                 // increment the error accumulator
+                    lastTallyState = "JUNK";
+                    tallyStatus.tState = "NO_TALLY";
+                  
+                    if ( tJunkCount >= 8 ); {
+                        GROVE_UNKNOWN;                                // output the tally state to the GROVE pins
+                        if ( ctMode ) {                               // if in camera operator mode                      
+                            drawGlyph(GLF_QM, purplecolor);           //  display unknown response glyph
+                            log_e( "Threw up a \"?\",  tJunkCount = %i", tJunkCount );
+                        }
+                        else {
+                            disFillPix(PVW);                          // else change the display to the PVW colour
+                            disDrawPix(PO_PIXEL, PO_COLOR);           // turn on the power LED
+                        }
+                    }
+                    
+                }   // closing brace for catchall code block
+                
+                if ( !junkReply ) {
+                    disDrawPix(PO_PIXEL, PO_COLOR);                // turn on the power LED
+                    tNoReplyCount = 0;                             // clear the error accumulators
+                    tJunkCount = 0;
+                    lastTallyState = tallyStatus.tState;           // save the current tally state
+                }
+            
+            }   // closing brace for "if ( tallyStatus.tState != lastTallyState )"
+            
+        }   // closing brace for "if ( tallyStatus.tConnect && !tallyStatus.tNoReply )"
+            
+        // the block below here handles all the error conditions (except a junk STS reply) reported by the last tally check
         else {
-            // Things have gone wrong big time.
-            digitalWrite(TS_1, LOW);                   // output the tally state to the GROVE pins
-            digitalWrite(TS_0, LOW);
+            // error occurred when trying get a tally status update           
+            log_e( "STS error: status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
+                    tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );            
+            tallyStatus.tState = "NO_INIT";
+            lastTallyState = "NO_TALLY";
+            tJunkCount = 0;
 
-            log_e("!!!!! TALLY CHANNEL IS IN AN *** UNKNOWN *** STATE. !!!!!");
-
-            if (ctMode) {
-                drawGlyph(GLF_QM, purplecolor);         // throw up a purple "?"...
+            if ( !tallyStatus.tConnect && tallyStatus.tTimeout ) {
+                // could not connect to the STS & timed out trying
+                nextPollTime = millis() + 1500;             // set the "re-poll on error" time
+                GROVE_UNKNOWN;                              // output the tally state to the GROVE pins
+                if (ctMode) {
+                    drawGlyph(GLF_BX, warningcolor);       // throw a warning X to the display...
+                    log_e( "Threw up an \"OrangeX\"." );
+                }
+                else {
+                    disFillPix(PVW);                      // else change the display to the PVW colour...
+                    disDrawPix(PO_PIXEL, PO_COLOR);       //  and turn on the power LED
+                }
+                tNoReplyCount = 0;                        // clear the error accumulator
+            }
+            else if ( tallyStatus.tConnect && ( tallyStatus.tTimeout || tallyStatus.tNoReply ) ) {
+                // we connected to the STS & sent a tally status request but either (the response timed out) or (an empty reply was received)
+                nextPollTime = millis() + 50;               // set the "re-poll on error" time 
+                tNoReplyCount++;                            // increment the error accumulator
+                
+                if ( tNoReplyCount >= 8 ) {
+                    GROVE_UNKNOWN;                         // output the tally state to the GROVE pins
+                    if (ctMode) {
+                        drawGlyph(GLF_BX, purplecolor);    // throw up a BPX
+                        log_e( "Threw up a \"BPX\", tNoReplyCount = %i", tNoReplyCount );                       
+                    }
+                    else {
+                        disFillPix(PVW);                    // else change the display to the PVW colour...
+                        disDrawPix(PO_PIXEL, PO_COLOR);     // and turn on the power LED
+                    }
+                    tNoReplyCount = 0;                     // clear the error accumulator
+                }
             }
             else {
-                M5.dis.fillpix(PVW);                    // else change the display to the PVW colour...
-                M5.dis.drawpix(PO_PIXEL, PO_COLOR);     // and turn on the power LED
+                // some other error condition has occurred
+                nextPollTime = millis() + 1000;             // set the "re-poll on error" time
+                GROVE_UNKNOWN;                              // output the tally state to the GROVE pins
+                if (ctMode) {
+                    drawGlyph(GLF_BX, alertcolor);          // throw up a big red X
+                    log_e( "Threw up a \"BigRedX\"." ); 
+                }
+                else {
+                    disFillPix(PVW);                        // else change the display to the PVW colour...
+                    disDrawPix(PO_PIXEL, PO_COLOR);         //  and turn on the power LED
+                }
+                tNoReplyCount = 0;                          // clear the error accumulator
             }
-            lastTallyState = "---null---";
-            nextPollTime = millis();                   // force a re-poll next time through loop()
-            return;                                    // and bail back to the start of loop() 
-        }
-        M5.dis.drawpix(PO_PIXEL, PO_COLOR);            // turn on the power LED
 
-    }
+        }   // closing brace for "else error block"
+                    
+    }   // closing brace for: if ( millis() >= nextPollTime )
 
     // ~~~~~ End of the Control loop
-    
+
 }   // closing  brace for loop()
 
 
