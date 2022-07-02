@@ -1,0 +1,3 @@
+# To Compile the STAC Sketch...
+
+Make sure the `STACLib` folder is located in the same folder as the `STAC.ino` file.
