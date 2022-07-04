@@ -16,12 +16,13 @@ TallyState getTallyState(TState tally) {
     String reply;
     uint8_t replen;
     
-    tally.tState = "HI_BOB";
+    // initialize the tally state, status flags and the reply string
+    tally.tState = "NO_INIT";
     tally.tConnect = false;
     tally.tTimeout = true;
     tally.tNoReply = true;
     breakFlag = false;
-    reply = "GTS_INIT";     // GTS = Get Tally State
+    reply = ""; 
 
     if ( !stClient.connected() ) {
         // try to connect to the ST server
@@ -38,8 +39,6 @@ TallyState getTallyState(TState tally) {
                 
                 log_e( "New STS connection");
                 
-//                 stClient.setTimeout(1);                 // set the timeout to 1 second for WiFiClient '.read'
-                //stClient.setNoDelay(true);              // send all WiFi data ASAP
                 tally.tConnect = true;
                 breakFlag = true;
             }
@@ -54,7 +53,6 @@ TallyState getTallyState(TState tally) {
             tally.tState = "NO_STS";         
             return tally;               // unable to get a connection to the ST server
         }
-        
     }
     
     // the log_e() below always prints even if we have to establish a new connection above,
@@ -78,9 +76,7 @@ TallyState getTallyState(TState tally) {
         return tally;
     }
     
-    replen = 0;                     // reply length to zero
-//     reply = "\0";                   // clear out the reply string
-    reply = "";                     // clear out the reply string
+    replen = 0;                     // reply length to zero   
     stClient.setTimeout(1);         // set the timeout to 1 second for WiFiClient '.read'
     breakFlag = false;
 
