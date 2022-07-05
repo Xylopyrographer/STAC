@@ -530,10 +530,11 @@ void loop() {
                             tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
                     junkReply = true;                             // we got a reply from the ST server, but it's garbage
                     tJunkCount++;                                 // increment the error accumulator
+                    log_e( "tJunkCount = %i", tJunkCount );
                     lastTallyState = "JUNK";
                     tallyStatus.tState = "NO_TALLY";
                   
-                    if ( tJunkCount >= 8 ); {
+                    if ( tJunkCount >= 8 ) {                          // we've hit the error threshold
                         GROVE_UNKNOWN;                                // output the tally state to the GROVE pins
                         if ( ctMode ) {                               // if in camera operator mode                      
                             drawGlyph(GLF_QM, purplecolor);           //  display unknown response glyph
@@ -543,11 +544,12 @@ void loop() {
                             disFillPix(PVW);                          // else change the display to the PVW colour
                             disDrawPix(PO_PIXEL, PO_COLOR);           // turn on the power LED
                         }
+                        tJunkCount = 0;                               // clear the error accumulator
                     }
                     
                 }   // closing brace for catchall code block
                 
-                if ( !junkReply ) {
+                if ( !junkReply ) {                                // valid status state returned
                     disDrawPix(PO_PIXEL, PO_COLOR);                // turn on the power LED
                     tNoReplyCount = 0;                             // clear the error accumulators
                     tJunkCount = 0;
