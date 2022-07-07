@@ -1,7 +1,0 @@
-{
-    "configuration": "PartitionScheme=default,UploadSpeed=1500000,DebugLevel=info",
-    "board": "esp32:esp32:m5stick-c",
-    "port": "COM3",
-    "sketch": "STAC.ino",
-    "output": ".\\build"
-}

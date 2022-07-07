@@ -21,7 +21,7 @@ When operating, the STAC continuously polls the Roland switch by sending to it a
  
 Where: `[number]` is the ASCII integer representation of the tally channel number of the Roland device for which status is being requested; `1` to `8`.
  
-This string is sent to the IP address and port number specified by the user when the STAC is configured via a web browser. Refer to the *STAC Users Guide.md* in this repository.
+This string is sent to the IP address and port number specified by the user when the STAC is configured via a web browser. Refer to the _STAC Users Guide.md_ in this repository.
 
 ## Expected Response
 
