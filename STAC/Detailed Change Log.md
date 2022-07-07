@@ -24,7 +24,7 @@ Intended for developers and others interested in the nitty gritty.
 
 * Add user configurable polling interval via the web config page.
   * add polling interval as an NVS item.
-  * increment the NVS NOM_PREFS_VERSION.
+  * increment the NVS `NOM_PREFS_VERSION`.
 
 * Correct improper use of the Preferences library.
 
@@ -47,9 +47,9 @@ Intended for developers and others interested in the nitty gritty.
 
 * Remove left over debug code in `parseForm()`.
 
-* Change all drawGlyph() 'colors[]' parameter data type to 'const int'.
+* Change all `drawGlyph()` `colors[]` parameter data type to `const int`.
 
-* Remove buttonClicked() function in favour of native JC_Button library calls.
+* Remove `buttonClicked()` function in favour of native `JC_Button` library calls.
   * remove all references to `btnWas` & `btnNow`.
 
 * Change `stIP` to use data type `IPAddress` instead of `char[]`.
@@ -68,7 +68,7 @@ Intended for developers and others interested in the nitty gritty.
 
 * Add "BigOrangeX" display error as notification that there is no STS connection at all (Camera operator mode only).
   
-* Add filtering for erroneous connection cases.
+* Add filtering for erroneous `stClient` connection cases.
   * require eight consecutive errors of the same type before the glyph for that error type is displayed.
   * exception is when there is no connection at all to the STS (aka "BigOrangeX"), for which the error glyph is always displayed immediately.
   * all error counters are reset after an error glyph is displayed,
@@ -78,7 +78,7 @@ Intended for developers and others interested in the nitty gritty.
   * 1000 ms for unknown "BigRedX"
   * 50 ms for all other errors
 
-* Stop the stClient connection if we had a connection but the response timed out.
+* Add `stClient.stop()` if we have a connection but the STS response timed out.
 
-* Add large number of of log_e() debug statements
+* Add large number of of `log_e()` debug statements
   * will probably remove most before final v2.0 release.
