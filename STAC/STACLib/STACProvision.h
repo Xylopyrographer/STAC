@@ -180,10 +180,6 @@
 
     Serial.println(F("======================================"));
     // end add to the info dump to the serial port
-
-    pinMode(TS_0, OUTPUT);      // set the GROVE GPIO 
-    pinMode(TS_1, OUTPUT);      //   pins as outputs
-    GROVE_UNKNOWN;              // send the tally state to the GROVE pins
     
     delay(1000);                // all the background setup is done. Whew. Almost there... Pause for the "GUI"
      
