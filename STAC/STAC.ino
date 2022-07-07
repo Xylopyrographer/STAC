@@ -245,6 +245,10 @@ void setup() {
     #include "./STACLib/STACInfoHeader.h"           // send the serial port info dump header
     #include "./STACLib/STACPeripheral.h"           // do all the Peripheral Mode checks and run in PM if set
     #include "./STACLib/STACProvision.h"            // do all the checks for provisioning & initialization for Normal Operating Mode
+    
+    pinMode(TS_0, OUTPUT);      // set the GROVE GPIO 
+    pinMode(TS_1, OUTPUT);      //   pins as outputs
+    GROVE_UNKNOWN;              // send the tally state to the GROVE pins
 
     drawGlyph(glyphMap[tallyStatus.tChannel], bluecolor);       // do this here as setting the tally channel is the first thing we do in the user setup stuff.
                                                                 //   - also gives the user some feedback so they can see we've transitioned out of doing all the setup bits

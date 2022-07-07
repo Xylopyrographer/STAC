@@ -59,7 +59,7 @@ This sketch has been built and tested using:
 + Arduino IDE version 2.0.0-rc8
 + Visual Studio Code version 1.68.1 (macOS)
     - using Microsoft Arduino extension version 0.4.12
-+ Depending on how support for the ATOM Matrix was added, selecting the M5StickC Plus, or the ATOM MATRIX as the target board should work.
++ Depending on how support for the ATOM Matrix was added, selecting either the M5Stick-C, or the M5Stack-ATOM as the target board should work.
 
 ### Revision History
 **2022-07-01:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
