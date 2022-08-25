@@ -28,9 +28,9 @@ __Improvements__
   * No longer requires modified core or M5Stack libraries.
     * But does require new libraries as per the `README.md` file.   
  
-  * A new "*Detailed Change Log*" document intended for developers in the `STAC/Documentation` folder. It's the TLDR; version of this document.
+  * A new "*Detailed Change Log*" document intended for developers in the `Documentation` folder. It's the TLDR; version of this document.
    
-  * A new "*Creating the build number*" document intended for developers in the `STAC/Documentation` folder.
+  * A new "*Creating the build number*" document intended for developers in the `Documentation` folder.
 
 
 ## v1.10

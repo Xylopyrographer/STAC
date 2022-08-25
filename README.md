@@ -31,8 +31,7 @@ Lots of good information in the *STAC User Guide*, located in the `Documentation
 1. Here in GitHub, on the right side of the window, click the green "Latest" button under "Releases".
 1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
 1. Unpack the downloaded `STAC-X.Y.Z` file
-1. Rename the resulting folder from  `STAC-X.Y.Z` to just `STAC`
-1. Move the `STAC` folder to where you keep your Arduino sketches.
+2. Move the folder to where you keep your Arduino sketches.
 
 
 ### Required Libraries:

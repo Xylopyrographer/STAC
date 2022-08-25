@@ -1,4 +1,5 @@
-###Creating the STAC Software Build Number
+### Creating the STAC Software Build Number
+
 If you're not modifying the STAC software, you can ignore this document.
 
 When in the throws of development and working with multiple ATOM units, sometimes I get lost as to which version of software is actually running on which unit. I could increment the `swVer` variable in the `STAC.ino` file every time I change something there or in any file in the `STACLib` folder but that means remembering to keep some other log file or such. So here's something new I'm trying out to hopefully deconfuse what version of software is actually running on the STAC.
