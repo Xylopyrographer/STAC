@@ -17,21 +17,23 @@ Intended for developers and others interested in the nitty gritty.
   * directly initialize Serial.
   
 * Break code into separate `.h` files by function group into a new STACLib folder.
-  * add appropriate #include statements to STAC.ino.
+  * add appropriate `#include` statements to `STAC.ino`.
 
-* Rewrite of the loop() tally display code to better facilitate error handling.
-  * error handling should now be done in loop().
+* Rewrite of the `loop()` tally display code to better facilitate error handling.
+  * error handling should now be done in `loop()`.
 
 * Add user configurable polling interval via the web config page.
   * add polling interval as an NVS item.
   * increment the NVS `NOM_PREFS_VERSION`.
 
-* Correct improper use of the Preferences library.
+* Correct improper use of the `Preferences` library.
 
 * No longer reformats the NVS when doing a factory reset.
   * clears all `Preferences` name spaces instead.
 
 * Change layout of the startup data dump.
+  * display the arduino-esp32 core version used.
+  * display the ESP-IDF SDK version used. 
   * show the polling interval.
   * items above the "`-----`" line are hard coded.
   * items above the "`=-=-=`" line are web config items.
@@ -78,7 +80,12 @@ Intended for developers and others interested in the nitty gritty.
   * 1000 ms for unknown "BigRedX"
   * 50 ms for all other errors
 
-* Add `stClient.stop()` if we have a connection but the STS response timed out.
+* Add `stClient.stop()` if we have an STS connection but the STS response timed out.
 
-* Add large number of of `log_e()` debug statements
-  * will probably remove most before final v2.0 release.
+* Display the arduino-esp32 core version used on the STAC web config form.
+
+* Display the ESP-IDF SDK version used on the STAC web config form.
+
+* Add STAC software build number.
+    * displayed in brackets after the software number on the Serial data dump and on the STAC web config form.
+    * see `Documentation/Creating the build number.md` for details.

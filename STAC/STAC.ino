@@ -1,7 +1,7 @@
 /*  STAC (Smart Tally ATOM Client)
  *
  *  Version: 2.0
- *  2022-07-01
+ *  2022-08-07
  *
  *  Authors: Team STAC
  *  
@@ -29,18 +29,23 @@
  *  
 */
 
-String swVer = ("2.0");           // version of this software. Shows up on the web config page & is stored in NVS
-String idPrefix = ("STAC-");      // prefix to use for naming the STAC AP SSID & STA hostname
+String swVer = "2.0 (53cb81)";    // version and (build number) of this software. Shows up on the web config page, serial monitor startup data dump & is stored in NVS
+String idPrefix = "STAC-";        // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 2       // version of the normal operating mode (NOM) Preferences information layout in NVS
 
 #include <WiFi.h>
 #include <Preferences.h>
 #include <Wire.h> 
-#include <FastLED.h>            // for driving the ATOM matrix display
-#include <JC_Button.h>          // for driving the ATOM display button.
-#include <I2C_MPU6886.h>        // for driving the ATOM IMU.
+#include <FastLED.h>                // for driving the ATOM matrix display
+#include <JC_Button.h>              // for driving the ATOM display button.
+#include <I2C_MPU6886.h>            // for driving the ATOM IMU.
+#include <Esp.h>                    // to get the ESP-IDF SDK version
+#include <esp_arduino_version.h>    // to get the arduino-esp32 core version
 
 #define DIS_BUTTON 39           // GPIO pin attached to the display button
+
+String ardesp32Ver = String( ESP_ARDUINO_VERSION_MAJOR ) + "." + String( ESP_ARDUINO_VERSION_MINOR ) + "." + String( ESP_ARDUINO_VERSION_PATCH ); // arduino-esp32 core version
+String espidfsdk = ESP.getSdkVersion(); // ESP-IDF SDK version
 
 // Create the objects we need to talk to the ATOM hardware.
 Button dButt(DIS_BUTTON, 20, 1, true);          // display Button(pin, dbTime, puEnable, invert) instantiates a button object.
@@ -490,6 +495,7 @@ void loop() {
     /* ~~~~~ Update Tally Display control logic ~~~~~ */
 
     if ( millis() >= nextPollTime ) {             // we _just_ did a WiFi check so no need to repeat that here
+        nextPollTime = millis() + stsPollInt;
         log_e( " " );
         log_e( "*** STS Start Check: status = %s, last = %s, connect = %i, timeout = %i, noreply = %i", 
                tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
@@ -502,7 +508,7 @@ void loop() {
         // handle the normal operating conditions first...
         if ( tallyStatus.tConnect && !tallyStatus.tNoReply ) {
             // we have a reply from the STS, lets go figure out what to do with it
-            nextPollTime = millis() + stsPollInt;                                               
+//            nextPollTime = millis() + stsPollInt;
             junkReply = false;
         
             if ( tallyStatus.tState != lastTallyState ) {
@@ -529,7 +535,7 @@ void loop() {
                 }
                 else {
                     // catchall code block only executed if we get a junk reply from the STS
-                    nextPollTime = millis() + 50;                  // set the "re-poll on error" time
+                    nextPollTime = millis() + 50;                 // set the "re-poll on error" time
                     log_e( "STS error: junk reply = %s, last tally = %s, connect = %i, timeout = %i, noreply = %i", 
                             tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );
                     junkReply = true;                             // we got a reply from the ST server, but it's garbage
@@ -571,12 +577,13 @@ void loop() {
                     tallyStatus.tState, lastTallyState, tallyStatus.tConnect, tallyStatus.tTimeout, tallyStatus.tNoReply );            
             tallyStatus.tState = "NO_INIT";
             lastTallyState = "NO_TALLY";
-            tJunkCount = 0;
+            tJunkCount = 0;                                 // clear the error accumulator
 
             if ( !tallyStatus.tConnect && tallyStatus.tTimeout ) {
                 // could not connect to the STS & timed out trying
-                nextPollTime = millis() + 1500;             // set the "re-poll on error" time
-                GROVE_UNKNOWN;                              // output the tally state to the GROVE pins
+                nextPollTime = millis() + 1500;            // set the "re-poll on error" time
+                tNoReplyCount = 0;                         // clear the error accumulator
+                GROVE_UNKNOWN;                             // output the tally state to the GROVE pins
                 if (ctMode) {
                     drawGlyph(GLF_BX, warningcolor);       // throw a warning X to the display...
                     log_e( "Threw up an \"OrangeX\"." );
@@ -585,14 +592,16 @@ void loop() {
                     disFillPix(PVW);                      // else change the display to the PVW colour...
                     disDrawPix(PO_PIXEL, PO_COLOR);       //  and turn on the power LED
                 }
-                tNoReplyCount = 0;                        // clear the error accumulator
             }
             else if ( tallyStatus.tConnect && ( tallyStatus.tTimeout || tallyStatus.tNoReply ) ) {
                 // we connected to the STS & sent a tally status request but either (the response timed out) or (an empty reply was received)
                 nextPollTime = millis() + 50;               // set the "re-poll on error" time 
                 tNoReplyCount++;                            // increment the error accumulator
                 
+                log_e( "tNoReplyCount = %i", tNoReplyCount );
+                
                 if ( tNoReplyCount >= 8 ) {
+                    tNoReplyCount = 0;                     // clear the error accumulator
                     GROVE_UNKNOWN;                         // output the tally state to the GROVE pins
                     if (ctMode) {
                         drawGlyph(GLF_BX, purplecolor);    // throw up a BPX
@@ -602,12 +611,12 @@ void loop() {
                         disFillPix(PVW);                    // else change the display to the PVW colour...
                         disDrawPix(PO_PIXEL, PO_COLOR);     // and turn on the power LED
                     }
-                    tNoReplyCount = 0;                     // clear the error accumulator
                 }
             }
             else {
                 // some other error condition has occurred
-                nextPollTime = millis() + 1000;             // set the "re-poll on error" time
+                nextPollTime = millis() + 1500;             // set the "re-poll on error" time
+                tNoReplyCount = 0;                          // clear the error accumulator
                 GROVE_UNKNOWN;                              // output the tally state to the GROVE pins
                 if (ctMode) {
                     drawGlyph(GLF_BX, alertcolor);          // throw up a big red X
@@ -617,7 +626,7 @@ void loop() {
                     disFillPix(PVW);                        // else change the display to the PVW colour...
                     disDrawPix(PO_PIXEL, PO_COLOR);         //  and turn on the power LED
                 }
-                tNoReplyCount = 0;                          // clear the error accumulator
+
             }
 
         }   // closing brace for "else error block"

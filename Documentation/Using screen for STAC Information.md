@@ -23,27 +23,31 @@ In the Terminal window, you should see the STAC startup information.
 Something like:
 
 ```
-=======================================
+=========================================
                  STAC
    A Smart Tally ATOM Matrix Client
             by: Team STAC
-https://github.com/Xylopyrographer/STAC
+ https://github.com/Xylopyrographer/STAC
 
-     Software Version: 2.0
-   Configuration SSID: STAC-78B5927E
-     Configuration IP: 192.168.6.14
-     -------------------------------
+    Version: 2.0 (53cb81)
+    Core: 2.0.4
+    SDK: v4.4.1-472-gc9140caf8c
+    MAC: 24:A1:60:46:06:3C
+
+    Configuration SSID: STAC-3C064660
+    Configuration IP: 192.168.6.14
+    -------------------------------
     WiFi Network SSID: StreamNet
-    Smart Tally IP: 192.168.1.13
+    Smart Tally IP: 192.168.22.31
     Port #: 80
     Max Tally Channel: 8
-    Polling Interval: 300 ms
-     =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    Auto start: Disabled
+    Polling Interval: 299 ms
+    =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    Auto start: Enabled
     Operating Mode: Camera Operator
-    Active Tally Channel: 5
+    Active Tally Channel: 2
     Brightness Level: 1
-======================================
+=========================================
 ```
 Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are set when configuring the STAC via a web browser. Items below that line are set using the STAC display button.
 
@@ -56,16 +60,19 @@ If it is operating in Peripheral Mode, it'll send that info out, something like.
                  STAC
    A Smart Tally ATOM Matrix Client
             by: Team STAC
-https://github.com/Xylopyrographer/STAC
+ https://github.com/Xylopyrographer/STAC
 
-     Software Version: 2.0
-   Configuration SSID: STAC-78B5927E
-     Configuration IP: 192.168.6.14
-     -------------------------------
-     OPERATING IN PERIPHERAL MODE
+    Version: 2.0 (53cb81)
+    Core: 2.0.4
+    SDK: v4.4.1-472-gc9140caf8c
+    MAC: 24:A1:60:46:06:3C
+
+    Configuration SSID: STAC-3C064660
+    Configuration IP: 192.168.6.14
+    --------------------------------
+      OPERATING IN PERIPHERAL MODE
           Brightness Level: 1
 =======================================
-
 ```
 In Peripheral Mode, only the display brightness level can be set, using the display button.
 
@@ -93,3 +100,25 @@ Computers are fussy that way.
 The `screen` app is also available on most *nix distributions. The serial communications port descriptor is different, but once you discover that, use it on the command line and things should function as described above.
 
 Windows systems have a number of options for serial communications programs. Consult the documentation for the connection syntax. The STAC only communicates at 115200 baud.
+
+### Geek Info
+
+If you're curious, part of the info dump looks like: 
+
+```
+    Version: 2.0 (53cb81)
+    Core: 2.0.4
+    SDK: v4.4.1-472-gc9140caf8c
+    MAC: 24:A1:60:46:06:3C
+```
+Here:
+
+`Version` is the version number of the STAC software. The characters in brackets are the "build number" of this version.
+
+`Core` is the arduino-esp32 core version used by the STAC software version.
+
+`SDK` is the espressif ESP-IDF software development kit version used by the arduino-esp32 core.
+
+`MAC` is the network interface MAC address.
+
+Useful info if you're interested in tweaking the STAC software. File it in the trivia bucket otherwise.

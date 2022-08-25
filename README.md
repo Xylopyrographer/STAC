@@ -22,7 +22,7 @@ the colour of the display on the ATOM:
 
 Configuration of the STAC for the WiFi credentials and IP address, port number and number of tally channels of the Roland switch is done using a web browser.
 
-There is also a Peripheral Mode where one STAC can be connected to another via a cable and operate as in Talent mode without the need for configuration or to establish a WiFi connection.
+There is also a Peripheral Mode where one STAC can be connected to another via a cable and operate as if in Talent mode without the need for configuration or to establish a WiFi connection.
 
 Lots of good information in the *STAC User Guide*, located in the `Documentation` folder along with other interesting bits there as well.
 
@@ -32,7 +32,7 @@ Lots of good information in the *STAC User Guide*, located in the `Documentation
 1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
 1. Unpack the downloaded `STAC-X.Y.Z` file
 1. Rename the resulting folder from  `STAC-X.Y.Z` to just `STAC`
-1. Move the `STAC` folder to your Arduino sketch folder.
+1. Move the `STAC` folder to where you keep your Arduino sketches.
 
 
 ### Required Libraries:
@@ -46,23 +46,24 @@ The following libraries are required to compile this sketch.
 
 All of these can be installed using the Arduino IDE Library Manager.
 
-When compiling, you may see an message that JC_Button may not work as expected with the ESP32. This can be ignored.
+When compiling, you may see a message that JC_Button may not work as expected with the ESP32. This can be ignored.
 <br>
 
 ### Build System Compatibility:
 
 This sketch has been built and tested using:
 
-+ arduino-esp32 core version 2.0.3
-  + this is the minimum required core version; _older cores will not work_.
++ arduino-esp32 core versions 2.0.3 and 2.0.4
+  + core v2.0.3 is the minimum required. *Older cores will not work*.
 + Arduino IDE version 1.8.19
 + Arduino IDE version 2.0.0-rc8
 + Visual Studio Code version 1.68.1 (macOS)
     - using Microsoft Arduino extension version 0.4.12
 + Depending on how support for the ATOM Matrix was added, selecting either the M5Stick-C, or the M5Stack-ATOM as the target board should work.
++ To compile, make sure the `STACLib` folder is located in the same folder as the `STAC.ino` file.
 
 ### Revision History
-**2022-07-01:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
+**2022-07-09:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
 **2022-01-04:** Added information on Peripheral Mode. Minor format changes.<br>
 **2021-05-20:** Direction to use the `Release` version in place of the `main` branch.<br>
 **2021-04-07:** Delete config info. Minor format changes.<br>

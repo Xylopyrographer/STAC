@@ -42,7 +42,7 @@ In Peripheral Mode, the STAC continually monitors the state of G26 and G32 on it
 
 Here's the cool part. This allows the opportunity for developers to use a STAC set in Peripheral Mode as a tally indicator driven by an external piece of gear. Simply connect a cable to the GROVE port, apply power and drive pins G26 and G32 as needed.
 
-**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3 V will irreparably damage the device.**
+**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.**
 <br><br>
 
 ### Normal State (Controller) Output Signals
@@ -66,7 +66,7 @@ Starting with software v1.10, a STAC running it its normal operating state (not 
 
 This allows the opportunity for developers to use a STAC running in its normal state to provide tally information to another piece of gear.
 
-To do this, connect a cable to the GROVE port, apply power and monitor the state of pins G26 and G32.
+To do this, connect a cable to the GROVE port, power up the STAC and monitor the state of pins G26 and G32.
 
 This could allow the STAC to:
 
@@ -76,7 +76,7 @@ This could allow the STAC to:
 
 The "UNSELECTED" state is useful as it indicates normal operation and communication of the controller STAC with the Roland (or emulated) device being monitored even if that channel is not active in either PGM or PVW.
 
-With proper cabling, multiple STACS operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
+With proper cabling, multiple STACs operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
 
 **Note**: Apply power to the STAC either via its USB port or via a cable connected to its GROVE connector. Do one or the other only, *never* both.
 <br><br>
@@ -105,5 +105,6 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 ### Document Revision History  
 
+**2022-08-06:** Cleaned up a few more things.<br>
 **2022-06-27:** Cleaned up a few things.<br>
 **2022-01-04:** First release.<br>
