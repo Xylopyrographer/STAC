@@ -23,30 +23,51 @@ In the Terminal window, you should see the STAC startup information.
 Something like:
 
 ```
-======================================
+=======================================
                  STAC
    A Smart Tally ATOM Matrix Client
             by: Team STAC
 https://github.com/Xylopyrographer/STAC
 
-     Software Version: 1.10
-   Configuration SSID: STAC_78B5927E
+     Software Version: 2.0
+   Configuration SSID: STAC-78B5927E
      Configuration IP: 192.168.6.14
-             ------------
+     -------------------------------
     WiFi Network SSID: StreamNet
     Smart Tally IP: 192.168.1.13
     Port #: 80
+    Max Tally Channel: 8
+    Polling Interval: 300 ms
+     =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
     Auto start: Disabled
     Operating Mode: Camera Operator
-    Active Tally Channel: 1
-    Max Tally Channel: 6
+    Active Tally Channel: 5
     Brightness Level: 1
 ======================================
+```
+Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are set when configuring the STAC via a web browser. Items below that line are set using the STAC display button.
+
+If the STAC has not been configured, it'll tell you that. And it will let you know when it's waiting for the configuration data. Then once configured, it'll send the rest of the information to the screen.
+
+If it is operating in Peripheral Mode, it'll send that info out, something like...
 
 ```
-If the STAC has not been configured, it'll tell you that. And it will let you know when it's waiting for the configuration data. Then once configured, it'll send the rest of the information.
+=======================================
+                 STAC
+   A Smart Tally ATOM Matrix Client
+            by: Team STAC
+https://github.com/Xylopyrographer/STAC
 
-If it is operting in Peripheral Mode, it'll also send that info out.
+     Software Version: 2.0
+   Configuration SSID: STAC-78B5927E
+     Configuration IP: 192.168.6.14
+     -------------------------------
+     OPERATING IN PERIPHERAL MODE
+          Brightness Level: 1
+=======================================
+
+```
+In Peripheral Mode, only the display brightness level can be set, using the display button.
 
 When doing a Factory Reset, it'll send out information to let you know how that's progressing.
 
@@ -66,4 +87,9 @@ If you see a bunch of garbage on the screen after typing the `screen` command, o
 * the last thing on the line is exactly `115200`.
 
 Computers are fussy that way.
- 
+
+### Other Systems
+
+The `screen` app is also available on most *nix distributions. The serial communications port descriptor is different, but once you discover that, use it on the command line and things should function as described above.
+
+Windows systems have a number of options for serial communications programs. Consult the documentation for the connection syntax. The STAC only communicates at 115200 baud.
