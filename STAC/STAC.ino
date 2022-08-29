@@ -55,10 +55,13 @@
  *      - house cleaning.
  *      
  *    Version: 1.11-RC1
- *      - compiles and runs under arduino-esp32 core v1.0.6 and v2.0.3
+ *      - compiles and runs under arduino-esp32 core v1.0.6
+ *      - compiles under core v2.0.3 but functionally not equivalent due to incompatible changes made in core v2 series
+ *      - all changes noted above are implemented in this version (excepting the "runs under core 2.x" remarks)
+ *      - see also the "README_1.11RC1.txt" file
  
  *
- *  2022-03-30
+ *  2022-06-07
  *  
  *  Authors: Team STAC
  *  
