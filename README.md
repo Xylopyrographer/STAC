@@ -38,7 +38,7 @@ Lots of good information in the *STAC User Guide*, located in the `Documentation
 ---
 
 
-|Use of this sketch requires a modified set of libraries. <br>See the`libraries_README.md` file in the `libraries` folder.|  
+It is recommended that the modified Preferences library files be used. <br>See the`libraries_README.md` file in the `libraries` folder.|  
 :---:
 
 
