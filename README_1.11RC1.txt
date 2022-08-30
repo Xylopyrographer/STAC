@@ -2,7 +2,7 @@ This is the last version of STAC that runs under arduino-esp32 core version 1.0.
 
 It was intended to be a version that would run under core 1.0.6 and the new version 2 cores. However, the version 2 cores introduced incompatibilities in the WiFi client methods that made implementing and maintaining workarounds to run under either core something I deemed to be not worth the effort.
 
-To find those incompatibilities, a fair bit of debug code was added to this version in the main STAC.ino and STACSTS.h file (the latter located in the STACLib foler). This debug code, and the #define used to enable it remain.
+To find those incompatibilities, a fair bit of debug code was added to this version in the main STAC.ino and STACSTS.h file (the latter located in the STACLib folder). This debug code, and the #define used to enable it remain.
 
 The documentation for all the changes in this version has not been revised, however most changes are internal and so the STAC version 1.10 docs should be accurate enough from a user's perspective to get the STAC up and running.
 
