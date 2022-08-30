@@ -4,7 +4,9 @@ After doing a deep dive into the Espressif ESP 32 IDF NVS storage methods and co
 While not essential for the STAC sketch to compile, I do believe these modified methods are more robust.
 
 ### To use this library
-1. Navigate to your Arduino ESP32 folder.<br>
+
+Navigate to your Arduino ESP32 folder.
+
 We're not certain where this is kept on all platforms or where it was placed during your install. Searching for a file named *Preferences.cpp* should turn it up.<br><br>On macOS the default location is:<br>
 `/Users/*YOUR_USER_NAME*/Library/Arduino15/packages/esp32/hardware/esp32/1.0.6/libraries/Preferences/src`<br><br>On Windows the default location is:<br>
 `C:\Users\*YOUR_USER_NAME*\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6\libraries\Preferences\src`<br>
@@ -16,7 +18,7 @@ We're not certain where this is kept on all platforms or where it was placed dur
 Inside the *src* folder:
 
 1. Rename the file `Preferences.cpp` to something like `Preferences.cpp.orig`
-1. Copy the modified `Preferences.cpp` file from this repository into the `src` folder
+2. Copy the modified `Preferences.cpp` file from this repository into the `src` folder
 
 &mdash; Note &mdash;<br>You will have to repeat these steps whenever the Arduino ESP32 <br>libraries are updated as the new version will overwrite this modified file.|
 :--:

@@ -18,7 +18,7 @@ The modified Preferences library should also be installed as per the STAC versio
 
 The libraries provided by M5Stack for the ATOM Matrix are not used in this version. See the STAC version 2 release notes if you're curious.
 
-FWIW, if you really need a version that runs under core 1.0.6 and includes the improvements in this version, replacing the STACLIB/STACSTS.h file here with the one from the version 2.0 release may do the trick. Completely untested, but could be a starting point.
+FWIW, if you really need a version that runs under core 1.0.6 you could try grabbing the version 2.0 release and then replace the STACLIB/STACSTS.h file from version 2 with the 1.11_RC-1 version from here. Completely untested and unsupported but something you could tinker with.
 
 Xylopyrographer
 2022-08-29
