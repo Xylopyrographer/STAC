@@ -44,7 +44,12 @@ The following libraries are required to compile this sketch.
 1. [I2C_MPU6886](https://github.com/tanakamasayuki/I2C_MPU6886) by TANAKA Masayuki
 
 
+<<<<<<< HEAD
+It is recommended that the modified Preferences library files be used. <br>See the`libraries_README.md` file in the `libraries` folder.|  
+:---:
+=======
 All of these can be installed using the Arduino IDE Library Manager.
+>>>>>>> main
 
 When compiling, you may see an message that JC_Button may not work as expected with the ESP32. This can be ignored.
 <br>
