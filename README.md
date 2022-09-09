@@ -26,15 +26,6 @@ There is also a Peripheral Mode where one STAC can be connected to another via a
 
 Lots of good information in the *STAC User Guide*, located in the `Documentation` folder along with other interesting bits there as well.
 
-### To use this sketch:
-
-1. Here in GitHub, on the right side of the window, click the green "Latest" button under "Releases".
-1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
-1. Unpack the downloaded `STAC-X.Y.Z` file
-1. Rename the resulting folder from  `STAC-X.Y.Z` to just `STAC`
-1. Move the `STAC` folder to your Arduino sketch folder.
-
-
 ### Required Libraries:
 
 The following libraries are required to compile this sketch.
@@ -52,16 +43,13 @@ When compiling, you may see an message that JC_Button may not work as expected w
 
 This sketch has been built and tested using:
 
-+ arduino-esp32 core version 2.0.3
-  + this is the minimum required core version; _older cores will not work_.
 + Arduino IDE version 1.8.19
-+ Arduino IDE version 2.0.0-rc8
 + Visual Studio Code version 1.68.1
     - using Microsoft Arduino extension version 0.4.12
 + Depending on how support for the ATOM Matrix was added, selecting the M5StickC, M5StickC Plus, or the ATOM MATRIX as the target board should work.
 
 ### Revision History
-**2022-07-01:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
+**2022-06-30:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
 **2022-01-04:** Added information on Peripheral Mode. Minor format changes.<br>
 **2021-05-20:** Direction to use the `Release` version in place of the `main` branch.<br>
 **2021-04-07:** Delete config info. Minor format changes.<br>
