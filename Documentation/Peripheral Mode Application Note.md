@@ -76,7 +76,11 @@ This could allow the STAC to:
 
 The "UNSELECTED" state is useful as it indicates normal operation and communication of the controller STAC with the Roland (or emulated) device being monitored even if that channel is not active in either PGM or PVW.
 
+<<<<<<< HEAD
 With proper cabling, multiple STACs operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
+=======
+With proper cabling, multiple STACS operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
+>>>>>>> main
 
 **Note**: Apply power to the STAC either via its USB port or via a cable connected to its GROVE connector. Do one or the other only, *never* both.
 <br><br>
