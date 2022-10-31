@@ -6,24 +6,31 @@ __New Features__
 * _Configurable Polling Interval_
   
   * The amount of time, in milliseconds, between polls of the Smart Tally Server can now be set when configuring the STAC.
+  * As a result, if an older version of STAC is running, the STAC will need to be reconfigured using a web browser after installing this update. Refer to the *STAC Users Guide*.
 
-__Internal Improvements__
+__Improvements__
 
   * The STAC ID is now used as the WiFi hostname, making each STAC uniquely identifiable in the attached devices table of the WiFi router.
 
   * The WiFi authentication/encryption mode of the STAC when it is being provisioned is now WAP2-PSK (AES).
 
-  *  When operating in busy networks, the "Big Purple X" won't flicker, only activating when there is a number of consecutive communications errors with the Smart Tally Server.
+  *  When operating in busy networks, the "Big Purple X" won't flicker, only activating when there is a number of consecutive communication errors with the Smart Tally Server.
 
-  * Added a "Big Orange X" display error when the STAC cannot connect to the Smart Tally Server. Helps with troubleshooting to distinguish between "Big Purple X" and "Purple Question Mark" type errors.
+  * Added a "Big Orange X" display error when the STAC cannot connect to the Smart Tally Server. Helps with troubleshooting to distinguish between "Big Purple X" and "Purple Question Mark" type errors. More info in the *STAC Users Guide*.
 
   * Revised the format of the information dump sent to the serial port on startup.
   
   * A bunch of house cleaning and other tweaks to speed things up and what not. You know, the usual stuff developers do when realizing they shouldn't have done something a certain way to begin with.
   
   * Now based on arduino-esp32 core v2.0.3 or greater.
+    * To compile the code, arduino-esp32 core v2.0.3 as a minimum is required. Core v1.0.6 is no longer supported.
+
+  * No longer requires modified core or M5Stack libraries.
+    * But does require new libraries as per the `README.md` file.   
  
-  * A new "_Detailed Release Notes_" document intended for developers is in the `STAC/Code` folder.
+  * A new "*Detailed Change Log*" document intended for developers in the `Documentation` folder. It's the TLDR; version of this document.
+   
+  * A new "*Creating the build number*" document intended for developers in the `Documentation` folder.
 
 
 ## v1.10

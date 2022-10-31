@@ -2,10 +2,12 @@ void fetchInfo( void ) {
 // dumps a swack of system info to the serial monitor
 // - must include
 //      #include <Esp.h>
+//      #include <esp_arduino_version.h>
 // - the Serial system must be initialized prior to use.
     
     Serial.println("\r\n======================================\r\nHey there...");
     Serial.print("    Running sketch: "); Serial.println( __FILE__ );
+    Serial.print("    arduino-esp32 core version: "); Serial.print( ESP_ARDUINO_VERSION_MAJOR ); Serial.print("."); Serial.print( ESP_ARDUINO_VERSION_MINOR ); Serial.print("."); Serial.println( ESP_ARDUINO_VERSION_PATCH );
     Serial.print("    ESP-IDF SDK version: "); Serial.println( ESP.getSdkVersion() );
     Serial.print("    Sketch size/free space: 0x"); Serial.print( ESP.getSketchSize(), HEX );
     Serial.print(" / 0x"); Serial.println( ESP.getFreeSketchSpace(), HEX );

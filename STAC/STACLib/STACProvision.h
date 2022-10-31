@@ -20,11 +20,10 @@
         provisioned = false;                    // we are no longer provisioned       
     }
 
-
     if (!provisioned) {                         // if not ever provisioned before, or we wiped the namespace because of a new Preferences layout...
         // add to the serial port info dump
-        Serial.println("   ***** STAC NOT PROVISIONED *****");
-        Serial.println("=======================================");
+        Serial.println("    ***** STAC NOT PROVISIONED *****");
+        Serial.println("========================================");
         // end add to the serial port info dump
                 
         stcPrefs.begin("STCPrefs", PREFS_RW);   // create and open the namespace in R/W mode
@@ -69,9 +68,9 @@
                 drawOverlay(GLF_CK, GRB_COLOR_GREEN);       // confirm to the user...
                 
                 // add to the serial port info dump
-                Serial.println(" ***** PERFORMING FACTORY RESET *****");
-                Serial.println("\r\n              Restarting...");
-                Serial.println("=======================================\r\n\r\n");
+                Serial.println( "  ***** PERFORMING FACTORY RESET *****" );
+                Serial.println( "\r\n              Restarting..." );
+                Serial.println( "=========================================\r\n\r\n" );
                 // end add to the serial port info dump
                 
                 stcPrefs.begin("STCPrefs", PREFS_RW);       // open the normal operating mode prefs in R/W mode...
@@ -90,8 +89,8 @@
     }   // closing brace for if button down
         
     if (!provisioned) {
-        Serial.println(" ***** WAITING FOR PROVISIONING *****");
-        Serial.println("=======================================");
+        Serial.println( "  ***** WAITING FOR PROVISIONING *****" );
+        Serial.println( "=========================================" );
 
         sConfigData = getCreds(stacID, swVer);              // go get the WiFi provisioning data from the user's web browser
         
@@ -112,8 +111,8 @@
         stcPrefs.end();
         provisioned = true;
         
-        Serial.println("  ***** PROVISIONING COMPLETE *****");
-        Serial.println("=======================================");
+        Serial.println( "    ***** PROVISIONING COMPLETE *****" );
+        Serial.println( "=========================================" );
     }
 
     // go get & set the runtime ops parms from NVS :)     
@@ -143,14 +142,9 @@
     stcPrefs.end();                                             // close our preferences namespace
     // runtime ops parms are set
 
-    disSetBright(currentBrightness);
-    tallyStatus.tState = "NO_INIT";                                 // initialize the control flags
-    lastTallyState = "NO_TALLY";
-    wifiStatus.wfconnect = false;
-    wifiStatus.timeout = false;
-
+    disSetBright(currentBrightness); 
     disClear();
-    disDrawPix(PO_PIXEL, GRB_COLOR_GREEN);                   // turn the power LED green
+    disDrawPix(PO_PIXEL, GRB_COLOR_GREEN);                      // turn the power LED green
 
     // add to the info dump to the serial port   
     Serial.print("    WiFi Network SSID: ");
@@ -164,7 +158,7 @@
     Serial.print("    Polling Interval: ");
     Serial.print(stsPollInt);
     Serial.println(" ms");
-    Serial.println("     =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+    Serial.println("    =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
     Serial.print("    Auto start: ");
         if (autoStart) Serial.println("Enabled");
         else Serial.println("Disabled");
@@ -174,14 +168,10 @@
     Serial.print("    Active Tally Channel: ");
     Serial.println(tallyStatus.tChannel);
     Serial.print("    Brightness Level: ");
-    Serial.println(currentBrightness / 10);
+    Serial.println( currentBrightness / 10 );
 
-    Serial.println(F("======================================"));
+    Serial.println( "=========================================" );
     // end add to the info dump to the serial port
-
-    pinMode(TS_0, OUTPUT);      // set the GROVE GPIO 
-    pinMode(TS_1, OUTPUT);      //   pins as outputs
-    GROVE_UNKNOWN;              // send the tally state to the GROVE pins
     
     delay(1000);                // all the background setup is done. Whew. Almost there... Pause for the "GUI"
      

@@ -177,7 +177,27 @@ The SSID and Password fields stop accepting input after their limits are reached
 
 Taping the "Reset" button on the browser form will clear all information entered and set the port number, number of channels and the polling interval to their defaults, leaving the form open.
 
-At the bottom of the form, the version number of the STAC software is shown as a bit of trivia.
+At the bottom of the form some info about the STAC is shown as a bit of trivia.
+
+Unit ID is the unique identifier for this STAC. It is SSID of the STAC when being configured and the label you'd see in the WiFi router client table for this STAC when it is operating.
+
+Version is the version number of the STAC software. The characters in brackets are the "build number" of this version.
+
+Core is the arduino-esp32 core version used by the STAC software version.
+
+SDK is the espressif ESP-IDF software development kit version used by the arduino-esp32 core.
+
+MAC is the network interface MAC address. Skip ahead a couple of paragraphs for why you might need that.
+
+Totally geeky stuff but that's where it is if we ask for it if you contact us with a question.
+
+One last point regarding the WiFi network. Configuring the STAC with a static IP address is not supported. Therefore, when the STAC negotiates a connection to the specified network, the network must supply an IP address via DHCP. If a static STAC IP address is desired, the STAC MAC can be used to assign the IP from the router. The MAC address of the STAC can be found:
+
+* via the WiFi router client table after the STAC has an address assigned from the DHCP pool;
+* on the web configuration form;
+* from the STAC startup serial data information dump (refer to the *Using screen for STAC Information* document).
+
+Egads. That was a lot of jargon. Find a friend that knows networks if you need a hand with this.
 
 **Some advice:** If you are configuring multiple STACs in one go, it is quite important to close the Confirmation browser window each time before moving onto the next one. Using a desktop or laptop computer and browser is recommend. Some browsers, notably the mobile variety, get hung up when connecting to the IP address of the STAC (as each one is the same) even though the STAC and its WiFi SSID are unique.
 <br><br>
@@ -766,8 +786,9 @@ No warranties are given. The license may not give you all of the permissions nec
 ### Revision History
 <br>
 
-**2022-07-02**<br>
+**2022-08-09**<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.0.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Add note about IP addressing under *First Time Configuration*.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add "Orange X" error description section.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add "Polling Interval" configuration option.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise configuration screen images.
