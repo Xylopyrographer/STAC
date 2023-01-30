@@ -42,7 +42,7 @@
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (FC2)";   // version and (build number) of this software. Shows up on the web  
+String swVer = "2.1 (FC3)";         // version and (build number) of this software. Shows up on the web  
                                     //   config page, serial monitor startup data dump & is stored in NVS
 String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS
@@ -73,7 +73,7 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 #define WIFI_CONNECT_TIMEOUT 60000UL    // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 
 // defines for the Smart Tally communications
-#define ERROR_REPOLL_TIME 50            // # of ms to wait before re-polling the STS after a poll error
+#define ERROR_REPOLL_TIME 50UL          // # of ms to wait before re-polling the STS after a poll error
 #define MAX_POLL_ERRORS 8               // # of consecutive STS polling errors before changing the display
 
 #define PREFS_RO true                   // NVS Preferences namespace is Read Only if true

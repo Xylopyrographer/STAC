@@ -4,25 +4,30 @@
 Intended for developers and others interested in the nitty gritty.
 ### Version 2.1
 
-* added the ability to do OTA firmware updates via a web browser.
+* Add the ability to do OTA firmware updates via a web browser.
     * routines are in `STACUtil.h`. 
     * implemented using the `WebServer` library.
-* now using the mDNS library when the STAC is operating a wiFi access point for configuration & firmware updates.
-* all HTML code for configuration and OTA updates moved to 'STACsuPages.h' and `STACotaPages.h`respectively.
-    * all HTML is now HTML5 compliant.
-* refactoring of the initilization code in `STACProvision.h`.
-* refacrtoring of `getCreds()` in `STACUtil.h` to use the WebServer library.
-* redo of the display drawing routines to increase speed by reducing the number of calls to `FastLED.show()`.
-    * added a function parameter to optionally refresh the display post-execution.
-    * redid all the calls throughout the code to match match the above.
-    * due to changing the overloads for the `drawPix()` functions, renamed functions that draw to the display using `x` & `y`  corordinates to `drawPixXY()
-* a number of changes throughout to make the code more modular and to convert a number of routines to be functions rather than in-line includes.
-* for Peripheral Mode, added the ability to change the Tally Mode to either Camera Operator or Talent.
-* the display brightness is now set via a LUT that maps the brightness level to an absolute value as used by `FastLED()`.
-* rename of `STACDisplay.h`, `STACGlyph.h` and `STACIMU.h` to `STACDisplay5.h`, `STACGlyph5.h` and `STACIMU5.h` respectively.
-    * the "5" indicating use for 5 x 5 matrix displays.
-* layout of the serial data dumps modified.
-* as always, a number of housekeeping items addressed.
+* Use the `ESPmDNS` library when the STAC is operating a WiFi access point for configuration & firmware updates.
+    * operational details are in the *Users Guide.*
+* Move all HTML code for configuration and OTA updates to `STACsuPages.h` and `STACotaPages.h`respectively.
+    * make all HTML code HTML5 compliant.
+* Refactor the initilization code in `STACProvision.h`.
+* Refactor `getCreds()` in `STACUtil.h` to use the WebServer library.
+* Refactor the display drawing routines to increase speed by reducing the number of calls to `FastLED.show()`.
+    * Add a function parameter to optionally refresh the display.
+    * Revise all display calls throughout the code to match match the above.
+    * Rename functions that draw to the display using `x` & `y`  corordinates to `drawPixXY()` due to changing overloads for the `drawPix()` functions, 
+* Set the display brightness using a LUT that maps a brightness level to an absolute value that is passsed to `FastLED`.
+    * the brightness LUT contains a max of 9 levels.
+    * as it is a table, brightness can follow a curve.
+* Add the ability when in Peripheral Mode to change the Tally Mode to either Camera Operator or Talent.
+    * operational details are in the *Users Guide.*
+* Rename `STACDisplay.h`, `STACGlyph.h` and `STACIMU.h` to `STACDisplay5.h`, `STACGlyph5.h` and `STACIMU5.h` respectively.
+    * the "`5`" indicating use for 5 x 5 matrix displays.
+* Move `updateBrightness()` to `STACOpModes.h`
+* Modify layout of the serial data dumps.
+* Code changes throughout to make the code more modular and to convert a number of routines to be functions rather than in-line includes.
+* Address a number of housekeeping items.
 
 ### Version 2.0
 
@@ -31,11 +36,11 @@ Intended for developers and others interested in the nitty gritty.
 
 * Replace M5Stack ATOM libraries:
   * M5Stack are making library changes that are not backward compatible.
-  * use JC_Button library for the display button;
-  * use I2C_MPU6886 library for the IMU;
-  * use FastLED library for the display;
-    * replace "M5.dis.X" functions with bespoke display drawing routines.
-  * directly initialize Serial.
+  * use `JC_Button` library for the display button;
+  * use `I2C_MPU6886` library for the IMU;
+  * use `FastLED` library for the display;
+    * replace "`M5.dis.X`" functions with bespoke display drawing routines.
+  * directly initialize `Serial`.
   
 * Break code into separate `.h` files by function group into a new STACLib folder.
   * add appropriate `#include` statements to `STAC.ino`.
