@@ -43,6 +43,15 @@ To select the Tally Display mode when operating in Peripheral Mode:
     - dotted purple when not selected;
     - orange X otherwise.
 
-There are a good number of code changes and cleanup things too. Mostly detailed in the Detailed Change Log.md file.
+There are a good number of code changes and cleanup things too. Mostly detailed in the "Detailed Change Log.md" file.
 
-Let me know 
+Note on the dev environment:
+    - developed & tested using Arduino IDE v1.8.19 & arduino-esp32 core v2.0.5.
+    - core v.2.0.6 seems to have a number of breaking changes.
+    - core 2.0.7 is supposed to be released real soon now, so I'll hang on until then before testing with that new core.
+    - selecting either "M5Stick-C" or "M5 Stack-ATOM" as the target works.
+    - important to select "Minimal SPIFFS (Large APPS with OTA)" as the partition scheme before compiling.
+    - I did compile & download the code using Arduino IDE 2.0.3 so that's a positive.
+
+
+Let me know!
