@@ -1,123 +1,112 @@
-    // ~~~~~~~~~~~~~~ Start all the checks for provisioning & initialization stuff for normal operating mode ~~~~~~~~~~~~~~
+/*
+This is where all the startup checks are done to figure out if we can use the 
+existing configuration, what to do if the button is down at startup and such.
+You might need a coffee before digging into the logic in here. :)
+*/
+
+    unsigned long nextStateVal = 0UL;      // # ms value the button has to be down at to trigger the next state
     
-    stcPrefs.begin("STCPrefs", PREFS_RO);                   // open our preferences in R/O mode.
+    // check to see if we've been provisioned before and if it's OK to use the current Preferences layout if so
+    stcPrefs.begin( "STCPrefs", PREFS_RO );             // open our preferences in R/O mode.
     provisioned = false;
-    if ( stcPrefs.isKey("pVis") ); {
-        provisioned = stcPrefs.getBool("pVis");             // check to see if we've been provisioned already. provisioned = true if so
-    }  
+    if ( stcPrefs.isKey( "pVis" ) ) {
+        provisioned = stcPrefs.getBool( "pVis" );       // check to see if we've been provisioned already. pVis = true if so
+    }
+    if ( !provisioned ) {
+        Serial.println("      ***** STAC not configured *****");  
+    }
 
     bootPrefs = 0;
-    if ( stcPrefs.isKey("prefVer") ) {
-        bootPrefs = stcPrefs.getUShort("prefVer");          // set the prefs layout version we had when last run/powered up
-    }          
+    goodPrefs = false;
+    if ( stcPrefs.isKey( "prefVer" ) ) {
+        bootPrefs = stcPrefs.getUShort( "prefVer" );        // get the prefs layout version we had when last run/powered up
+    }
     stcPrefs.end();
 
-    if (provisioned && (bootPrefs != NOM_PREFS_VERSION)) {    // if we've been provisioned before but the current Prefs layout is different than the last boot...
+    if ( bootPrefs == NOM_PREFS_VERSION ) goodPrefs = true;
+   
+    if ( dButt.read() ) {
+        bool reconfig = false, factoryreset = false, dfu = false;       // need a flag for each action
+
+        if ( !provisioned || !goodPrefs ) {
+            drawGlyph( GLF_CFG, alertcolor, 1 );        // let the user know device needs initial or fresh configuration
+            reconfig = false;
+            factoryreset = false;
+            dfu = false;
+        }
+        else {
+            drawGlyph( GLF_CFG, warningcolor, 1 );      // let the user know they are about to change the provisioning info
+            reconfig = true;
+            factoryreset = false;
+            dfu = false;
+        }
+        //nextStateVal = millis();
+        flashDisplay( 4, 500, brightMap[ 1 ] );
+        nextStateVal = millis();
+        disSetBright( brightMap[ 1 ] );
+
+        do {
+            if ( millis() >= ( NEXT_STATE_TIME + nextStateVal ) & !factoryreset ) {      // long press
+                if ( provisioned && goodPrefs ) {
+                    reconfig = false;
+                    factoryreset = true;
+                    dfu = false;
+                    //drawGlyph( GLF_CFG, alertcolor, 1 );
+                    drawGlyph( GLF_FM, alertcolor, 0 );
+                    drawOverlay(GLF_CK, GRB_COLOR_GREEN , 1);
+                }
+                else {
+                    reconfig = false;
+                    factoryreset = false;
+                    dfu = true;                             // if not provisioned or prefs don't match, this lets DFU happen after a long press.
+                    drawGlyph( GLF_UD, alertcolor, 1 );
+                }
+                flashDisplay( 4, 500, brightMap[ 1 ] );     // let the user know we're armed to do a firmware update
+                nextStateVal = millis();                    // the next button down timing interval comes after the display flashing time
+                disSetBright( brightMap[ 1 ] );
+            }            
+            if ( millis() >=  NEXT_STATE_TIME + nextStateVal ) {    // 2x long press press
+                reconfig = false;
+                factoryreset = false;
+                dfu = true;
+                
+                drawGlyph( GLF_UD, alertcolor, 1 );
+                flashDisplay( 4, 500, brightMap[ 1 ] );     // let the user know we're armed to do a firmware update
+                disSetBright( brightMap[ 1 ] );
+            }           
+        } while ( dButt.read() && !dfu );
+        nextStateVal = 0UL;
         
-        stcPrefs.begin("STCPrefs", PREFS_RW);   // open the namespace in R/W mode
-        stcPrefs.clear();                       // wipe our namespace...
-        stcPrefs.end();                         // close the preferences...
-        provisioned = false;                    // we are no longer provisioned       
+        if ( reconfig ) {
+            STACconfig( provisioned, goodPrefs  );
+        }
+        else if ( factoryreset ) {
+            STACreset();
+        }
+        else if ( dfu ) {
+            while ( dButt.read() );
+            STACupdate();
+        }
+        else {      // we got here because we need provisioning & button was released before the long press time.
+            STACconfig( provisioned, goodPrefs );
+        }
     }
 
-    if (!provisioned) {                         // if not ever provisioned before, or we wiped the namespace because of a new Preferences layout...
-        // add to the serial port info dump
-        Serial.println("    ***** STAC NOT PROVISIONED *****");
-        Serial.println("========================================");
-        // end add to the serial port info dump
-                
-        stcPrefs.begin("STCPrefs", PREFS_RW);   // create and open the namespace in R/W mode
-
-        // create the namespace keys and store the factory defaults
-        stcPrefs.putBool("pVis", false);
-        stcPrefs.putString("swVersion", swVer);
-        stcPrefs.putUShort("prefVer", NOM_PREFS_VERSION);
-        stcPrefs.putULong("pPoll", 300);
-
-        stcPrefs.putString("stnSSID", "");
-        stcPrefs.putString("stnPass", "");
-        stcPrefs.putString("stswIP", "");
-        stcPrefs.putUShort("stswPort", 80);
-        
-        stcPrefs.putUChar("talChan", 1);
-        stcPrefs.putUChar("talMax", 6);
-        stcPrefs.putUChar("curBright", 10);
-        stcPrefs.putBool("ctMde", true);
-        stcPrefs.putBool("aStart", false);
-
-        stcPrefs.end();
-        // factory default values are now saved
-                                                
-        drawGlyph(GLF_CFG, alertcolor);                     // let the user know this is a first time run - configuration required
-        flashDisplay(4, 500, 20);
-        disSetBright(10);
-        
-        while ( dButt.read() );                            // wait for the button to be released
-        
-    }   // end brace for if (!provisioned)
-
-    if ( dButt.read() && provisioned ) {                   // if the button is down at restart and we are provisioned...
-        drawGlyph(GLF_CFG, warningcolor);                  //  let the user know they are about to change the provisioning info
-        flashDisplay(4, 500, 20);
-        disSetBright(10);
-        unsigned long resetTime = millis() + 2000;
-        provisioned = false;                                // ... then the user wants to reconfigure the STAC, unless...
-        while (dButt.read()) {
-            if (millis() >= resetTime) {                    // ... the button is long pressed, in which case...
-                drawGlyph(GLF_FM, alertcolor);              // ... the user wants to do a factory reset.
-                drawOverlay(GLF_CK, GRB_COLOR_GREEN);       // confirm to the user...
-                
-                // add to the serial port info dump
-                Serial.println( "  ***** PERFORMING FACTORY RESET *****" );
-                Serial.println( "\r\n              Restarting..." );
-                Serial.println( "=========================================\r\n\r\n" );
-                // end add to the serial port info dump
-                
-                stcPrefs.begin("STCPrefs", PREFS_RW);       // open the normal operating mode prefs in R/W mode...
-                stcPrefs.clear();                           //  wipe the namespace...
-                stcPrefs.end();                             //  close the preferences
-                stcPrefs.begin("PModePrefs", PREFS_RW);     // open the peripheral mode prefs in R/W mode...
-                stcPrefs.clear();                           //  wipe the namespace...
-                stcPrefs.end();                             //  close the preferences
-                
-                while ( dButt.read() );                     // wait for the button to be released            
-                delay(1000);                                // wait a bit for the "GUI"
-                disClear();                                 // clear the display
-                ESP.restart();                              // restart the STAC
-            }
-        }
-    }   // closing brace for if button down
-        
-    if (!provisioned) {
-        Serial.println( "  ***** WAITING FOR PROVISIONING *****" );
-        Serial.println( "=========================================" );
-
-        sConfigData = getCreds(stacID, swVer);              // go get the WiFi provisioning data from the user's web browser
-        
-        drawGlyph(GLF_CK, gtgcolor);                        // confirm to the user we got the provisioning data
-        delay(1000);                                        // park a bit for the "GUI"
-        
-        stcPrefs.begin("STCPrefs", PREFS_RW);               // open our preferences in R/W mode
-        stcPrefs.putString("stnSSID", sConfigData.pSSID);   // save the provisioning data
-        stcPrefs.putString("stnPass", sConfigData.pPass);
-        stcPrefs.putString("stswIP", sConfigData.pSwitchIP);
-        stcPrefs.putUShort("stswPort", sConfigData.pPort);
-        stcPrefs.putULong("pPoll", sConfigData.pPollInt);
-        stcPrefs.putUChar("talMax", sConfigData.ptChanMax);
-        if (stcPrefs.getUChar("talChan") > sConfigData.ptChanMax) {     // make sure the active tally channel is not > max tally
-            stcPrefs.putUChar("talChan", 1);
-        }
-        stcPrefs.putBool("pVis", true);
-        stcPrefs.end();
-        provisioned = true;
-        
-        Serial.println( "    ***** PROVISIONING COMPLETE *****" );
-        Serial.println( "=========================================" );
+    if ( provisioned && !goodPrefs ) {        
+        Serial.println( "  ****** New preferences layout ******");
+        Serial.println( "  ****** Configuration required ******");
     }
-
+    
+    if ( !provisioned || !goodPrefs ) {
+        disClear( 1 );
+        drawGlyph( GLF_CFG, alertcolor, 1 );
+        flashDisplay( 4, 500, brightMap[ 1 ] );     // let the user know we're armed to do a factory reset
+        disSetBright( brightMap[ 1 ] );
+        STACconfig( provisioned, goodPrefs );
+    }
+    
     // go get & set the runtime ops parms from NVS :)     
     stcPrefs.begin("STCPrefs", PREFS_RO);                       // open our preferences in R/O mode
-    // read and set the operational parameters from NVS
     stsPollInt = stcPrefs.getULong("pPoll");
     currentBrightness = stcPrefs.getUChar("curBright");
     tallyStatus.tChannel = stcPrefs.getUChar("talChan");
@@ -140,13 +129,14 @@
     stPort = stcPrefs.getUShort("stswPort");                    // ST port number
  
     stcPrefs.end();                                             // close our preferences namespace
-    // runtime ops parms are set
+    // runtime ops params are set
 
-    disSetBright(currentBrightness); 
-    disClear();
-    disDrawPix(PO_PIXEL, GRB_COLOR_GREEN);                      // turn the power LED green
+    disClear( 0 );                   
+    disSetBright( brightMap[ currentBrightness ] ); 
+    //drawGlyph( GLF_MID, gtgcolor, 1 );                          // turn the power LEDs green
+    disDrawPix( PO_PIXEL, GRB_COLOR_GREEN, 1 );                 // turn on the power LED
 
-    // add to the info dump to the serial port   
+    // add to the info header dump to the serial port   
     Serial.print("    WiFi Network SSID: ");
     Serial.println(networkSSID);
     Serial.print("    Smart Tally IP: ");
@@ -159,20 +149,19 @@
     Serial.print(stsPollInt);
     Serial.println(" ms");
     Serial.println("    =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+    Serial.print("    Active Tally Channel: ");
+    Serial.println(tallyStatus.tChannel);
+    Serial.print("    Tally Mode: ");
+        if (ctMode) Serial.println("Camera Operator");
+        else Serial.println("Talent");
     Serial.print("    Auto start: ");
         if (autoStart) Serial.println("Enabled");
         else Serial.println("Disabled");
-    Serial.print("    Operating Mode: ");
-        if (ctMode) Serial.println("Camera Operator");
-        else Serial.println("Talent");
-    Serial.print("    Active Tally Channel: ");
-    Serial.println(tallyStatus.tChannel);
     Serial.print("    Brightness Level: ");
-    Serial.println( currentBrightness / 10 );
-
+    Serial.println( currentBrightness );
     Serial.println( "=========================================" );
     // end add to the info dump to the serial port
     
-    delay(1000);                // all the background setup is done. Whew. Almost there... Pause for the "GUI"
+    delay( GUI_PAUSE_TIME );    // all the background setup is done. Whew. Almost there... Pause for the "GUI"
      
     // ~~~~~~~~~~~~~~ End all the checks for provisioning & initialization stuff for normal operating mode ~~~~~~~~~~~~~~
