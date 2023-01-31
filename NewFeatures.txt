@@ -1,40 +1,39 @@
-
-When you have some time, a new version of the STAC software is up in the XXX branch.
+When you have some time, a new version of the STAC software is up in the 2.1_dev branch.
 
 New Features:
 
 * Ability to do OTA firmware updates
 * When operating in Peripheral Mode, the Tally Mode can now be selected as either Camera Operator or Talent.
 * Added mDNS support. 
-    * Configuration url is http://setup.local
-    * Firmware update url is http://update.local
-    * Note that many browsers will default to https: connections if the "http://" part of the url is not entered.
-    * it seems to take a bit for the url to resolve, but once done, subsequent connections a very quick.
-    * the original 192.168.6.14 IP address method of connecting still works.
+    - setup url is http://setup.local
+    - firmware update url is http://update.local
+    - note that many browsers will default to https: connections if the "http://" part of the url is not entered.
+    - it seems to take a bit for the url to resolve, but once done, subsequent connections a very quick.
+    - the original 192.168.6.14 IP address method of connecting still works.
 
 To do a firmware update:
 - put the STAC into DFU mode;
     - hold down the display button then press and release the reset button
-    - while still holding down the display button, watch the display as it flashes the orange "reconfiguration" icon, then flashes the "factory reset" icon then, anytime afer it flashes the new "firmware update" icon, release the display button.
+    - while still holding down the display button, watch the display as it flashes the orange "reconfiguration" icon, then flashes the "factory reset" icon then, anytime after it flashes the new "firmware update" icon, release the display button.
 - on a computer or smart device, connect to the STAC-XXXXXX" WiFi hotspot. Password is 1234567890
 - on that device, fire up a browser and point it to either the firmware update url above, or the STAC IP address.
 - following the directions on the web page, pick the new STAC ".bin" file and then tap the "Update" button.
-- the progress bar in the browser window should move along and after a but (20-ish seconds maybe) the browser page will refresh with the status result of the update.
+- the progress bar in the browser window should move along and after a bit (20-ish seconds maybe) the browser page will refresh with the status result of the update.
 - the STAC automatically resets after a firmware update.
 
-Instaling this version will require a reconfiguration of the STAC.
+Installing this version will require a reconfiguration of the STAC.
 
-The ".bin" version of this software is in the repository as STAC_2-1FC2.bin if you want to try that feature out. Using this bin re-flashes the devie with the same code.
+The ".bin" version of this software is in the "bin" folder of the repository as STAC_2-1FCX.bin (X being a digit that counts up) if you want to try that feature out. Using that bin re-flashes the device with the same code.
 
 There are two other malformed ".bin" files included, used for testing--if you want to see how the STAC handles those cases.
 
 To select the Tally Display mode when operating in Peripheral Mode:
 - put the STAC into peripheral mode as per the manual.
-- one the display stops flashing, press and hold the display button
+- once the display stops flashing, press and hold the display button.
 - keep holding the button when the "change brightness" thing shows up and after a couple of seconds,
 - the current tally display mode will be shown just as when setting it in normal operating mode.
-- release the button and then click it to select (toggle between) the desired mode.
-- once selected, press the button and hold it until the green confirmation checkmark flashes on.
+- release the button and then click it to select (toggle between) the desired Tally Display mode.
+- once selected, press and hold the button until the green confirmation checkmark flashes on.
 - release the button & the STAC resumes operating.
 - the tally display mode is also saved in NVS along with the brightness level.
 - when in Peripheral Mode and the display is in camera operator mode it will show:
@@ -43,15 +42,14 @@ To select the Tally Display mode when operating in Peripheral Mode:
     - dotted purple when not selected;
     - orange X otherwise.
 
-There are a good number of code changes and cleanup things too. Mostly detailed in the "Detailed Change Log.md" file.
+There are a good number of code changes and cleanup things too. Mostly in the "Detailed Change Log.md" file.
 
 Note on the dev environment:
     - developed & tested using Arduino IDE v1.8.19 & arduino-esp32 core v2.0.5.
     - core v.2.0.6 seems to have a number of breaking changes.
-    - core 2.0.7 is supposed to be released real soon now, so I'll hang on until then before testing with that new core.
+    - core 2.0.7 is supposed to be released real soon now, so I'll hang on until then before testing with that core.
     - selecting either "M5Stick-C" or "M5 Stack-ATOM" as the target works.
     - important to select "Minimal SPIFFS (Large APPS with OTA)" as the partition scheme before compiling.
     - I did compile & download the code using Arduino IDE 2.0.3 so that's a positive.
-
 
 Let me know!
