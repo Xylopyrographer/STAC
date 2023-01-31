@@ -43,7 +43,7 @@ const char suFormOpen[] = R"=====(<!DOCTYPE html>
   <form class="c2" method="post" action="/parse">
     <label for="SSID:">Network SSID:</label> <input id="SSID" name="SSID" required="" type="text" maxlength="32"><br>
     <br>
-    <label for="Password:">Password:</label> <input id="pwd" name="pwd" type="text" size="20" maxlength="63"><br>
+    <label for="Password:">Password:</label> <input id="pwd" name="pwd" type="password" size="20" maxlength="63"><br>
     <br>
     <label for="Smart Tally IP:">Smart Tally IP:</label> <input id="stIP" name="stIP" size="15" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required="" type="text" inputmode="decimal"><br>
     <br>
@@ -55,6 +55,14 @@ const char suFormOpen[] = R"=====(<!DOCTYPE html>
     <br>
     <input value="Submit" type="submit"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <input type="reset">
   </form><br>
+  <script>
+  stIP.addEventListener("input", ev => {
+  const selStart = stIP.selectionStart, selEnd = stIP.selectionEnd;
+  stIP.value = stIP.value.replace(/,/g, ".");
+  stIP.selectionStart = selStart;
+  stIP.selectionEnd = selEnd;
+  });
+  </script>
   <p class="c4">Unit ID: )=====";
 
 const char suFormClose[] = R"=====(  </p>
