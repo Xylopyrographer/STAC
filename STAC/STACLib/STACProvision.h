@@ -15,24 +15,20 @@ You might need a coffee before digging into the logic in here. :)
     if ( !provisioned ) {
         Serial.println("      ***** STAC not configured *****");  
     }
-
     bootPrefs = 0;
     goodPrefs = false;
     if ( stcPrefs.isKey( "prefVer" ) ) {
-        bootPrefs = stcPrefs.getUShort( "prefVer" );        // get the prefs layout version we had when last run/powered up
+        bootPrefs = stcPrefs.getUShort( "prefVer" );    // get the prefs layout version we had when last run/powered up
     }
     stcPrefs.end();
 
     if ( bootPrefs == NOM_PREFS_VERSION ) goodPrefs = true;
-   
-    if ( dButt.read() ) {
-        bool reconfig = false, factoryreset = false, dfu = false;       // need a flag for each action
+
+    if ( dButt.read() ) {                                           // button is down on reset or power up
+        bool reconfig = false, factoryreset = false, dfu = false;   // need a flag for each action
 
         if ( !provisioned || !goodPrefs ) {
             drawGlyph( GLF_CFG, alertcolor, 1 );        // let the user know device needs initial or fresh configuration
-            reconfig = false;
-            factoryreset = false;
-            dfu = false;
         }
         else {
             drawGlyph( GLF_CFG, warningcolor, 1 );      // let the user know they are about to change the provisioning info
@@ -40,18 +36,16 @@ You might need a coffee before digging into the logic in here. :)
             factoryreset = false;
             dfu = false;
         }
-        //nextStateVal = millis();
         flashDisplay( 4, 500, brightMap[ 1 ] );
-        nextStateVal = millis();
         disSetBright( brightMap[ 1 ] );
+        nextStateVal = millis() + NEXT_STATE_TIME;
 
-        do {
-            if ( millis() >= ( NEXT_STATE_TIME + nextStateVal ) & !factoryreset ) {      // long press
+        while ( dButt.read() && !dfu ) {
+            if ( millis() >= nextStateVal && !factoryreset ) {     // long press
                 if ( provisioned && goodPrefs ) {
                     reconfig = false;
                     factoryreset = true;
                     dfu = false;
-                    //drawGlyph( GLF_CFG, alertcolor, 1 );
                     drawGlyph( GLF_FM, alertcolor, 0 );
                     drawOverlay(GLF_CK, GRB_COLOR_GREEN , 1);
                 }
@@ -62,19 +56,18 @@ You might need a coffee before digging into the logic in here. :)
                     drawGlyph( GLF_UD, alertcolor, 1 );
                 }
                 flashDisplay( 4, 500, brightMap[ 1 ] );     // let the user know we're armed to do a firmware update
-                nextStateVal = millis();                    // the next button down timing interval comes after the display flashing time
                 disSetBright( brightMap[ 1 ] );
+                nextStateVal = millis() + NEXT_STATE_TIME;                    // the next button down timing interval comes after the display flashing time
             }            
-            if ( millis() >=  NEXT_STATE_TIME + nextStateVal ) {    // 2x long press press
+            if ( millis() >=  nextStateVal ) {              // 2x long press press
                 reconfig = false;
                 factoryreset = false;
-                dfu = true;
-                
+                dfu = true;                
                 drawGlyph( GLF_UD, alertcolor, 1 );
                 flashDisplay( 4, 500, brightMap[ 1 ] );     // let the user know we're armed to do a firmware update
                 disSetBright( brightMap[ 1 ] );
             }           
-        } while ( dButt.read() && !dfu );
+        } // while ( dButt.read() && !dfu );
         nextStateVal = 0UL;
         
         if ( reconfig ) {
@@ -133,7 +126,6 @@ You might need a coffee before digging into the logic in here. :)
 
     disClear( 0 );                   
     disSetBright( brightMap[ currentBrightness ] ); 
-    //drawGlyph( GLF_MID, gtgcolor, 1 );                          // turn the power LEDs green
     disDrawPix( PO_PIXEL, GRB_COLOR_GREEN, 1 );                 // turn on the power LED
 
     // add to the info header dump to the serial port   

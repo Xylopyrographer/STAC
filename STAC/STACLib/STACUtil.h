@@ -94,6 +94,32 @@ provData_t getCreds() {
 
 }   // end getCreds()
 
+void udSerialStat( bool udOK, String udFileName, size_t udSize, String udStatus ) {
+/* 
+ * Called by the firmware update lambda function to send 
+ * results of the firmware update to the Serial port.
+*/
+    if ( udOK ) {   
+            Serial.println( "******* Firmware update done *******" );
+            Serial.print(   "File: "); Serial.println( udFileName);
+            Serial.print(   "Bytes written: "); Serial.println( udSize);
+            Serial.print(   "Status: "); Serial.println( udStatus );
+    }        
+    else {                    
+            Serial.println( "******* FIRMWARE UPDATE FAILED *******" );
+            Serial.print(   "Tried with file: "); Serial.println( udFileName);
+            Serial.print(   "Reason: "); Serial.println( udStatus );
+            Serial.println( "Ensure the correct \"STAC_XXXXX.BIN\"" );
+            Serial.println( "file was selected");
+    }
+    Serial.println( "              Restarting..." );
+    Serial.println( "=========================================\r\n\r\n" );
+    Serial.flush();
+
+    return;
+    
+}   // end udSerialStat()
+
 void STACconfig( bool &provisioned, bool &goodPrefs ) {
 /* - sets up the Preferences namespace in NVS
  * - gets the STAC configuration information via a user's web browser
@@ -177,32 +203,6 @@ void STACreset() {
     return;     // we'll never get here, but keeps the compiler happy
 
 }   // end STACreset()
-
-void udSerialStat( bool udOK, String udFileName, size_t udSize, String udStatus ) {
-/* 
- * Called by the firmware update lambda function to send 
- * results of the firmware update to the Serial port.
-*/
-    if ( udOK ) {   
-            Serial.println( "******* Firmware update done *******" );
-            Serial.print(   "File: "); Serial.println( udFileName);
-            Serial.print(   "Bytes written: "); Serial.println( udSize);
-            Serial.print(   "Status: "); Serial.println( udStatus );
-    }        
-    else {                    
-            Serial.println( "******* FIRMWARE UPDATE FAILED *******" );
-            Serial.print(   "Tried with file: "); Serial.println( udFileName);
-            Serial.print(   "Reason: "); Serial.println( udStatus );
-            Serial.println( "Ensure the correct \"STAC_XXXXX.BIN\"" );
-            Serial.println( "file was selected");
-    }
-    Serial.println( "              Restarting..." );
-    Serial.println( "=========================================\r\n\r\n" );
-    Serial.flush();
-
-    return;
-    
-}   // end udSerialStat()
 
 void STACupdate() {
 /* - routine to perform an OTA update of the STAC firmware
