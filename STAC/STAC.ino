@@ -42,7 +42,7 @@
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (FC7)";         // version and (build number) of this software. Shows up on the web  
+String swVer = "2.1 (GM1)";         // version and (build number) of this software. Shows up on the web  
                                     //   config page, serial monitor startup data dump & is stored in NVS
 String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS
@@ -50,6 +50,7 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 
 // defines for the Atom Matrix hardware
 #define DIS_BUTTON  39      // GPIO pin attached to the display select button - input
+#define DB_TIME     25      // display button debounce time (ms)
 #define DIS_DATA    27      // GPIO pin connected to the display data line - output
 #define I_SCL       21      // GPIO pin for SCL for IMU - output
 #define I_SDA       25      // GPIO pin for SDA for IMU - I/O
@@ -66,7 +67,7 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 #define AS_PULSE_TIME         1000UL    // autostart on/off display time in ms
 #define AS_TIMEOUT           20000UL    // autostart timeout in ms
 #define GUI_PAUSE_TIME        1500UL    // # of ms to pause for the user to see the display
-#define NEXT_STATE_TIME        500UL    // btn down for this # of ms on reset = move to next reset mode
+#define NEXT_STATE_TIME        750UL    // btn down for this # of ms on reset = move to next reset mode
 #define OP_MODE_TIMEOUT      30000UL    // # of ms to wait before timing out on an op mode change
 #define PM_POLL_INT            100UL    // # of ms between checking for tally change when operating in peripheral mode
 #define SELECT_TIME           1500UL    // if button down for this # of ms, change the parameter value (operating modes & brightness)
@@ -80,7 +81,7 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 #define PREFS_RW false                  // NVS Preferences namespace is Read-Write if false
 
 // Create the objects we need to talk to the LR hardware.
-Button dButt( DIS_BUTTON, 20, 1, true );    // display Button(pin, dbTime, puEnable, invert) make a button object.
+Button dButt( DIS_BUTTON, DB_TIME, 1, true );    // display Button(pin, dbTime, puEnable, invert) make a button object.
 I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);    // IMU (default address is 0x68, Wire1 is an I2C bus on user defined pins)
 CRGB leds[ MATRIX_LEDS ];               // for FastLED: buffer for the LEDs of the display
 
@@ -258,6 +259,13 @@ void setup() {
     Serial.begin( 115200 );
     while ( !Serial ) delay( 50 );          // primarily here for the single core USB CDC ESP32 variants
     dButt.read();                           // initialize the Btn class
+    
+    // make sure button state is stable?                                        // DEBUG CODE
+    for ( uint8_t i = 0; i < 3; i++ ) {
+       dButt.read();
+       delay( DB_TIME * 3 );
+    }
+    
     disClear( 0 );
     disSetBright( brightMap[ 1 ] );         // set the brightness & refresh the display
     disDrawPix( PO_PIXEL, PO_COLOR, 1 );       // turn on the power LED
@@ -389,8 +397,7 @@ void setup() {
      * If the button is long pressed, call updateBrightness() and return to
      *  the start of "Setting up to display the current brightness level"
     */
-    if (!asBypass) {                                                        // skip everything here if autostart kicked in
-        //disFillPix( GRB_COLOR_ORANGE, 0 );                   
+    if (!asBypass) {                                                        // skip everything here if autostart kicked in                  
         drawGlyph(GLF_CBD, brightnessset, 0);                               // draw the checkerboard test pattern...
         drawOverlay(GLF_EN, GRB_COLOR_BLACK, 0);                            // blank out the inside three columns...       
         drawOverlay( glyphMap[ currentBrightness ], GRB_COLOR_WHITE, 1 );   // and overlay the brightness setting number
@@ -413,7 +420,6 @@ void setup() {
         dButt.read();
     }
 
-    //drawGlyph(GLF_MID, gtgcolor, 1 );   // turn on the power LEDs green
     disClear();
     disDrawPix( PO_PIXEL, GRB_COLOR_GREEN, 1 );
     delay ( GUI_PAUSE_TIME );           // chill for a second for the sake of the "GUI"
@@ -565,7 +571,6 @@ void loop() {
                         }
                         else {
                             disFillPix( PVW, 0 );                   // else change the display to the PVW colour
-                            //drawOverlay( GLF_MID, PO_COLOR, 1 );    // overlay the power LEDs
                             disDrawPix( PO_PIXEL, PO_COLOR, 1 );
                         }
                         tJunkCount = 0;                               // clear the error accumulator
@@ -573,7 +578,6 @@ void loop() {
                 }   // closing brace for catchall code block
                 
                 if ( !junkReply ) {                             // valid status state returned
-                    //drawOverlay( GLF_MID, PO_COLOR, 1 );        // overlay the power LEDs & refresh the display
                     disDrawPix( PO_PIXEL, PO_COLOR, 1 );
                     tNoReplyCount = 0;                          // clear the error accumulators
                     tJunkCount = 0;
@@ -599,7 +603,6 @@ void loop() {
                 }
                 else {
                     disFillPix( PVW, 0 );                       // else change the display to the PVW colour...
-                    //drawOverlay( GLF_MID, PO_COLOR, 1 );        // overlay the power LEDs
                     disDrawPix( PO_PIXEL, PO_COLOR, 1 );
                 }
             }
@@ -615,7 +618,6 @@ void loop() {
                     }
                     else {
                         disFillPix( PVW, 0 );                   // else change the display to the PVW colour...
-                        //drawOverlay( GLF_MID, PO_COLOR, 1 );    // overlay the power LEDs
                         disDrawPix( PO_PIXEL, PO_COLOR, 1 );
                     }
                 }
@@ -630,7 +632,6 @@ void loop() {
                 }
                 else {
                     disFillPix( PVW, 0 );                       // else change the display to the PVW colour...
-                    //drawOverlay( GLF_MID, PO_COLOR, 1 );        // overlay the power LEDs
                     disDrawPix( PO_PIXEL, PO_COLOR, 1 );
                 }
             }
