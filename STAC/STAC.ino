@@ -42,7 +42,7 @@
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (GM1)";         // version and (build number) of this software. Shows up on the web  
+String swVer = "2.1 (2a9e59)";      // version and (build number) of this software. Shows up on the web  
                                     //   config page, serial monitor startup data dump & is stored in NVS
 String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS
@@ -259,13 +259,7 @@ void setup() {
     Serial.begin( 115200 );
     while ( !Serial ) delay( 50 );          // primarily here for the single core USB CDC ESP32 variants
     dButt.read();                           // initialize the Btn class
-    
-    // make sure button state is stable?                                        // DEBUG CODE
-    for ( uint8_t i = 0; i < 3; i++ ) {
-       dButt.read();
-       delay( DB_TIME * 3 );
-    }
-    
+
     disClear( 0 );
     disSetBright( brightMap[ 1 ] );         // set the brightness & refresh the display
     disDrawPix( PO_PIXEL, PO_COLOR, 1 );       // turn on the power LED

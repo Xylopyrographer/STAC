@@ -316,8 +316,9 @@ void STACupdate() {
 }   // end updateSTAC()
 
 void pvStateArm( uint8_t glyph[], const CRGB colors[], unsigned long &armTime, bool show = true ) {
-    /*  - function to set up the display and timing for dealing with display
+    /* - function to set up the display and timing for dealing with display
      *    button presses of varying lengths during power-on or reset
+     * - called from STACProvision.h
     */
     drawGlyph( glyph, colors, show );
     flashDisplay( 4, 500, brightMap[ 1 ] );

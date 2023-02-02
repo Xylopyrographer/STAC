@@ -4,14 +4,6 @@ existing configuration, what to do if the button is down at startup and such.
 You might need a coffee before digging into the logic in here. :)
 */
 
-    // make sure button state is stable
-    //for ( uint8_t i = 0; i < 3; i++ ) {
-    //    dButt.read();
-    //    delay( 25 );
-    //}
-    
-    unsigned long nextStateVal = 0UL;      // # ms value the button has to be down at to trigger the next state
-    //dButt.read();
     // check to see if we've been provisioned before and if it's OK to use the current Preferences layout if so
     stcPrefs.begin( "STCPrefs", PREFS_RO );             // open our preferences in R/O mode.
     provisioned = false;
@@ -30,13 +22,11 @@ You might need a coffee before digging into the logic in here. :)
 
     if ( bootPrefs == NOM_PREFS_VERSION ) goodPrefs = true;
 
-    if ( dButt.read() ) {                                           // button is down on reset or power up
-        // **************************************************************************************
-        // start of button state re-write 2023-02-01 1:41:23 PM
-
+    if ( dButt.read() ) {                               // button is down on reset or power up
+        // set up the state machine to manage the user button presses & releases
         enum pvMode_t { UNDEFINED = 0, CFG_PEND, FR_PEND, DFU_PEND };      
 
-        bool reconfig = false;                                      // need a flag for each action
+        bool reconfig = false;                                      // need a flag for each state
         bool factoryreset = false;
         bool dfu = false;
         bool pvEscape = false;
@@ -44,26 +34,25 @@ You might need a coffee before digging into the logic in here. :)
         pvMode_t pvState = UNDEFINED;
 
         if ( !provisioned || !goodPrefs ) {
-            pvStateArm( GLF_UD, alertcolor, pvNextArmT, 1 );        // set up dfuArm
+            pvStateArm( GLF_UD, alertcolor, pvNextArmT, 1 );        // set up for DFU_PEND
             pvState = DFU_PEND;
         }
         else {
-            pvStateArm( GLF_CFG, warningcolor, pvNextArmT, 1 );     // set up cfgArm
+            pvStateArm( GLF_CFG, warningcolor, pvNextArmT, 1 );     // set up for CFG_PEND
             pvState = CFG_PEND;
         }
-        
+
         do {
             dButt.read();
             switch ( pvState ) {
-
-                case CFG_PEND:
+                case CFG_PEND:                          // reconfig pending state
                     if ( dButt.wasReleased() ) {
                         reconfig = true;
                         factoryreset = false;
                         dfu = false;
                         pvEscape = true;
                     }
-                    else if ( millis() >= pvNextArmT ) {            // set up frArm
+                    else if ( millis() >= pvNextArmT ) {            // set up for FR_PEND
                         drawGlyph( GLF_FM, alertcolor, 0 );
                         drawOverlay(GLF_CK, GRB_COLOR_GREEN , 1);
                         flashDisplay( 4, 500, brightMap[ 1 ] );
@@ -72,7 +61,7 @@ You might need a coffee before digging into the logic in here. :)
                     }
                 break;
                 
-                case FR_PEND:
+                case FR_PEND:                           // factory reset pending state
                     if ( dButt.wasReleased() ) {
                         reconfig = false;    
                         factoryreset = true;
@@ -80,12 +69,12 @@ You might need a coffee before digging into the logic in here. :)
                         pvEscape = true;
                     }
                     else if ( millis() >= pvNextArmT ) {
-                        pvStateArm( GLF_UD, alertcolor, pvNextArmT, 1 );    // set up dfuArm
+                        pvStateArm( GLF_UD, alertcolor, pvNextArmT, 1 );    // set up for DFU_PEND
                         pvState = DFU_PEND;
                     }
                 break;
 
-                case DFU_PEND:
+                case DFU_PEND:                          // dfu mode pending state
                      if ( dButt.wasReleased() ) {
                         reconfig = false;
                         factoryreset = false;
@@ -93,29 +82,22 @@ You might need a coffee before digging into the logic in here. :)
                         pvEscape = true;
                     }
                 break;
-
             }   // end switch( pvState )
         } while ( !pvEscape );
         pvEscape = false;
         pvState = UNDEFINED;
         pvNextArmT = 0UL;
-        // end of button state re-write 2023-02-01 3:02:25 PM
-        //**************************************************************************************
-        
+
         if ( reconfig ) {
-            STACconfig( provisioned, goodPrefs  );
+            STACconfig( provisioned, goodPrefs );
         }
         else if ( factoryreset ) {
             STACreset();
         }
         else if ( dfu ) {
-            //while ( dButt.read() );
             STACupdate();
         }
-        //else {      // we got here because we need provisioning & button was released before the long press time.
-        //    STACconfig( provisioned, goodPrefs );
-        //}
-    }   // end button down on power-up or reset checks
+    } // end button down on power-up or reset checks
 
     if ( provisioned && !goodPrefs ) {        
         Serial.println( "  ****** New preferences layout ******");
