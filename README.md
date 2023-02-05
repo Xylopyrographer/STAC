@@ -22,26 +22,24 @@ the colour of the display on the ATOM:
 
 Configuration of the STAC for the WiFi credentials and IP address, port number and number of tally channels of the Roland switch is done using a web browser.
 
-There is also a Peripheral Mode where one STAC can be connected to another via a cable and operate as if in Talent mode without the need for configuration or to establish a WiFi connection.
+There is also a Peripheral Mode where one STAC can be connected to another via a cable and operate without the need for set up or to establish a WiFi connection.
 
-Lots of good information in the *STAC User Guide*, located in the `Documentation` folder along with other interesting bits there as well.
+Lots of good information in the *STAC User Guide*, located in the `Documentation` folder. Other interesting bits are there as well.
 
 ### To use this sketch:
 
 1. Here in GitHub, on the right side of the window, click the green "Latest" button under "Releases".
 1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
 1. Unpack the downloaded `STAC-X.Y.Z` file
-2. Move the folder to where you keep your Arduino sketches.
-
+1. Move the folder to where you keep your Arduino sketches.
 
 ### Required Libraries:
 
 The following libraries are required to compile this sketch.
 
-1. [FastLED](https://github.com/FastLED/FastLED) by Daniel Garcia
-1. [JC_Button](https://github.com/JChristensen/JC_Button) by Jack Christensen
-1. [I2C_MPU6886](https://github.com/tanakamasayuki/I2C_MPU6886) by TANAKA Masayuki
-
++ [FastLED](https://github.com/FastLED/FastLED) by Daniel Garcia
++ [JC_Button](https://github.com/JChristensen/JC_Button) by Jack Christensen
++ [I2C_MPU6886](https://github.com/tanakamasayuki/I2C_MPU6886) by TANAKA Masayuki
 
 All of these can be installed using the Arduino IDE Library Manager.
 
@@ -52,16 +50,19 @@ When compiling, you may see a message that JC_Button may not work as expected wi
 
 This sketch has been built and tested using:
 
-+ arduino-esp32 core versions 2.0.3 and 2.0.4
++ arduino-esp32 core version 2.0.5
   + core v2.0.3 is the minimum required. *Older cores will not work*.
 + Arduino IDE version 1.8.19
-+ Arduino IDE version 2.0.0-rc8
++ Arduino IDE version 2.0.3
 + Visual Studio Code version 1.68.1 (macOS)
     - using Microsoft Arduino extension version 0.4.12
 + Depending on how support for the ATOM Matrix was added, selecting either the M5Stick-C, or the M5Stack-ATOM as the target board should work.
 + To compile, make sure the `STACLib` folder is located in the same folder as the `STAC.ino` file.
++ Starting with v2.1, the Partition Scheme must be set to "Minimal SPIFFS (Large APPS with OTA)".
 
 ### Revision History
+
+**2023-02-04:** Revised for software v2.1.<br>
 **2022-07-09:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>
 **2022-01-04:** Added information on Peripheral Mode. Minor format changes.<br>
 **2021-05-20:** Direction to use the `Release` version in place of the `main` branch.<br>

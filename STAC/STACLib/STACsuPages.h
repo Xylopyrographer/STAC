@@ -14,7 +14,7 @@ const char suReceived[] = R"=====(<!DOCTYPE html>
 </head>
 <body>
   <h1 class="c1">STAC Setup</h1>
-  <p class="c2"><strong>Configuration received.</strong></p>
+  <p class="c2"><strong>Setup information received.</strong></p>
   <p class="c3">Close this window and reconnect<br>
   to your regular WiFi network.<br>
   <br>
@@ -29,7 +29,7 @@ const char suFormOpen[] = R"=====(<!DOCTYPE html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:,">
-  <title>STACConfig</title>
+  <title>STACSetup</title>
   <style type="text/css">
   form.c2 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   h1.c1 {font-family: Helvetica, Arial, sans-serif; text-align: center}
@@ -77,7 +77,7 @@ const char suNotFound[] = R"=====(<!DOCTYPE html>
   "width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
   <meta http-equiv="content-type" content=
   text/html; charset=utf-8">
-  <title>notfound</title>
+  <title>STAC404</title>
   <style type="text/css">
   body {background-color:#2A2C32;}
   form.c1 {text-align:center;}

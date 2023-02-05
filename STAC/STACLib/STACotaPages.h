@@ -14,7 +14,7 @@ const char udIndex[] = R"=====(<!DOCTYPE HTML>
   span.c3 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   body {background-color:#E9F6DC;}
   </style>
-  <title>STACUpdaterForm</title>
+  <title>STACUpdater</title>
 </head>
 <body class="c4">
   <h1 class="c1">STAC Updater</h1>
@@ -66,10 +66,10 @@ const char udPageOpen[] = R"=====(<!DOCTYPE html>
 )=====";
 
 const char udGood[] = R"=====(<p class="c5"><span class="c4"><strong><span class="c3">Update Success</span></strong></span></p>
-<p class="c5"><span class="c1">New firmware file: )=====";
+<p class="c5"><span class="c1">New firmware file:<br>)=====";
 
 const char udFail[] = R"=====(<p class="c5"><span class="c4"><strong><span class="c6">Update Failed</span></strong></span></p>
-<p class="c5"><span class="c1">Reason: )=====";
+<p class="c5"><span class="c1">Reason:<br>)=====";
 
 const char udPageClose[] = R"=====(<br>
 <br>
@@ -87,7 +87,7 @@ const char udNotFound[] = R"=====(<!DOCTYPE html>
   "width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
   <meta http-equiv="content-type" content=
   text/html; charset=utf-8">
-  <title>notfound</title>
+  <title>STAC404</title>
   <style type="text/css">
   body {background-color:#2A2C32;}
   form.c1 {text-align:center;}

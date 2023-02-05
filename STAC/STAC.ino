@@ -42,7 +42,7 @@
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (2a9e59)";      // version and (build number) of this software. Shows up on the web  
+String swVer = "2.1 (260ee7)";      // version and (build number) of this software. Shows up on the web  
                                     //   config page, serial monitor startup data dump & is stored in NVS
 String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS

@@ -23,60 +23,65 @@ In the Terminal window, you should see the STAC startup information.
 Something like:
 
 ```
-=========================================
-                 STAC
-   A Smart Tally ATOM Matrix Client
+==========================================
+                STAC
+     A Roland Smart Tally Client
             by: Team STAC
- https://github.com/Xylopyrographer/STAC
+  https://github.com/Xylopyrographer/STAC
 
-    Version: 2.0 (53cb81)
-    Core: 2.0.4
-    SDK: v4.4.1-472-gc9140caf8c
-    MAC: 24:A1:60:46:06:3C
-
-    Configuration SSID: STAC-3C064660
-    Configuration IP: 192.168.6.14
-    -------------------------------
-    WiFi Network SSID: StreamNet
-    Smart Tally IP: 192.168.22.31
+    Version: 2.1 (273315)
+    Core: 2.0.5
+    SDK: v4.4.2
+    Setup SSID: STAC-F8A87E
+    Setup URL: http://setup.local
+    Setup IP: 192.168.6.14
+    MAC: 94:B9:7E:A8:F8:00
+   --------------------------------
+    WiFi Network SSID: SmartTallyNet
+    Smart Tally IP: 192.168.1.90
     Port #: 80
-    Max Tally Channel: 8
-    Polling Interval: 299 ms
+    Max Tally Channel: 4
+    Polling Interval: 300 ms
     =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    Auto start: Enabled
-    Operating Mode: Camera Operator
     Active Tally Channel: 2
+    Tally Mode: Camera Operator
+    Auto start: Enabled
     Brightness Level: 1
 =========================================
-```
-Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are set when configuring the STAC via a web browser. Items below that line are set using the STAC display button.
+    WiFi Connected. IP: 192.168.1.21
+=========================================```
+Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are those from the STAC setup via a web browser. Items below that line are set using the STAC display button.
 
-If the STAC has not been configured, it'll tell you that. And it will let you know when it's waiting for the configuration data. Then once configured, it'll send the rest of the information to the screen.
+The "`WiFi Connected.`" line will show up after the STAC connects to the WiFi network and has an IP address assigned.
+
+If the STAC has not been set up, it'll tell you that. And it will let you know when it's waiting for the setup data. Then once set up, it'll send the rest of the information.
 
 If it is operating in Peripheral Mode, it'll send that info out, something like...
 
 ```
-=======================================
-                 STAC
-   A Smart Tally ATOM Matrix Client
+==========================================
+                STAC
+     A Roland Smart Tally Client
             by: Team STAC
- https://github.com/Xylopyrographer/STAC
+  https://github.com/Xylopyrographer/STAC
 
-    Version: 2.0 (53cb81)
-    Core: 2.0.4
-    SDK: v4.4.1-472-gc9140caf8c
-    MAC: 24:A1:60:46:06:3C
-
-    Configuration SSID: STAC-3C064660
-    Configuration IP: 192.168.6.14
-    --------------------------------
-      OPERATING IN PERIPHERAL MODE
-          Brightness Level: 1
-=======================================
-```
-In Peripheral Mode, only the display brightness level can be set, using the display button.
+    Version: 2.1 (273315)
+    Core: 2.0.5
+    SDK: v4.4.2
+    Setup SSID: STAC-F8A87E
+    Setup URL: http://setup.local
+    Setup IP: 192.168.6.14
+    MAC: 94:B9:7E:A8:F8:00
+   --------------------------------
+     OPERATING IN PERIPHERAL MODE
+    Tally Mode: Talent
+    Brightness Level: 1
+=======================================```
+In Peripheral Mode, only the display brightness level and tally display mode can be set, using the display button.
 
 When doing a Factory Reset, it'll send out information to let you know how that's progressing.
+
+Likewise, if a software update is running, it'll let you know that too.
 
 You can select and copy this information to paste into another application.
 
@@ -106,10 +111,13 @@ Windows systems have a number of options for serial communications programs. Con
 If you're curious, part of the info dump looks like: 
 
 ```
-    Version: 2.0 (53cb81)
-    Core: 2.0.4
-    SDK: v4.4.1-472-gc9140caf8c
-    MAC: 24:A1:60:46:06:3C
+    Version: 2.1 (273315)
+    Core: 2.0.5
+    SDK: v4.4.2
+    Setup SSID: STAC-F8A87E
+    Setup URL: http://setup.local
+    Setup IP: 192.168.6.14
+    MAC: 94:B9:7E:A8:F8:00
 ```
 Here:
 
@@ -119,6 +127,8 @@ Here:
 
 `SDK` is the espressif ESP-IDF software development kit version used by the arduino-esp32 core.
 
-`MAC` is the network interface MAC address.
+`MAC` is the WiFi network interface MAC address.
 
 Useful info if you're interested in tweaking the STAC software. File it in the trivia bucket otherwise.
+
+The other bits of the data dump are covered in the *STAC Users Guide*.

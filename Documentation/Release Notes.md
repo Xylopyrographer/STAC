@@ -1,4 +1,33 @@
 # STAC Release Notes
+## v2.1
+
+__New Features__
+
+* _OTA Software Updates_
+ 
+  * After installing this version, it will be possible to update the STAC software over WiFi using a web browser. This is refered to as an *over the air* or OTA update. Details are in the the *STAC Users Guide*.
+  * As a result of this change, the STAC will need to be setup again after installing this version.
+
+* _mDNS Support_
+
+  * The mDNS protocol is now supported when the STAC opens up a WiFi hotspot for setup or a software update by pointing a browser to `setup.local` and `update.local` respectively. More information in the *STAC Users Guide*.
+
+* _Camera Operator Tally Display in Peripheral Mode_
+
+  * The Tally Display Mode when the STAC is in Peripheral Mode can now be set to either Camera Operator or Talent. More info in, you guessed it, the *STAC Users Guide*.
+
+
+__Improvements__
+
+  * After doing a Factory Reset, the STAC will "park" and not reset itself which would then fire up a hotspot and wait for setup information. 
+    
+  * Revised the format of the information dump sent to the serial port on startup. The IP address assigned to the STAC is now shown as well.
+
+  * Added a bit more information about the STAC to the Setup browser page.
+
+  * Other internal kibbles and bits tweaked to speed things up—yada, yada...
+
+
 ## v2.0
 
 __New Features__
@@ -28,9 +57,9 @@ __Improvements__
   * No longer requires modified core or M5Stack libraries.
     * But does require new libraries as per the `README.md` file.   
  
-  * A new "*Detailed Change Log*" document intended for developers in the `Documentation` folder. It's the TLDR; version of this document.
+  * A new *"Detailed Change Log"* document intended for developers in the `Documentation` folder. It's the TLDR; version of this document.
    
-  * A new "*Creating the build number*" document intended for developers in the `Documentation` folder.
+  * A new *"Creating the build number"* document intended for developers in the `Documentation` folder.
 
 
 ## v1.10

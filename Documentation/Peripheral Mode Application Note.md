@@ -1,16 +1,15 @@
-# Peripheral Mode Application Note
+## Peripheral Mode Application Note
 
 As described in the *STAC User's Guide*, STAC software starting with version 1.10 adds a Peripheral Mode of operation.
 
-This note goes into what happens behind the scenes with the STAC running a version of software that implements Peripheral Mode: during startup; when operating as a peripheral; and also when in its normal operating state.
-<br><br>
+This note goes into what happens behind the scenes with the STAC running a version of software implementing Peripheral Mode: during startup; when operating as a peripheral; and also when in its normal operating state.
 
-### Initiating Client Mode
+### Initiating Peripheral Mode
 
 A STAC is placed into Peripheral Mode by:
     
 1. Placing a jumper wire between G22 and G33 on the ATOM rear header block.
-1. Applying power either via its USB port or a cable connecting its GROVE port to the GROVE port of another STAC. Do one or the other, not both.
+1. Applying power either via its USB port or a cable connecting its GROVE port to the GROVE port of another STAC. Do one or the other, never both.
 
 When powered up or when reset, the STAC configures G22 as an output pin and G33 as an input pin (with weak pull down). It then toggles the state of G22 in a sequence and confirms that G33 follows. If G33 follows throughout the entire sequence, it is assumed the "Peripheral Mode jumper" is in place. 
 
@@ -19,31 +18,60 @@ If G33 fails to follow G22 at any point during the sequence, the STAC assumes th
 In either case G22 is then driven low.
 
 After the STAC confirms the jumper is in place, it then configures G26 and G32 on its GROVE (HY2.0-4P) connector as input pins (with weak pull downs) and enters Peripheral Mode.
-<br><br>
 
 ### Operation in Peripheral Mode
 
-In Peripheral Mode, all normal operation state and features of the STAC are disabled. The STAC will not connect to a WiFi network and it will ignore any Tally Channel, Operating Mode and Startup Mode settings. The Display Brightness select feature remains enabled as does the orientation feature so the Brightness Select numbers are displayed right side to.
+In Peripheral Mode, all normal operation state and features of the STAC are disabled. The STAC will not connect to a WiFi network and it will ignore any Tally Channel, Tally Display Mode and Startup Mode settings. The Display Brightness select feature remains enabled as does the orientation feature so the Brightness Select numbers are displayed right side to.
 
 In Peripheral Mode, the STAC continually monitors the state of G26 and G32 on its GROVE port and uses the state of those inputs to determine the state of its tally display as per the table below.
 
-| G26 | G32 | DISPLAYED<br>TALLY STATE |
-|:---:|:---:|:---:|
-| 0 | 0 | PVW |
-| 0 | 1 | PVW |
-| 1 | 0 | PVW |
-| 1 | 1 | PGM |
+<table>
+	<tbody><center>
+		<tr>
+			<td rowspan="2"><b>G26</b></td>
+			<td rowspan="2"><b>G32</b></td>
+			<td colspan="2"><center><b>Displayed Tally State</center></td>
+		</tr>
+		<tr>
+			<td><center><b>Talent</center></b></td>
+			<td><center><b>Camera Operator</center></b></td>
+		</tr>
+		<tr>
+			<td><center>0</center></td>
+			<td><center>0</center></td>
+			<td><center>PVW</center></td>
+			<td><center>X</center></td>
+		</tr>
+		<tr>
+			<td><center>0</center></td>
+			<td><center>1</center></td>
+			<td><center>PVW</center></td>
+			<td><center>UNSELECTED</center></td>
+		</tr>
+		<tr>
+			<td><center>1</center></td>
+			<td><center>0</center></td>
+			<td><center>PVW</center></td>
+			<td><center>PVW</center></td>
+		</tr>
+		<tr>
+			<td><center>1</center></td>
+			<td><center>1</center></td>
+			<td><center>PGM</center></td>
+			<td><center>PGM</center></td>
+		</tr>
+	</center></tbody>
+</table>
 
 **Where:**<br>
 &nbsp;&nbsp;&nbsp;**1** = logic high (true)<br>
 &nbsp;&nbsp;&nbsp;**0** = logic low (false)<br>
 &nbsp;&nbsp;&nbsp;**PVW** (Preview, Standby, Selected) = GREEN<br>
-&nbsp;&nbsp;&nbsp;**PGM** (Program, Live, On Air) = RED
+&nbsp;&nbsp;&nbsp;**PGM** (Program, Live, On Air) = RED<br>
+&nbsp;&nbsp;&nbsp;**UNSELECTED** = "PURPLE DOTTED"<br>
+&nbsp;&nbsp;&nbsp;**X** (Unknown) = Orange X<br>
 
 Here's the cool part. This allows the opportunity for developers to use a STAC set in Peripheral Mode as a tally indicator driven by an external piece of gear. Simply connect a cable to the GROVE port, apply power and drive pins G26 and G32 as needed.
-
-**Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.**
-<br><br>
 
 ### Normal State (Controller) Output Signals
 
@@ -76,17 +104,11 @@ This could allow the STAC to:
 
 The "UNSELECTED" state is useful as it indicates normal operation and communication of the controller STAC with the Roland (or emulated) device being monitored even if that channel is not active in either PGM or PVW.
 
-<<<<<<< HEAD
 With proper cabling, multiple STACs operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
-=======
-With proper cabling, multiple STACS operating in Peripheral Mode could be connected in parallel to a STAC operating in its normal state. No testing has been done to confirm how many STACs could be driven in this manner. Power supply would be an issue to consider as well.
->>>>>>> main
 
 **Note**: Apply power to the STAC either via its USB port or via a cable connected to its GROVE connector. Do one or the other only, *never* both.
-<br><br>
 
-
-### Disabling Client Mode
+### Disabling Peripheral Mode
 
 To disable Peripheral Mode and return the STAC it to its normal operating state:
 
@@ -95,20 +117,18 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 1. Remove the Peripheral Mode jumper wire from the rear of the STAC.
 1. Power up the STAC via its USB port.
 
-<br>
-
 ### Notes
 
-1. **Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.**
+1. **Be aware that the ATOM Matrix GPIO pins use 3.3V logic levels and are not 5V tolerant.**<br>Driving any GPIO pin beyond 3.3V will irreparably damage the device.
 1. Apply power to the STAC either via its USB port or through a cable connected to its GROVE connector. Do one or the other only, *never* both.
-1. The serial data dump on power up or restart when in Peripheral Mode (see the *Using screen for STAC Information.md* document) will report that the STAC is in Peripheral Mode and the brightness level set.
+1. The serial data dump on power up or restart when in Peripheral Mode (see the *Using screen for STAC Information.md* document) will report that the STAC is in Peripheral Mode and the brightness level and tally display mode set.
 1. The *Peripheral Mode* section of the *User's Guide* provides more information on the GROVE cable.
-<br><br>
 
 ---
 
 ### Document Revision History  
 
+**2023-02-04:** Added info reflecting changes with software v2.1. Fix heading titles.<br>
 **2022-08-06:** Cleaned up a few more things.<br>
 **2022-06-27:** Cleaned up a few things.<br>
 **2022-01-04:** First release.<br>

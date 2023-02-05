@@ -20,10 +20,11 @@ Intended for developers and others interested in the nitty gritty.
 * Set the display brightness using a LUT that maps a brightness level to an absolute value that is passsed to `FastLED`.
     * the brightness LUT contains a max of 9 levels.
     * as it is a table, brightness can follow a curve.
-* Add the ability when in Peripheral Mode to change the Tally Mode to either Camera Operator or Talent.
+* Add the ability when in Peripheral Mode to change the Tally Display Mode to either Camera Operator or Talent.
     * operational details are in the *Users Guide.*
 * Rename `STACDisplay.h`, `STACGlyph.h` and `STACIMU.h` to `STACDisplay5.h`, `STACGlyph5.h` and `STACIMU5.h` respectively.
     * the "`5`" indicating use for 5 x 5 matrix displays.
+    * except that the "`5`" for the `STACIMU5.h` file means it is for the IMU type used in the ATOM MATRIX.
 * Move `updateBrightness()` to `STACOpModes.h`
 * Modify layout of the serial data dumps.
 * Code changes throughout to make the code more modular and to convert a number of routines to be functions rather than in-line includes.

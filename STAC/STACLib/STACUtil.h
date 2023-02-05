@@ -258,11 +258,13 @@ void STACupdate() {
             + String( udSize )
             + String( "<br>Status: " ) 
             + udStatus;
+            drawGlyph( GLF_CK, gtgcolor, 1 );
         }
         else {
             udMessage = String( udFail ) 
             + udStatus 
             + String( "<br><br>Ensure the correct<br>\"<strong>STAC_xxxx.bin</strong>\"<br>file was selected.<br>" );
+            drawGlyph( GLF_BX, alertcolor, 1 );
         }
         udMessage = udPageOpen + udMessage + udPageClose;   // assemble the update results status page to the user's browser
 
@@ -276,7 +278,6 @@ void STACupdate() {
         while ( WiFi.getMode() != WIFI_MODE_NULL ) delay( 10 );     // ensure the radio is off.
         udPauseTime = millis() + 500UL;
         while ( udPauseTime >= millis() );
-
         ESP.restart();
     },
     [&]() { /* function called to handle the file upload & writing that file to the OTA partition in flash */
