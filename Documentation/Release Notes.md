@@ -5,7 +5,7 @@ __New Features__
 
 * _OTA Software Updates_
  
-  * After installing this version, it will be possible to update the STAC software over WiFi using a web browser. This is refered to as an *over the air* or OTA update. Details are in the the *STAC Users Guide*.
+  * After installing this version, it will be possible to update the STAC software over WiFi using a web browser. This is referred to as an *over the air* or OTA update. Details are in the the *STAC Users Guide*.
   * As a result of this change, the STAC will need to be setup again after installing this version.
 
 * _mDNS Support_

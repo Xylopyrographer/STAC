@@ -2,22 +2,23 @@
 ## Detailed Change Log
 
 Intended for developers and others interested in the nitty gritty.
+
 ### Version 2.1
 
 * Add the ability to do OTA firmware updates via a web browser.
     * routines are in `STACUtil.h`. 
     * implemented using the `WebServer` library.
-* Use the `ESPmDNS` library when the STAC is operating a WiFi access point for configuration & firmware updates.
+* Use the `ESPmDNS` library when the STAC is operating a WiFi access point for setup & firmware updates.
     * operational details are in the *Users Guide.*
-* Move all HTML code for configuration and OTA updates to `STACsuPages.h` and `STACotaPages.h`respectively.
+* Move all HTML code for setup and OTA updates to `STACsuPages.h` and `STACotaPages.h` respectively.
     * make all HTML code HTML5 compliant.
-* Refactor the initilization code in `STACProvision.h`.
+* Refactor the initialization code in `STACProvision.h`.
 * Refactor `getCreds()` in `STACUtil.h` to use the WebServer library.
 * Refactor the display drawing routines to increase speed by reducing the number of calls to `FastLED.show()`.
     * Add a function parameter to optionally refresh the display.
     * Revise all display calls throughout the code to match match the above.
-    * Rename functions that draw to the display using `x` & `y`  corordinates to `drawPixXY()` due to changing overloads for the `drawPix()` functions, 
-* Set the display brightness using a LUT that maps a brightness level to an absolute value that is passsed to `FastLED`.
+    * Rename functions that draw to the display using `x` & `y`  coordinates to `drawPixXY()` due to changing overloads for the `drawPix()` functions, 
+* Set the display brightness using a LUT that maps a brightness level to an absolute value that is passed to `FastLED`.
     * the brightness LUT contains a max of 9 levels.
     * as it is a table, brightness can follow a curve.
 * Add the ability when in Peripheral Mode to change the Tally Display Mode to either Camera Operator or Talent.
@@ -27,7 +28,7 @@ Intended for developers and others interested in the nitty gritty.
     * except that the "`5`" for the `STACIMU5.h` file means it is for the IMU type used in the ATOM MATRIX.
 * Move `updateBrightness()` to `STACOpModes.h`
 * Modify layout of the serial data dumps.
-* Code changes throughout to make the code more modular and to convert a number of routines to be functions rather than in-line includes.
+* Code changes throughout to make the code more modular and to convert a number of routines to be functions rather than in-line `#includes`.
 * Address a number of housekeeping items.
 
 ### Version 2.0

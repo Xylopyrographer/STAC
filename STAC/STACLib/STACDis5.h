@@ -11,6 +11,23 @@ void disSetBright( uint8_t brightness ) {
     return;
 }
 
+void disDrawPix( uint8_t dot, CRGB color, bool show = true ) {
+    if ( dot >= MATRIX_LEDS ) {
+        return;
+    }
+    leds[ dot ] = color;
+    if ( show ) {
+        FastLED.show();
+    }
+    return;
+}
+
+void disDrawPix( int dot, CRGB color, bool show = true ) {
+    // overloaded version of disDrawPix that casts int arguments.
+    disDrawPix( (uint8_t)dot, color, show );
+    return;
+}
+
 void disDrawPixXY( uint8_t xpos, uint8_t ypos, CRGB color, bool show = true ) {
     if ( ( xpos >= 5 ) || ( ypos >= 5 ) ) {
         return;
@@ -29,32 +46,6 @@ void disDrawPixXY( int xpos, int ypos, CRGB color, bool show = true ) {
     return;
 }
 
-void disDrawPix( uint8_t dot, CRGB color, bool show = true ) {
-    if ( dot >= MATRIX_LEDS ) {
-        return;
-    }
-    leds[ dot ] = color;
-    if ( show ) {
-        FastLED.show();
-    }
-    return;
-}
-
-void disDrawPix( int dot, CRGB color, bool show = true ) {
-    // overloaded version of disDrawPix that casts int arguments.
-    disDrawPix( (uint8_t)dot, color, show );
-    return;
-}
-
-void disClear( bool show = true ) {
-
-    FastLED.clear();
-    if ( show ) {
-        FastLED.show();
-    }
-    return;
-}
-
 void disFillPix( CRGB color, bool show = true ) {
 
     for ( int8_t i = 0; i < MATRIX_LEDS; i++ ) {
@@ -67,14 +58,14 @@ void disFillPix( CRGB color, bool show = true ) {
 }
 
 void drawGlyph( uint8_t glyph[], const CRGB colors[], bool show = true ) {
-/*  Draws a bit mapped image onto the Atom display.
+/*  Draws a two colour bit mapped image onto the Atom display.
       - glyph[] is the bitmap array of the glyph to draw.
       - in the pair of colors[]; a "0" at glyph[i] will draw color[0]; a "1", color[1]
       - or if you like, "0" and "1" in glyph[i] are the background/foreground color selectors at that pixel location.
 */
 
     for ( uint8_t i = 0; i < MATRIX_LEDS; i++ ) {
-        disDrawPix( i, colors[ glyph[ i ] ] );
+        leds[ i ] = colors[ glyph[ i ] ];
     }
     if ( show ) {
         FastLED.show();
@@ -104,13 +95,22 @@ void drawOverlay( uint8_t glyph[], CRGB ovColor, bool show = true ) {
       - ovColor is a CGRB type
 */
     for (int i = 0; i < MATRIX_LEDS; i++) {
-        if (glyph[ i ] == 1) disDrawPix( i, ovColor );
+        if (glyph[ i ] == 1) disDrawPix( i, ovColor, 0 );
     }
     if ( show ) {
         FastLED.show();
     }
     return;  
 }   // end drawOverlay()
+
+void disClear( bool show = true ) {
+
+    FastLED.clear();
+    if ( show ) {
+        FastLED.show();
+    }
+    return;
+}
 
 void flashDisplay( uint8_t count, uint16_t rate, uint8_t brightness ) {
 /*  Flashes the display brightness between 0 and the brightness value passed.

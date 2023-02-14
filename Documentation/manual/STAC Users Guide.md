@@ -117,7 +117,7 @@ We're going to call this the normal operating state of the STAC.
 **Note:**
 
 * if the STAC Tally Display Mode is set to Talent, only the Program and Preview states will be shown.
-* if you're seeing the four corners blinking green off and on, the STAC Autostart mode is active. We'll cover that [below](#autostart).
+* if you're seeing the four corners blinking green off and on, the STAC Autostart mode is active. We'll cover that [below](#setting-the-startup-mode).
 
 So that's the general flow of things. Now let's get to the nitty gritty...
 <br><br>
@@ -315,7 +315,7 @@ When started or reset in autostart mode, the STAC responds to button presses jus
 
 A press or click of the button cancels autostart and you'll then have to click through the operating parameters to start the WiFi connect and tally channel monitoring. However autostart mode is still active on the next startup or reset.
 
-The sequence of steps to change the Startup Mode is the same as for setting the tally channel so this section is short. Check out [Setting the Tally Channel](#setting-the-tally-chanel) above for the long-winded version.
+The sequence of steps to change the Startup Mode is the same as for setting the tally channel so this section is short. Check out [Setting the Tally Channel](#setting-the-tally-channel) above for the long-winded version.
 
 The Startup Mode is displayed as a teal letter on a black background. An **S** means the STAC is in **Standard Startup Mode**. An **A** is shown for **Autostart Mode**.  
 
@@ -339,7 +339,7 @@ The STAC also remembers the last set Startup Mode across power cycles. It's a wo
  <a name="setting-the-brightness-level"></a>
 ### Setting the Brightness Level
 
-To accommodate a range of ambient light levels when using the STAC, the brightness of the display can be changed. As with changing the active tally channel, the method is the same so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-chanel) above for the extended directors cut.
+To accommodate a range of ambient light levels when using the STAC, the brightness of the display can be changed. As with changing the active tally channel, the method is the same so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-channel) above for the extended directors cut.
 
 The current brightness level is shown as a white number on a spectacular field of red and green dots. Yes, it looks like Christmas. There are six brightness levels, increasing from **1** (lowest) to **6** (brightest). Bet you didn't see that coming. Anyway, as levels are selected, the display brightness changes to match.
 
@@ -454,7 +454,7 @@ The display Brightness Level select feature is here too.
 Setting brightness and tally display mode are a bit different when in Peripheral Mode. But not so much that it's a biggie. Either can be set any time after the green Peripheral Mode confirmation checkmark is shown.
 
 ### Setting the Brightness Level
-1. Press and hold the button. In about two seconds, the STAC moves to its Brightness Level select state with the current brightness level displayed just as described[above](#setting-the-brightness-level).
+1. Press and hold the button. In about two seconds, the STAC moves to its Brightness Level select state with the current brightness level displayed just as described [above](#setting-the-brightness-level).
 1. Release the button.
 1. Now you can click the button to pick the new level.
 1. Press and hold the button and the new level is confirmed by showing the green confirmation checkmark. Release the button and the STAC returns to monitor the tally status. 
@@ -476,7 +476,7 @@ See the bits above on setting the [Brightness Level](#setting-the-brightness-lev
 To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 1. Remove power from the Peripheral Mode STAC.
-1. Remove the GROVE cable connecting the STACs. ⚠️ **Do not** use the GROVE cable to power up two STAC's that are in their normal operating state.
+1. Remove the GROVE cable connecting the STACs.<br>⚠️ **Do not** use the GROVE cable to power up two STAC's that are in their normal operating state.
 1. Remove the jumper wire from the rear of the STAC.
 1. Power up the STAC via its USB port.
 
@@ -485,13 +485,13 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
     
 1. It is not required to set up the STAC before Peripheral Mode can be used.
 1. If the STAC is running software version 2.1 or greater, the Tally Display Mode of the STAC can be set to either Camera Operator or Talent. Talent mode is the default. With software versions from 1.10 to 2.0, only Talent mode is available.
-1. Peripheral Mode retains its own display brightness level and tally display mode settings independent of those for its normal operating state. The values are retained until changed (when in Peripheral Mode) or when a Factory Reset is performed&mdash;in which case the Peripheral Mode display brightness will be set to **1** and the tally display mode to Talent by default.
+1. Peripheral Mode retains its own display brightness level and tally display mode settings independent of those for its normal operating state. The values are retained until changed (when in Peripheral Mode) or when a Factory Reset is performed&mdash;in which case the Peripheral Mode display brightness will be set to **1** and the tally display mode to Talent.
 1. The orientation feature works in Peripheral Mode so the display will always be shown the right way up. Pop back up to [that section](#setting-the-display-orientation) to review.
 1. It is recommended to place a piece of electrical tape over the jumper wire to secure it in place. Take care not to cover the ventilation holes on the side.
 1. The cable needed to connect the two STACs is known as a GROVE cable, as popularized by [seeed Studio](https://wiki.seeedstudio.com/Grove_System/). More specifically, the cable is a female-female 4-pin HY series 2.0mm pitch.
     - Searching for a 4-pin GROVE cable should turn up a few sources.
     - Alternately, if searching for an HY-2.0 4-pin cable, make sure to purchase one with "standard" pinout where pin 1 is connected to pin 1, 2 to 2, 3 to 3 and 4 to 4. <br>**Some companies offer a "reversed" cable (pin 1 to pin 4, 2 to 3, 3 to 2, 4 to 1) which will irreparably damage the STAC if used**. So, like, don't use it. 
-    - Either "buckled" or "unbuckled" connectors on the cable work. Buckled connectors have a latch that will secure the cable connectors to the STACs.
+    - Either "buckled" or "unbuckled" connectors on the cable work. Buckled connectors have a latch that will lock the cable connectors to the STACs.
 
 <a name="factory-reset"></a>
 ## Factory Reset
@@ -640,7 +640,7 @@ By the bye, when in Peripheral Mode, all errors are shown the same. Scroll back 
     - Check that the STAC is within range of the access point. Move it nearer to the access point and see if it can connect.
     * Has the SSID or Password of the network been changed? Check with someone that might know. If so, whew&mdash;problem solved. Just pop up to the section on [Redoing the Setup](#redoing-the-setup). Check and re-enter the new SSID and Password information, submit that and the other info required and you'll be great.
 * *If the STAC has never connected to this network:*  
-    - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the Setup form. Hey, it happens. We're all human. Just pop up to the section on [[Redoing the Setup](#redoing-the-setup). Check and re-enter the SSID and Password, submit that and the other info required and you'll be great.
+    - It is probably misconfigured. Likely means one or both of the WiFi SSID or Password was entered incorrectly on the Setup form. Hey, it happens. We're all human. Just pop up to the section on [Redoing the Setup](#redoing-the-setup). Check and re-enter the SSID and Password, submit that and the other info required and you'll be great.
 </div>
 
  <a name="tally-status-not-changing"></a>
@@ -769,7 +769,7 @@ This is only seen when the Tally Display Mode is set to Camera Operator.</div>
 **What to try:**  
 <div style="margin-left: 2em;">
 
-Probably not a lot on this one. The STAC and the switch should get things sorted the next time they talk. If not, it's possible there are network congestion issues like mentioned in the [Big Purple X?](BPX) problem above.
+Probably not a lot on this one. The STAC and the switch should get things sorted the next time they talk. If not, it's possible there are network congestion issues like mentioned in the [Big Purple X?](a-big-purple-x) problem above.
 
 If the STAC is being used in an emulated environment as in [Special Configurations](#special-configurations) it's possible the emulated device is not responding in a way the STAC is expecting. If you think this is the case, take a look at the *STAC Communications.md* document in the repository.
 </div><br>
@@ -867,7 +867,10 @@ No warranties are given. The license may not give you all of the permissions nec
 <br>
 **2023-02-03**<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.1.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;- The usual grammatical and spelling touch-ups.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *First Time Setup section*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Peripheral Mode section*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Add *Updating the Software section*<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Usual grammatical and spelling touch-ups.<br>
 **2022-08-09**<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.0.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add note about IP addressing under *First Time Configuration*.<br>

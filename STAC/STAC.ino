@@ -42,7 +42,7 @@
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (260ee7)";      // version and (build number) of this software. Shows up on the web  
+String swVer = "2.1 (bd380e)";      // version and (build number) of this software. Shows up on the web
                                     //   config page, serial monitor startup data dump & is stored in NVS
 String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS
@@ -69,7 +69,7 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 #define GUI_PAUSE_TIME        1500UL    // # of ms to pause for the user to see the display
 #define NEXT_STATE_TIME        750UL    // btn down for this # of ms on reset = move to next reset mode
 #define OP_MODE_TIMEOUT      30000UL    // # of ms to wait before timing out on an op mode change
-#define PM_POLL_INT            100UL    // # of ms between checking for tally change when operating in peripheral mode
+#define PM_POLL_INT              0UL    // # of ms between checking for tally change when operating in peripheral mode
 #define SELECT_TIME           1500UL    // if button down for this # of ms, change the parameter value (operating modes & brightness)
 #define WIFI_CONNECT_TIMEOUT 60000UL    // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 
