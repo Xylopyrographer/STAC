@@ -5,7 +5,7 @@
 #define TOTAL_GLYPHS 32         // number of glyphs in the baseGlyphMap array below
 
 // This is the base set of Glyphs before rotation
-const uint8_t baseGlyphMap[TOTAL_GLYPHS][25] = {
+const uint8_t baseGlyphMap[ TOTAL_GLYPHS ][ MATRIX_LEDS ] = {
     {0,0,1,0,0,0,1,0,1,0,0,1,0,1,0,0,1,0,1,0,0,0,1,0,0},    // 0
     {0,0,1,0,0,0,1,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,1,1,0},    // 1
     {0,1,1,0,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1,1,1,0},    // 2
@@ -37,11 +37,11 @@ const uint8_t baseGlyphMap[TOTAL_GLYPHS][25] = {
     {0,0,1,0,0,0,1,0,1,0,0,1,1,1,0,0,1,0,1,0,0,1,0,1,0},    // A
     {0,0,1,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1,0,0},    // S
     {0,1,1,0,0,0,1,0,1,0,0,1,1,0,0,0,1,0,0,0,0,1,0,0,0},    // P
-    {1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0},    // firmware update icon
+    {1,0,0,0,1,0,1,0,1,0,0,0,1,0,0,0,1,1,1,0,0,1,1,1,0}     // firmware update icon
 };
 
 // glyphMap is the baseGlyphMap rotated according to the vertical orientation of the STAC
-uint8_t glyphMap[ TOTAL_GLYPHS ][ 25 ] = { 0 };
+uint8_t glyphMap[ TOTAL_GLYPHS ][ MATRIX_LEDS ] = { 0 };
 
 /* ----- mnemonic define table for the glyphMap[] ----- */
 /* *  Need to keep the numbers 0 to 9 at the start of the array and in the order below as latter 
@@ -116,3 +116,5 @@ const CRGB tallychangecolor[]    = { GRB_COLOR_DKBLUE, GRB_COLOR_ORANGE };     /
 const CRGB tallymodecolor[]      = { GRB_COLOR_DKPRPLE, GRB_COLOR_ORANGE };    // colors when changing the tally mode
 const CRGB startchangecolor[]    = { GRB_COLOR_DKTEAL, GRB_COLOR_ORANGE };     // colors when changing the startup mode
 const CRGB perifmodecolor[]      = { GRB_COLOR_ORANGE, GRB_COLOR_GREEN };      // colors when starting in Peripheral Mode
+
+//  end glyph and colour definitions
