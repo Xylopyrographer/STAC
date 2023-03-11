@@ -5,6 +5,27 @@
 #define GROVE_NO_SEL digitalWrite( TS_1, LOW ); digitalWrite( TS_0, HIGH )
 #define GROVE_UNKNOWN digitalWrite( TS_1, LOW ); digitalWrite( TS_0, LOW )
 
+String genSTACid() {
+/*  Generates and returns the STAC ID 
+ *  based on the ESP-32 chip MAC.
+ *  Requires: 
+ *      #include <Esp.h>
+ *      ID_PREFIX must be #defined outside this function
+*/
+
+    String idSuffix = "-";
+    char bufr[ 3 ] = { };                   // buffer for a formatted MAC id byte
+    uint8_t stacMAC[ 6 ] = { };             // array for the chip MAC address
+
+    esp_efuse_mac_get_default( stacMAC );   // high byte of the MAC is at array index 0.
+    for ( uint8_t i = 5; i >= 2; i-- ) {
+        snprintf( bufr, 3, "%02X", stacMAC[ i ] );
+        idSuffix.concat( bufr );
+    }
+    return ID_PREFIX + idSuffix;
+
+}   // end genSTACid()
+
 provData_t getCreds() {
 /*  Big honkin' routine that retrevies the configuration/provisiong data for the STAC 
  *      - sets the STAC as a WiFi access point using a device unique SSID
@@ -17,7 +38,7 @@ provData_t getCreds() {
  *      - and then goes for a beer.
  *
  *  The IP and password for the access point are set in this function.
- */
+*/
 
     WebServer suServer( 80 );                       // need a server to interact with the user's web browser
     
@@ -63,7 +84,7 @@ provData_t getCreds() {
     suServer.on( "/parse", HTTP_POST, 
     [&]() {
         suServer.send( 200, "text/html", suReceived );
-        stCred.pSSID = suServer.arg( "SSID" );                                  // get form argument values by name
+        stCred.pSSID = suServer.arg( "SSID" );              // get form argument values by name
         stCred.pPass = suServer.arg( "pwd" );
         stCred.pSwitchIP = suServer.arg( "stIP" );
         stCred.pPort = (uint16_t)suServer.arg( "stPort" ).toInt();
@@ -85,8 +106,9 @@ provData_t getCreds() {
     // end register the server endpoint handlers
 
     suServer.begin();                   // lets start the setup Web server!
+    suServer.enableDelay( false );      // disable the 1 ms delay in WebServer.cpp
 
-    while( !gotForm ) {                 // listen for HTTP requests from a client browser
+    while ( !gotForm ) {                // listen for HTTP requests from a client browser
         suServer.handleClient();        // until we get the form back
         yield();
     }
@@ -95,9 +117,8 @@ provData_t getCreds() {
 }   // end getCreds()
 
 void udSerialStat( bool udOK, String udFileName, size_t udSize, String udStatus ) {
-/* 
- * Called by the firmware update lambda function to send 
- * results of the firmware update to the Serial port.
+/* called by the firmware update lambda function to send 
+ *  results of the firmware update to the Serial port.
 */
     if ( udOK ) {   
             Serial.println( "******* Firmware update done *******" );
@@ -179,7 +200,7 @@ void STACconfig( bool &provisioned, bool &goodPrefs ) {
 }   // end STACconfig()
 
 void STACreset() {
-/* Wipes the STAC NVS */
+/* clears the STAC NVS namespaces */
 
     // add to the serial port info dump
     Serial.println(     "  ***** Performing factory reset *****" );
@@ -187,17 +208,17 @@ void STACreset() {
     Serial.flush();
     // end add to the serial port info dump
     
-    stcPrefs.begin("STCPrefs", PREFS_RW);       // open the normal operating mode prefs in R/W mode...
+    stcPrefs.begin( "STCPrefs", PREFS_RW );     // open the normal operating mode prefs in R/W mode...
     stcPrefs.clear();                           //  wipe the namespace...
     stcPrefs.end();                             //  close the preferences
-    stcPrefs.begin("PModePrefs", PREFS_RW);     // open the peripheral mode prefs in R/W mode...
+    stcPrefs.begin( "PModePrefs", PREFS_RW );   // open the peripheral mode prefs in R/W mode...
     stcPrefs.clear();                           //  wipe the namespace...
     stcPrefs.end();                             //  close the preferences
 
     delay( GUI_PAUSE_TIME );
     flashDisplay( 1, 500, brightMap[ 1 ] );
     while ( true ) {
-        yield;
+        yield();        // park the bus
     }    
 
     return;     // we'll never get here, but keeps the compiler happy
@@ -242,8 +263,8 @@ void STACupdate() {
     while ( WiFi.getMode() != WIFI_MODE_AP ) delay( 10 );       // ensure we're configured in AP mode.
     
     WiFi.softAP( stacID.c_str(), udpwd, udwifiChan, udhideSSID, udmaxConnect ); // set all the WiFi stuff for the AP and turn it on
-    WiFi.softAPsetHostname( udstachost );                                       // set the STAC mDNS AP mode hostname
-    WiFi.softAPConfig( udIP, udIP, udNMask );                       // set all the networking stuff for the AP
+    WiFi.softAPsetHostname( udstachost );                       // set the STAC mDNS AP mode hostname
+    WiFi.softAPConfig( udIP, udIP, udNMask );                   // set all the networking stuff for the AP
 
     MDNS.begin( udstachost );                       // fire up the mDNS responder
 
@@ -306,8 +327,9 @@ void STACupdate() {
     // end register the server endpoint handlers
 
     STACserver.begin();                 // lets start the OTA Web server!
+    STACserver.enableDelay( false );    // disable the 1 ms delay in WebServer.cpp
     
-    while( true ) {
+    while ( true ) {
         STACserver.handleClient();      // listen for HTTP requests from a client browser
         yield();
     }
@@ -317,10 +339,10 @@ void STACupdate() {
 }   // end updateSTAC()
 
 void pvStateArm( uint8_t glyph[], const CRGB colors[], unsigned long &armTime, bool show = true ) {
-    /* - function to set up the display and timing for dealing with display
-     *    button presses of varying lengths during power-on or reset
-     * - called from STACProvision.h
-    */
+/* - function to set up the display and timing for dealing with display
+ *   button presses of varying lengths during power-on or reset
+ * - called from STACProvision.h
+*/
     drawGlyph( glyph, colors, show );
     flashDisplay( 4, 500, brightMap[ 1 ] );
     armTime = millis() + NEXT_STATE_TIME;

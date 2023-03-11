@@ -1,6 +1,6 @@
 //  STAC (Smart Tally Atom Client)
 /*
- *  Version: 2.1
+ *  Version: 2.1.1
  *  For the M5Stack ATOM MATRIX device
  *
  *  Authors: Team STAC
@@ -38,26 +38,26 @@
 #include <esp_arduino_version.h>    // to get the arduino-esp32 core version
 #include <Preferences.h>
 #include <Wire.h>                   // for using the I2C peripheral
-#include <FastLED.h>                // for driving the external matrix display
+#include <FastLED.h>                // for driving the ATOM matrix display
 #include <JC_Button.h>              // for driving the "select" button.
 #include <I2C_MPU6886.h>            // for driving the ATOM IMU.
 
-String swVer = "2.1 (bd380e)";      // version and (build number) of this software. Shows up on the web
-                                    //   config page, serial monitor startup data dump & is stored in NVS
-String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID & STA hostname
+String swVer = "2.1.1 (2e7c73)";    // version and (build number) of this software. Shows up on the web
+                                    //  config page, serial monitor startup data dump & is stored in NVS
+#define ID_PREFIX "STAC"            // prefix to use for naming the STAC AP SSID & STA hostname
 #define NOM_PREFS_VERSION 3         // version of the normal operating mode (NOM) Preferences information layout in NVS
-#define PM_PREFS_VERSION 2          // version of the peripheral operating mode Preferences information layout in NVS
+#define PM_PREFS_VERSION  2         // version of the peripheral operating mode Preferences information layout in NVS
 
 // defines for the Atom Matrix hardware
-#define DIS_BUTTON  39      // GPIO pin attached to the display select button - input
+#define DIS_BUTTON  39      // GPIO pin attached to the display button - input
 #define DB_TIME     25      // display button debounce time (ms)
 #define DIS_DATA    27      // GPIO pin connected to the display data line - output
 #define I_SCL       21      // GPIO pin for SCL for IMU - output
 #define I_SDA       25      // GPIO pin for SDA for IMU - I/O
 #define MATRIX_LEDS 25      // # of RGB LED's in the display matrix
 #define PM_CK_CNT    5      // # of times to toggle PM_CK_OUT to test if the Peripheral Mode jumper is installed
-#define PM_CK_IN    33      // ATOM GPIO pin # used for input to check if the Peripheral Mode jumper is installed
 #define PM_CK_OUT   22      // ATOM GPIO pin # used for ouput to check if the Peripheral Mode jumper is installed
+#define PM_CK_IN    33      // ATOM GPIO pin # used for input to check if the Peripheral Mode jumper is installed
 #define PO_PIXEL    12      // the pixel position # of the display to use as the Power On indicator
 #define TS_0        32      // GPIO pin # to send tally status to an attached device - output
 #define TS_1        26      // GPIO pin # to send tally status to an attached device - output
@@ -74,16 +74,16 @@ String idPrefix = "STAC-";          // prefix to use for naming the STAC AP SSID
 #define WIFI_CONNECT_TIMEOUT 60000UL    // # of ms to wait in the "connect to WiFi" routine without a successful connection before returning
 
 // defines for the Smart Tally communications
-#define ERROR_REPOLL_TIME 50UL          // # of ms to wait before re-polling the STS after a poll error
-#define MAX_POLL_ERRORS 8               // # of consecutive STS polling errors before changing the display
+#define ERROR_REPOLL_TIME   50UL        // # of ms to wait before re-polling the STS after a poll error
+#define MAX_POLL_ERRORS        8        // # of consecutive STS polling errors before changing the display
 
 #define PREFS_RO true                   // NVS Preferences namespace is Read Only if true
 #define PREFS_RW false                  // NVS Preferences namespace is Read-Write if false
 
-// Create the objects we need to talk to the LR hardware.
-Button dButt( DIS_BUTTON, DB_TIME, 1, true );    // display Button(pin, dbTime, puEnable, invert) make a button object.
-I2C_MPU6886 imu(I2C_MPU6886_DEFAULT_ADDRESS, Wire1);    // IMU (default address is 0x68, Wire1 is an I2C bus on user defined pins)
-CRGB leds[ MATRIX_LEDS ];               // for FastLED: buffer for the LEDs of the display
+// Create the objects we need to talk to the hardware.
+Button dButt( DIS_BUTTON, DB_TIME, 1, true );           // display Button(pin, dbTime, puEnable, invert) make a button object.
+I2C_MPU6886 imu( I2C_MPU6886_DEFAULT_ADDRESS, Wire );   // IMU (default address is 0x68
+CRGB leds[ MATRIX_LEDS ];                               // for FastLED: buffer for the LEDs of the display
 
 // ***** Global Variables *****
 
@@ -94,8 +94,8 @@ Preferences stcPrefs;           // holds the operational parameters in NVS for r
 String ardesp32Ver = 
     String( ESP_ARDUINO_VERSION_MAJOR ) + "." + 
     String( ESP_ARDUINO_VERSION_MINOR ) + "." +  
-    String( ESP_ARDUINO_VERSION_PATCH );            // arduino-esp32 core version
-String espidfsdk = ESP.getSdkVersion();             // ESP-IDF SDK version
+    String( ESP_ARDUINO_VERSION_PATCH );        // arduino-esp32 core version
+String espidfsdk = ESP.getSdkVersion();         // ESP-IDF SDK version
 
 String stacID;                  // generated in setup(). The unique STAC ID used for the AP SSID & STA hostname
 char networkSSID[33]{};         // ST server WiFi SSID. Configured via the user's browser; max length: 32 char
@@ -106,7 +106,7 @@ uint16_t stPort;                // HTTP port of the Roland Smart Tally server (s
                                 
 //  Display brightness mapping table
 //  - maps the display brightness level to the 
-//    brightness value set when calling FastLED.setBrightness()
+//     brightness value set when calling FastLED.setBrightness()
 //  - first entry must be 0, max size is 10 items, each entry should be greater than the previous
 static const uint8_t brightMap[] =  { 0, 10, 20, 30, 40, 50, 60 };  
 static const uint8_t brightLevels = sizeof( brightMap ) - 1;
@@ -119,17 +119,17 @@ unsigned long stsPollInt;       // # of ms between polling the Smart Tally serve
 unsigned long nextPollTime;     // ms value to when the ST Server is next polled for the tally status.
 
 bool junkReply;                 // true iff we received a reply from the ST server but it was garbage
-uint8_t tNoReplyCount;          // STS "no reply from ST server" error accumulator
 uint8_t tJunkCount;             // STS junk reply error accumulator
+uint8_t tNoReplyCount;          // STS "no reply from ST server" error accumulator
 
 bool Accelerometer = false;     // state to determine if an accelerometer is supported by this hardware.
 
 // Enumeration for orientation postions
 enum class ORIENTATION { UP = 0, DOWN, LEFT, RIGHT, FLAT, UNDEFINED };
 // Accelerometer parameters
-float LOW_TOL = 100.0;
-float HIGH_TOL = 900.0;
-float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0;
+const float LOW_TOL = 100.0;
+const float HIGH_TOL = 900.0;
+const float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0;
 
 // ===== Define data structures used by our various functions =====
 
@@ -149,8 +149,8 @@ struct TState {
     String tState;      // the state of the tally channel being monitored as returned by the querry to the ST Server
 } tallyStatus;
 
-typedef struct WfState WiFiState;       // going to need a function that returns a WfState structure
-typedef struct TState TallyState;       // going to need a function that returns a TState structure
+typedef struct WfState WiFiState;   // going to need a function that returns a WfState structure
+typedef struct TState TallyState;   // going to need a function that returns a TState structure
 
 struct provision {              // structure that holds the provisioning data from the WiFi config routines
     String pSSID;               // SSID of the WiFi network that the Smart Tally device is connected to
@@ -211,13 +211,16 @@ typedef struct provision provData_t;
 // ***** Function Definitions *****
 
 // The include order is significant
-#include "./STACLib/STACGlyph5.h"       // definition of display glyphs and colors for an 5 x 5 display
-#include "./STACLib/STACDis5.h"         // routines for manupulating & drawing on an 5 x 5 display
+#include "./STACLib/STACGlyph5.h"       // definition of display glyphs and colors for a 5x5 display
+#include "./STACLib/STACDis5.h"         // routines for manupulating & drawing on a 5x5 display
 #include "./STACLib/STACUtil.h"         // routines that fire up WiFi AP points for config & updates, a few other utility functions
-#include "./STACLib/STACIMU.h"          // creates the glyphs for an 5 x 5 display using the LR version of the IMU hardware
+#include "./STACLib/STACIMU.h"          // creates the rotated glyphs for a 5x5 display
 #include "./STACLib/STACSTS.h"          // function to retreive status from the Smart Tally Server (STS)
 #include "./STACLib/STACWiFi.h"         // connect to & manage the WiFi in station mode
-#include "./STACLib/STACOpModes.h"      // routines to change the run-time operating parameters at startup 
+#include "./STACLib/STACOpModes.h"      // routines to change the run-time operating parameters at startup
+#include "./STACLib/STACInfoHeader.h"   // info dump bits to send to the serial port
+#include "./STACLib/STACPeripheral.h"   // Peripheral Mode checks and PM operating code
+#include "./STACLib/STACProvision.h"    // startup and provisioning checks
 
 // ***** end Function Definitions *****
 
@@ -230,10 +233,7 @@ void setup() {
     GROVE_UNKNOWN;                      // set the tally state of the GROVE pins
     
     provData_t sConfigData;             // structure to hold the WiFi provisioning data from user's web browser
-    bool provisioned;                   // true if the WiFi provisioning has been done
     String bootVer;                     // the version of software the STAC thinks it has - from NVS storage at boot time
-    uint16_t bootPrefs;                 // the version of the normal operating mode preferences layout the STAC thinks it has - from NVS storage at boot time
-    bool goodPrefs;                     // true if bootPrefs = NOM_PREFS_VERSION
     bool escapeFlag = false;            // used for getting out of the settings loops.
 
     // initialize the WiFi state flags
@@ -252,17 +252,19 @@ void setup() {
     tJunkCount = 0;
 
     dButt.begin();
-    Wire1.begin( I_SDA, I_SCL, 100000L );   // enable the I2C bus (SDA pin, SCL pin, Clock frequency)
-    FastLED.addLeds<WS2812B, DIS_DATA>( leds, MATRIX_LEDS ); // matrix display of "MATRIX_LEDS" on pin "DIS_DATA" using buffer "leds"
+    dButt.read();                                               // initialize the Btn class
+    
+    Wire.begin( I_SDA, I_SCL, 100000L );                        // enable the I2C bus (SDA pin, SCL pin, Clock frequency)
+    
+    FastLED.addLeds<WS2812B, DIS_DATA>( leds, MATRIX_LEDS );    // matrix display of "MATRIX_LEDS" on pin "DIS_DATA" using buffer "leds"
     FastLED.clear();
     
     Serial.begin( 115200 );
     while ( !Serial ) delay( 50 );          // primarily here for the single core USB CDC ESP32 variants
-    dButt.read();                           // initialize the Btn class
 
     disClear( 0 );
     disSetBright( brightMap[ 1 ] );         // set the brightness & refresh the display
-    disDrawPix( PO_PIXEL, PO_COLOR, 1 );       // turn on the power LED
+    disDrawPix( PO_PIXEL, PO_COLOR, 1 );    // turn on the power LED
 
     /* Setting up to figure out the orientation of the STAC
        & then create a copy of the glyph matrix rotated to match. */
@@ -275,23 +277,19 @@ void setup() {
     else {
         stacOrientation = getOrientation();         // Go check the orientation of the STAC    
     }
-    Wire1.flush();                                  // done with the IMU; release all I2C bus resources, power down peripheral
+    Wire.flush();                                   // done with the IMU; release all I2C bus resources, power down peripheral
     rotateGlyphs( stacOrientation ) ;               // create the rotated matrix glyphMap[] in memory
     
-    // create the unique STAC ID
-    uint32_t chiptID = (uint32_t)( ESP.getEfuseMac() >> 16 );   // grab the top four bytes of the chip id and  
-    stacID = idPrefix + String( chiptID, HEX );                 //  use that to create the last part of the unique STAC ID
-    stacID.toUpperCase();                                       // flip any hex alphas to upper case
+    stacID = genSTACid();                           // generate the STAC id
 
-    // THE FOLLOWING THREE HEADER FILES MUST STAY HERE AND IN THIS ORDER
-    //    - relative position to each other and the code above and below is important!
-    #include "./STACLib/STACInfoHeader.h"           // send the serial port info dump header
-    #include "./STACLib/STACPeripheral.h"           // do all the Peripheral Mode checks and run in PM if set
-    #include "./STACLib/STACProvision.h"           // do all the checks for provisioning & initialization for Normal Operating Mode
+    //  relative position of the next three lines is important!
+    sendHeader();       // send the serial port info dump header
+    STACPeripheral();   // do all the Peripheral Mode checks and run in PM if set
+    STACProvision();    // do all the checks for provisioning & initialization for Normal Operating Mode
     
-    drawGlyph( glyphMap[ tallyStatus.tChannel ], bluecolor, 1 ); // do this here as setting the tally channel is the first thing we do in the user setup stuff.
-                                                                 //  - also gives the user some feedback so they can see
-                                                                 //    we've transitioned out of doing all the setup bits
+    drawGlyph( glyphMap[ tallyStatus.tChannel ], bluecolor, 1 );    // do this here as setting the tally channel is the first thing we do in the user setup stuff.
+                                                                    //  - also gives the user some feedback so they can see
+                                                                    //     we've transitioned out of doing all the setup bits
     while ( dButt.read() );                                     // wait for button to be released
 
     bool asBypass = false;                                      // get set up for the auto start detect and control stuff
@@ -319,7 +317,7 @@ void setup() {
      * If the button is long pressed, call changeTallyChannel() and return to the start of
      *  "Setting up to display the current tally channel"
     */
-    if ( !asBypass ) {                // skip everything here if autostart kicked in
+    if ( !asBypass ) {                  // skip everything here if autostart kicked in
         escapeFlag = false;
         do  {
             dButt.read();
@@ -354,7 +352,7 @@ void setup() {
                 }
             if ( dButt.pressedFor( SELECT_TIME ) ) {
                 changeTallyMode();
-                if (ctMode) drawGlyph( GLF_C, purplecolor, 1 );      // display the (new) current tally mode...
+                if (ctMode) drawGlyph( GLF_C, purplecolor, 1 );     // display the (new) current tally mode...
                 else drawGlyph( GLF_T, purplecolor, 1 );
             }
         } while ( !escapeFlag );
@@ -405,9 +403,8 @@ void setup() {
             }
             if ( dButt.pressedFor( SELECT_TIME ) ) {               
                 currentBrightness = updateBrightness( stcPrefs, "STCPrefs", "curBright", currentBrightness );          
-                //disFillPix( GRB_COLOR_ORANGE, 0 );
-                drawGlyph( GLF_CBD, brightnessset, 0 );                               // draw the checkerboard test pattern...
-                drawOverlay( GLF_EN, GRB_COLOR_BLACK, 0 );                            // blank out the inside three columns...       
+                drawGlyph( GLF_CBD, brightnessset, 0 );                             // draw the checkerboard test pattern...
+                drawOverlay( GLF_EN, GRB_COLOR_BLACK, 0 );                          // blank out the inside three columns...       
                 drawOverlay( glyphMap[ currentBrightness ], GRB_COLOR_WHITE, 1 );   // overlay the (new) brightness level number
            }
         } while ( !escapeFlag );
@@ -416,20 +413,20 @@ void setup() {
 
     disClear();
     disDrawPix( PO_PIXEL, GRB_COLOR_GREEN, 1 );
-    delay ( GUI_PAUSE_TIME );           // chill for a second for the sake of the "GUI"
- 
-    nextPollTime = millis();            // set the initial value for the ST Server poll timer to now
+    delay ( GUI_PAUSE_TIME );                       // chill for a second for the sake of the "GUI"
 
-}   // closing brace for setup()
+    nextPollTime = millis();                        // set the initial value for the ST Server poll timer to now
+
+}   // end setup()
 
 void loop() {
 
     /* ~~~~~ Update Brightness contol logic ~~~~~ */
     
-    dButt.read();       // put this at the top of loop() instead of the bottom so it always gets hit
+    dButt.read();                               // put this at the top of loop() instead of the bottom so it always gets hit
     if ( dButt.pressedFor( SELECT_TIME ) ) {    // user wants to change the display brightness
         GROVE_UNKNOWN;                          // output the tally state to the GROVE pins
-        currentBrightness = updateBrightness(stcPrefs, "STCPrefs", "curBright", currentBrightness);
+        currentBrightness = updateBrightness( stcPrefs, "STCPrefs", "curBright", currentBrightness );
         if ( !ctMode ) {                        // if in talent mode
             disFillPix( PVW, 0 );               //   set the display to PVW
         }
@@ -444,10 +441,12 @@ void loop() {
         tallyStatus.tConnect = false;
         tallyStatus.tTimeout = true;
         tallyStatus.tNoReply = true;
+
         // reset the STS error accumulators
         tNoReplyCount = 0;
         tJunkCount = 0;
         nextPollTime = millis();                // force a repoll of the tally state
+ 
     }   // end update Brightness contol logic
 
     /* ~~~~~ Connect to WiFi control logic ~~~~~ */
@@ -464,8 +463,7 @@ void loop() {
             log_e( "WiFi connection lost :(" );
 
             if (!ctMode) {                          // if in talent mode...
-                disFillPix( PVW, 0 );                   // set the display to PVW
-                //drawOverlay( GLF_MID, PO_COLOR, 1 );    // overlay the power LEDs
+                disFillPix( PVW, 0 );               // set the display to PVW
                 disDrawPix( PO_PIXEL, PO_COLOR, 1);
                 leaveDisplayGreen = true;           //  let the downstream code know to not futz with the display 
             }
@@ -490,9 +488,9 @@ void loop() {
             tJunkCount = 0;
         }
 
-        if ( !leaveDisplayGreen ) drawGlyph( GLF_WIFI, warningcolor, 1 ); // draw the "attempting to connect to WiFi" thing on the display
+        if ( !leaveDisplayGreen ) drawGlyph( GLF_WIFI, warningcolor, 1 );   // draw the "attempting to connect to WiFi" thing on the display
         while (!wifiStatus.wfconnect) {
-            wifiStatus = connectToWifi(wifiStatus);             // connect to the configured WiFi network
+            wifiStatus = connectToWifi(wifiStatus);                         // connect to the configured WiFi network
             if (wifiStatus.timeout) {
                 log_e( "WiFi connect attempt timed out." );
             }
@@ -521,7 +519,7 @@ void loop() {
 
     /* ~~~~~ Update Tally Display control logic ~~~~~ */
 
-    if ( millis() >= nextPollTime ) {           // we just did a WiFi check so no need to repeat that here
+    if ( millis() >= nextPollTime ) {
         nextPollTime = millis() + stsPollInt;
 
         tallyStatus = getTallyState(tallyStatus);
@@ -534,7 +532,7 @@ void loop() {
         
             if ( tallyStatus.tState != lastTallyState ) {
                 if ( tallyStatus.tState == "onair" ) {
-                    GROVE_PGM;                                      //output the tally state to the GROVE pins
+                    GROVE_PGM;                                      // output the tally state to the GROVE pins
                     disFillPix( PGM, 0 );                           // change the display to the PGM colour;
                 }
                 else if ( tallyStatus.tState == "selected" ) {
@@ -542,17 +540,17 @@ void loop() {
                     disFillPix( PVW, 0 );                           // change the display to the PVW colour
                 }
                 else if ( tallyStatus.tState == "unselected" ) {
-                    GROVE_NO_SEL;                                   //output the tally state to the GROVE pins
+                    GROVE_NO_SEL;                                   // output the tally state to the GROVE pins
                     if ( ctMode ) {                                 // if in camera operator mode
                         drawGlyph( GLF_DF, unselectedcolor, 0 );    //  change the display to the unselected glyph and colour
                     }
                     else {
-                        disFillPix( PVW, 0 );                           // else change the display to the PVW colour
+                        disFillPix( PVW, 0 );                       // else change the display to the PVW colour
                     }                  
                 }
                 else {
                     // catchall code block only executed if we get a junk reply from the STS
-                    nextPollTime = millis() + ERROR_REPOLL_TIME;     // set the "re-poll on error" time
+                    nextPollTime = millis() + ERROR_REPOLL_TIME;    // set the "re-poll on error" time
                     junkReply = true;                               // we got a reply from the ST server, but it's garbage
                     tJunkCount++;                                   // increment the error accumulator
                     lastTallyState = "JUNK";

@@ -1,20 +1,35 @@
 # STAC Release Notes
+## v2.1.1
+
+__Bug Fix__
+
+* _STAC ID_
+ 
+  * If the ESP-32 chip MAC address has trailing zeros, the STAC ID would be truncated. Fixed.
+
+__New__
+
+* Added *"Using CoolTerm for STAC Information.md"* in the *Documentation* folder. CoolTerm is a great little app for viewing the info sent out by the STAC during startup. Check it out!
+
+* The *"README.md"* file contains information on how to install the STAC software to an ATOM directly without the need to install a development environment. Zero programming knowledge needed!. Plug, play and go!
+ 
+
 ## v2.1
 
 __New Features__
 
 * _OTA Software Updates_
  
-  * After installing this version, it will be possible to update the STAC software over WiFi using a web browser. This is referred to as an *over the air* or OTA update. Details are in the the *STAC Users Guide*.
+  * After installing this version, it will be possible to update the STAC software over WiFi using a web browser. This is referred to as an *over the air* or OTA update. Details are in the the *"STAC Users Guide"*.
   * As a result of this change, the STAC will need to be setup again after installing this version.
 
 * _mDNS Support_
 
-  * The mDNS protocol is now supported when the STAC opens up a WiFi hotspot for setup or a software update by pointing a browser to `setup.local` and `update.local` respectively. More information in the *STAC Users Guide*.
+  * The mDNS protocol is now supported when the STAC opens up a WiFi hotspot for setup or a software update by pointing a browser to `setup.local` and `update.local` respectively. More information in the *"STAC Users Guide"*.
 
 * _Camera Operator Tally Display in Peripheral Mode_
 
-  * The Tally Display Mode when the STAC is in Peripheral Mode can now be set to either Camera Operator or Talent. More info in, you guessed it, the *STAC Users Guide*.
+  * The Tally Display Mode when the STAC is in Peripheral Mode can now be set to either Camera Operator or Talent. More info in, you guessed it, the *"STAC Users Guide"*.
 
 
 __Improvements__
@@ -35,7 +50,7 @@ __New Features__
 * _Configurable Polling Interval_
   
   * The amount of time, in milliseconds, between polls of the Smart Tally Server can now be set when configuring the STAC.
-  * As a result, if an older version of STAC is running, the STAC will need to be reconfigured using a web browser after installing this update. Refer to the *STAC Users Guide*.
+  * As a result, if an older version of STAC is running, the STAC will need to be reconfigured using a web browser after installing this update. Refer to the *"STAC Users Guide"*.
 
 __Improvements__
 
@@ -45,7 +60,7 @@ __Improvements__
 
   *  When operating in busy networks, the "Big Purple X" won't flicker, only activating when there is a number of consecutive communication errors with the Smart Tally Server.
 
-  * Added a "Big Orange X" display error when the STAC cannot connect to the Smart Tally Server. Helps with troubleshooting to distinguish between "Big Purple X" and "Purple Question Mark" type errors. More info in the *STAC Users Guide*.
+  * Added a "Big Orange X" display error when the STAC cannot connect to the Smart Tally Server. Helps with troubleshooting to distinguish between "Big Purple X" and "Purple Question Mark" type errors. More info in the *"STAC Users Guide"*.
 
   * Revised the format of the information dump sent to the serial port on startup.
   
@@ -67,7 +82,7 @@ __Improvements__
 __New Features__
 
 * _Adds Peripheral Mode_
-    * Allows one STAC to be connected to another via their GROVE ports. The STAC configured in Peripheral Mode operates as if in Talent Mode but it receives its tally information from the connected STAC without the need to establish a WiFi connection to the Roland device. More in the *STAC User's Guide* and the *Peripheral Mode Application Note*.
+    * Allows one STAC to be connected to another via their GROVE ports. The STAC configured in Peripheral Mode operates as if in Talent Mode but it receives its tally information from the connected STAC without the need to establish a WiFi connection to the Roland device. More in the *"STAC User's Guide"* and the *"Peripheral Mode Application Note"*.
 
 * _Adds Configuration Check_
     * Previously, the configuration of the STAC would be reset with each software update. After updating to version 1.10 you will have to reconfigure the STAC but from then on new software updates will do a check to see if the existing configuration is compatible with that version. If so, the existing configuration information will be retained. Too cool 🤯.

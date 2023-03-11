@@ -1,5 +1,4 @@
 /*~~~~ Display drawing routines ~~~~*/
-// back porting the STAC-LR stuff to ATOM Matrix
 // These routines are for an 5x5 matrix arranged in row by row order
 // Requires the FastLED library
 
@@ -155,5 +154,3 @@ void pulsePix( bool state, CRGB colour ) {
 
 /*~~~~ End Display drawing routines ~~~~*/
 
-
-//  ---- EOF ----

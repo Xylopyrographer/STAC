@@ -1,6 +1,6 @@
 WiFiState connectToWifi( WfState wifistate ) {
-/*  This is the "Connect to WiFi" function
-*/
+//  This is the "Connect to WiFi" function
+
     unsigned long wfTimeout;
     wifistate.wfconnect = false;
     wifistate.timeout = true;
@@ -16,7 +16,7 @@ WiFiState connectToWifi( WfState wifistate ) {
     WiFi.begin( networkSSID, networkPass );
     
     while ( ( wfStatus != WL_CONNECTED ) && ( wfTimeout >= millis() ) ) {
-        delay(250);                             // take a pause as it takes some time for the WiFi routines to do their thing in the backgroud
+        delay( 250 );                             // take a pause as it takes some time for the WiFi routines to do their thing in the backgroud
         wfStatus = WiFi.status();
     }
     
@@ -29,4 +29,4 @@ WiFiState connectToWifi( WfState wifistate ) {
     }
     return wifistate;
     
-}    // end connectToWifi()
+}   // end connectToWifi()

@@ -3,6 +3,16 @@
 
 Intended for developers and others interested in the nitty gritty.
 
+### Version 2.1.1
+
+* Bug fix - STAC ID.
+    * A unique STAC ID using the last 4 bytes of the ESP-32 chip MAC address, in byte reverse order, is used as the ID suffix. For a chip MAC ending in `4D:3C:2B:1A` the STAC ID would be `STAC-1A2B3C4D` with there always being eight characters after the `-`.  However, with the method used, all trailing zeros of the MAC are removed, resulting in ID's with less than eight characters. Not the desired outcome. (Trailing zero's become leading zero's which are ignored by the String HEX formatting function.)
+
+    * Solution: Use a different method to retrieve the chip MAC and then format it using `snprintf()`. Add new function to generate the STAC ID to `/STACLib/STACUtil.h`
+
+* Internal improvements
+    * Code changes throughout to convert all in-line `#include` files to functions, with appropriate function calls replacing them.
+
 ### Version 2.1
 
 * Add the ability to do OTA firmware updates via a web browser.
