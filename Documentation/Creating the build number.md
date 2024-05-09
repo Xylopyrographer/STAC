@@ -6,9 +6,7 @@ When in the throws of development and working with multiple ATOM units, sometime
 
 In the `STAC.ino` file there is this line:
 
-```
-String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software. Shows up on the web config page, serial monitor startup data dump & is stored in NVS
-```
+`const String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software`
 
 The string of six characters between the brackets is the build number. (`1a2b3c` is an example build number.)
 
@@ -30,7 +28,7 @@ Where `<folder>` is the folder that contains only the `STAC.ino` file and the `S
 
 For example:
 
-`hashdir -a md5 ~/Documents/SmartTallyAtomClient/STAC`
+`hashdir -a md5 ~/Documents/STAC`
 
 will produce something like:
 
@@ -40,11 +38,11 @@ In this example, `bd380e` would be the build number for this version of STAC.
 
 **BUT** before you generate the hash, first edit the line:
 
-`    String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software. Shows up on the web config page, serial monitor startup data dump & is stored in NVS`
+`const String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software`
 
 to remove the old build number so that it looks like this:
 
-`    String swVer = "2.0 ()";    // version and (build number) of this software. Shows up on the web config page, serial monitor startup data dump & is stored in NVS`
+`const String swVer =  "2.0 ()";    // version and (build number) of this software`
     
 Then save and close the `STAC.ino` file and any other file that might be open from the `STACLib` folder.
 
@@ -54,21 +52,10 @@ Now create and save the new build number:
 1. Generate the hash of that folder.
 2. Copy the last six characters of the hash from the Terminal window - this is the new build number.
 3. Open the `STAC.ino` file.
-4. Paste the new build number in between the brackets on the line:
-
-```
-      String swVer = "2.0 ()";    // version and (build number) of this software.
-       Shows up on the web config page, serial monitor startup data dump & is
-        stored in NVS
-```
- 
-   so it now looks like:
- 
-```
-       String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software.
-        Shows up on the web config page, serial monitor startup data dump & is
-         stored in NVS
-```
+4. Paste the new build number in between the brackets on the line:<br><br>
+`const String swVer = "2.0 ()";    // version and (build number) of this software`<br><br>so it now looks like:<br><br>
+`const String swVer = "2.0 (1a2b3c)";    // version and (build number) of this software
+`
      
 5. Save the STAC.ino file.
 6. Safe now to upload to the ATOM Matrix.
@@ -78,4 +65,5 @@ Now create and save the new build number:
 By making note of the existing build number in the `STAC.ino` file, deleting the build number and then generating the hash, a quick check can be made if this version of the `STAC.ino` file and its associated `STACLib/*.h` files are the same as a version running on an ATOM. Delete the existing build number from the `STAC.ino` file, generate the hash, look at and compare the last six digits of the hash to the build number reported by the serial data dump from the STAC. If they match, odds are strong you're good.
 
 **Xylopyrographer**<br>
-  2023-02-13
+2024-05-09
+

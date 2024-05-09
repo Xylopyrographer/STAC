@@ -1,4 +1,22 @@
 # STAC Release Notes
+## v2.2.0
+
+__New__
+
+Add support for the funky Roland V-160HD Streaming Video Switch. (Go Team!) But, it does require the V-160HD be running at least version 3 of the System Software.
+
+Any feedback would be appreciated!
+
+Check the new info in the *STAC Users Guide*, especially the section on *First Time Setup*.
+
+__Improvements__
+
+* When doing an OTA firmware update, the serial monitor output has a couple of "How To" info lines.
+
+__Note__
+
+* Updating to this version will require the STAC to be reconfigured. Refer to that section of the *STAC Users Guide* for details.
+
 ## v2.1.1
 
 __Bug Fix__

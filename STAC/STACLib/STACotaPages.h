@@ -1,3 +1,5 @@
+
+// STACotaPages.h
 // HTML page definitions for the OTA firmware update routines
 
 const char udIndex[] = R"=====(<!DOCTYPE HTML>
@@ -114,3 +116,6 @@ const char udNotFound[] = R"=====(<!DOCTYPE html>
 </body>
 </html>
 )=====";
+
+
+//  --- EOF ---

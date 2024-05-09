@@ -1,40 +1,70 @@
-void changeTallyChannel() {
-/*  Allows the user to select the active tally channel. 
- *      - function will return after a period of inactivity, restoring
- *        the active channel to what it was prior to the call
-*/
+
+// STACOpModes.h
+
+void changeTallyChannel( Preferences &prefSpace, const char *nameSpace, const char *keyName, stac_ops_t &_stacOps ) {
+    /*  allows the user to select the active tally channel.
+     *      - any change to the tally channel updates the operating parameter and is saved to NVS
+     *      - function will return after a period of inactivity
+    */
 
     unsigned long updateTimeout;
-    uint8_t tallyChanNow = tallyStatus.tChannel;     // keep the tally channel state we had on entry
+    uint8_t tallyChanNow = _stacOps.tChannel;   // grab the tally channel we had on entry
 
-    drawGlyph( glyphMap[tallyStatus.tChannel], tallychangecolor, 1 );    // display the current tally channel
-   
+    if ( _stacOps.tChannel < 9 ) {
+        drawGlyph( glyphMap[ _stacOps.tChannel ], tallychangecolor, SHOW );     // display the current tally channel
+    }
+    else {
+        drawGlyph( glyphMap[ _stacOps.tChannel - 8 ], tallychangecolorSDI, SHOW );  // display the current tally channel
+    }
+
     while ( dButt.read() );                     // don't proeeed until the button is released.
-    updateTimeout = millis() + OP_MODE_TIMEOUT; // delete this line if you don't want to leave after a period of inactivity
-     
+    updateTimeout = millis() + OP_MODE_TIMEOUT;
+
     do {
-        if ( millis() >= updateTimeout ) {          // remove this 'if' clause if you don't want to leave after a period of inactivity
-            tallyStatus.tChannel = tallyChanNow;    // we timed out, user didn't confirm the change, so restore the tally channel as it was on entry...
-            return;                                 //   and head back to the barn
+        if ( millis() >= updateTimeout ) {          /* we timed out so head back to the barn */
+             _stacOps.tChannel = tallyChanNow;      // but restore the channel number we had on entry first
+            return;
         }
-        dButt.read();                              // read & refresh the state of the button
+        dButt.read();                               // read & refresh the state of the button
         if ( dButt.wasReleased() ) {
-            updateTimeout = millis() + OP_MODE_TIMEOUT; // kick the timeout timer (delete this line if you don't want to leave after a period of inactivity)
-            if ( tallyStatus.tChannel >= tallyStatus.tChanMax ) {
-                tallyStatus.tChannel = 1;           // loop the channel number back to 1 if it would otherwise exceed the max channel #
+            updateTimeout = millis() + OP_MODE_TIMEOUT;
+            if ( _stacOps.tModel == "V-60HD" ) {
+                if ( _stacOps.tChannel >= _stacOps.tChanMax ) {
+                    _stacOps.tChannel = 1;          // loop the channel number back to 1 if it would otherwise exceed the max channel #
+                }
+                else {
+                    _stacOps.tChannel++;
+                }
+                drawGlyph( glyphMap[ _stacOps.tChannel ], tallychangecolor, 1 );
             }
-            else tallyStatus.tChannel++;
-            drawGlyph( glyphMap[ tallyStatus.tChannel ], tallychangecolor, 1 );
+            else {  /* switch model is V-160HD */
+                // advance the tally channel and/or wrap it around if needed
+                if ( _stacOps.tChannel <  9  && _stacOps.tChannel == _stacOps.tChanHDMIMax ) {
+                    _stacOps.tChannel = 9;
+                }
+                else if ( _stacOps.tChannel > 8 && _stacOps.tChannel == _stacOps.tChanSDIMax + 8 ) {
+                    _stacOps.tChannel = 1;
+                }
+                else {
+                    _stacOps.tChannel++;
+                }
+                if ( _stacOps.tChannel < 9 ) {
+                    drawGlyph( glyphMap[ _stacOps.tChannel ], tallychangecolor, 1 );            // display the current V160 HDMI tally channel
+                }
+                else {
+                    drawGlyph( glyphMap[ _stacOps.tChannel - 8 ], tallychangecolorSDI, 1 );     // display the current V160 SDI tally channel
+                }
+            }
         }
-        if ( dButt.pressedFor( SELECT_TIME ) ) {                        // user wants to confirm the change and exit so...
-            drawGlyph( GLF_CK, gtgcolor, 1 );
-            if ( tallyChanNow != tallyStatus.tChannel ) {               // if the active channel changed...
-                stcPrefs.begin( "STCPrefs", PREFS_RW );                 //   open up the pref namespace for R/W
-                stcPrefs.putUChar( "talChan", tallyStatus.tChannel );   //   save the new tally channel in NVS
-                stcPrefs.end();                                         //   close the prefs namespace
-            }    
-            while ( dButt.read() );             // don't proeeed until the button is released.
-            delay( 500 );
+        if ( dButt.pressedFor( SELECT_TIME ) ) {                /* user wants to confirm the change and exit so... */
+            drawGlyph( GLF_CK, gtgcolor, SHOW );                //  confirm to the user
+            if ( tallyChanNow != _stacOps.tChannel ) {          /* if the active channel changed... */
+                prefSpace.begin( nameSpace, PREFS_RW );         //   open up the pref namespace for R/W
+                prefSpace.putUChar( keyName, _stacOps.tChannel );    //   save the new tally channel in NVS
+                prefSpace.end();                                //   close the prefs namespace
+            }
+            while ( dButt.read() );     // don't proeeed until the button is released.
+            delay( GUI_PAUSE_SHORT );   // "GUI" delay
             return;
         }
     } while ( true );
@@ -42,43 +72,44 @@ void changeTallyChannel() {
 
 }   // end changeTallyChannel()
 
-void changeTallyMode() {
-/*  Allows the user to flip the STAC display mode
- *  between "camera operator" and "talent"
- *      - function will return after a period of inactivity, restoring
- *        the operating mode to what it was prior to the call
-*/
-    unsigned long updateTimeout;
-    bool ctModeNow = ctMode;
+void changeTallyMode( Preferences &prefSpace, const char *nameSpace, const char *keyName, stac_ops_t &_stacOps, bool disIsSetup = false ) {
+    /*  allows the user to flip the STAC display mode
+     *   between "camera operator" and "talent"
+     *      - function will return after a period of inactivity
+     *      - any change to the tally mode is saved to NVS
+    */
 
-    if ( ctMode ) drawGlyph( GLF_C, tallymodecolor, 1 );    // display the current tally mode...
-    else drawGlyph( GLF_T, tallymodecolor, 1 );
- 
+    unsigned long updateTimeout;
+    bool ctModeNow = _stacOps.ctMode;
+
+    if ( !disIsSetup ) {        /* peripheral mode needs this check as it sets the display before calling this function  */
+        drawGlyph( ( ctModeNow ? GLF_C : GLF_T ), tallymodecolor, SHOW ); // show the glyph corresponding to the mode
+    }
+
     while ( dButt.read() );                                 // wait until the button is released
-    updateTimeout = millis() + OP_MODE_TIMEOUT;             // initialize the timeout timer 
-     
+    updateTimeout = millis() + OP_MODE_TIMEOUT;             // initialize the timeout timer
+
     do {
         if ( millis() >= updateTimeout ) {
-            ctMode = ctModeNow;                     // we timed out, user didn't confirm the change, restore the ctMode as it was on entry...
-            return;                                 // and head back to the barn
+            return;                                         // we timed out, user didn't confirm the change, head back to the barn
         }
 
         dButt.read();                                       // read & refresh the state of the button
         if ( dButt.wasReleased() ) {
             updateTimeout = millis() + OP_MODE_TIMEOUT;     // kick the timeout timer
-            ctMode = !ctMode;                               // btn clicked so we want to flip the current ctMode...
-            if ( ctMode ) drawGlyph( GLF_C, tallymodecolor, 1 );    //   and display the new operating mode
-            else drawGlyph( GLF_T, tallymodecolor, 1 );
+            ctModeNow = !ctModeNow;                         // btn clicked so we want to flip the current ctMode...
+            drawGlyph( ( ctModeNow ? GLF_C : GLF_T ), tallymodecolor, SHOW ); // show the glyph corresponding to the mode
         }
-        if ( dButt.pressedFor( SELECT_TIME ) ) {             // user wants to confirm the change and exit so...
-            drawGlyph( GLF_CK, gtgcolor, 1 );
-            if ( ctModeNow != ctMode ) {                      // if the tally mode changed...
-                stcPrefs.begin( "STCPrefs", PREFS_RW );     //   open up the pref namespace for R/W
-                stcPrefs.putBool( "ctMde", ctMode );        //   save the new ctMode in NVS
-                stcPrefs.end();                             //   close the prefs namespace
+        if ( dButt.pressedFor( SELECT_TIME ) ) {            // user wants to confirm the change and exit so...
+            drawGlyph( GLF_CK, gtgcolor, SHOW );
+            if ( ctModeNow != _stacOps.ctMode ) {           // if the tally mode changed...
+                _stacOps.ctMode = ctModeNow;
+                prefSpace.begin( nameSpace, PREFS_RW );     //   open up the pref namespace for R/W
+                prefSpace.putBool( keyName, ctModeNow );    //   save the new ctMode in NVS
+                prefSpace.end();                            //   close the prefs namespace
             }
             while ( dButt.read() );                         // don't proeeed until the button is released
-            delay( 500 );
+            delay( GUI_PAUSE_SHORT );
             return;
         }
     } while ( true );
@@ -86,150 +117,108 @@ void changeTallyMode() {
 
 }   // end changeTallyMode()
 
-bool changeTallyMode( Preferences& prefSpace, const char * nameSpace, const char * keyName, bool ctMode, bool disIsSetup = false ) {
-/*  Allows the user to flip the STAC tally mode
- *  between "camera operator" and "talent"
- *      - function will return after a period of inactivity, restoring
- *        the tally mode to what it was prior to the call
- *      - overloaded version of changeTallyMode() used when operating in Peripheral Mode
-*/
-    unsigned long updateTimeout;
-    bool ctModeNow = ctMode;
+void changeStartupMode( Preferences &prefSpace, const char *nameSpace, const char *keyName, stac_ops_t &_stacOps ) {
+    /*  Allows the user to flip the STAC startup mode
+     *   between "Auto" and "Standard"
+     *      - function will return after a period of inactivity
+     *      - any change to the startup mode is saved to NVS
+    */
 
-    if ( !disIsSetup ) {
-        if ( ctMode ) drawGlyph( GLF_C, tallymodecolor, 1 );    // display the current tally mode...
-        else drawGlyph( GLF_T, tallymodecolor, 1 );
+    unsigned long updateTimeout;
+    bool suModeNow = _stacOps.autoStart;
+    if ( suModeNow ) {
+        drawGlyph( GLF_A, startchangecolor, SHOW );     // display the current startup mode
     }
-    while ( dButt.read() );                                 // wait until the button is released
-    updateTimeout = millis() + OP_MODE_TIMEOUT;             // initialize the timeout timer 
-     
+    else {
+        drawGlyph( GLF_S, startchangecolor, SHOW );
+    }
+    while ( dButt.read() );                             // don't proeeed until the button is released
+    updateTimeout = millis() + OP_MODE_TIMEOUT;         // initialize the timeout timer
+
     do {
         if ( millis() >= updateTimeout ) {
-            ctMode = ctModeNow;                     // we timed out, user didn't confirm the change, restore the ctMode as it was on entry...
-            return ctMode;                          // and head back to the barn
-        }
-
-        dButt.read();                                       // read & refresh the state of the button
-        if ( dButt.wasReleased() ) {
-            updateTimeout = millis() + OP_MODE_TIMEOUT;     // kick the timeout timer
-            ctMode = !ctMode;                               // btn clicked so we want to flip the current ctMode...
-            if ( ctMode ) {
-                drawGlyph( GLF_C, tallymodecolor, 1 );      //   and display the new operating mode
-            }
-            else drawGlyph( GLF_T, tallymodecolor, 1 );
-        }
-        if ( dButt.pressedFor( SELECT_TIME ) ) {        // user wants to confirm the change and exit so...
-            drawGlyph( GLF_CK, gtgcolor, 1 );
-            if ( ctModeNow != ctMode ) {                  // if the tally mode changed...
-                prefSpace.begin( nameSpace, PREFS_RW ); //   open up the pref namespace for R/W
-                prefSpace.putBool( keyName, ctMode );   //   save the new ctMode in NVS
-                prefSpace.end();                        //   close the prefs namespace
-            }
-            while ( dButt.read() );                     // don't proeeed until the button is released
-            delay( 500 );
-            return ctMode;
-        }
-    } while (true);
-
-}   // end changeTallyMode()
-
-void changeStartupMode() {
-/*  Allows the user to flip the STAC startup mode
- *  between "Auto" and "Standard"
- *      - function will return after a period of inactivity, restoring
- *        the startup mode to what it was prior to the call
-*/
-    unsigned long updateTimeout;
-    bool suModeNow = autoStart;
-    if ( autoStart ) {
-        drawGlyph( GLF_A, startchangecolor, 1 );   // display the current startup mode
-    }
-    else drawGlyph( GLF_S, startchangecolor, 1 );
-
-    while ( dButt.read() );                         // don't proeeed until the button is released
-    updateTimeout = millis() + OP_MODE_TIMEOUT;     // initialize the timeout timer 
-     
-    do {
-        if ( millis() >= updateTimeout ) {
-            autoStart = suModeNow;                  // we timed out, user didn't confirm the change, restore the startup mode as it was on entry...
-            return;                                 // and head back to the barn
+            return;                                     // we timed out, user didn't confirm the change, head back to the barn
         }
 
         dButt.read();                           // read & refresh the state of the button
         if ( dButt.wasReleased() ) {
             updateTimeout = millis() + OP_MODE_TIMEOUT;             // kick the timeout timer
-            autoStart = !autoStart;                                 // btn clicked so we want to flip the current startup mode...
-            if ( autoStart ) {
-                drawGlyph( GLF_A, startchangecolor, 1 );            // and display the new operating mode
-            }
-            else drawGlyph( GLF_S, startchangecolor, 1 );
+            suModeNow = !suModeNow;                                 // btn clicked so we want to flip the current startup mode...
+            drawGlyph( ( suModeNow ? GLF_A : GLF_S ), startchangecolor, SHOW ); // show the glyph corresponding to the mode
         }
         if ( dButt.pressedFor( SELECT_TIME ) ) {        // user wants to confirm the change and exit so...
-            drawGlyph( GLF_CK, gtgcolor, 1 );
-            if ( suModeNow != autoStart ) {                 // if the startup mode changed...
-                stcPrefs.begin( "STCPrefs", PREFS_RW );     //   open up the pref namespace for R/W              
-                stcPrefs.putBool( "aStart", autoStart );    //   save the new autoStart mode in NVS
-                stcPrefs.end();                             //   close the prefs namespace
+            drawGlyph( GLF_CK, gtgcolor, SHOW );
+            if ( suModeNow != _stacOps.autoStart ) {                 /* if the startup mode changed... */
+                _stacOps.autoStart = suModeNow;
+                prefSpace.begin( nameSpace, PREFS_RW );     //   open up the pref namespace for R/W
+                prefSpace.putBool( keyName, suModeNow );    //   save the new autoStart mode in NVS
+                prefSpace.end();                            //   close the prefs namespace
             }
             while ( dButt.read() );                 // don't proeeed until the button is released
-            delay( 500 );
+            delay( GUI_PAUSE_SHORT );
             return;
         }
     } while ( true );
 
 }   // end changeStartupMode()
 
-uint8_t updateBrightness( Preferences& prefSpace, const char * nameSpace, const char * keyName, uint8_t brightness, bool noSetup = false ) {
-/*  Allows the user to select the brightness of the display. 
- *      - function will return after a period of inactivity, restoring
- *         the brightness to what it was prior to the call
- *      - any change to the brightness level is saved to NVS using 
- *         the "prefsSpace" object in the namespace "namespace" under the key "keyname"
- *      - "uint8_t brightness" is a level (index into the brightmap[] array), not an absolute brightness value
- *      - uses the brightness level to index into the glyphMap[] to fetch the bitmap to display the digit for that level
- *      - call with noSet = true if the display is already set up with the current brightness level before calling this function
-*/
-    unsigned long updateTimeout;                    // delete this line if you don't want to bug out after a period of inactivity
-    uint8_t brightnessNow = brightness;             // "brightness" is a level, not an absolute display brightness value
+uint8_t updateBrightness( Preferences &prefSpace, const char *nameSpace, const char *keyName, uint8_t brLevel, bool noSetup = false ) {
+    /*  allows the user to select the brightness of the display.
+     *      - function will return after a period of inactivity
+     *      - any change to the brightness level is saved to NVS
+     *      - "brLevel" is an index into the brightmap[] array, not an absolute brightness value
+     *      - uses the brightness level to index into the glyphMap[] to fetch the bitmap to display the digit for that level
+     *      - call with noSetup = true if the display is already set up with the current brightness level before calling this function
+    */
+
+    unsigned long updateTimeout;
+    uint8_t brLevelNow = brLevel;       // "brightness" is a mapping table index, not an absolute display brightness value
 
     if ( !noSetup ) {
-        disFillPix( GRB_COLOR_WHITE, 0 );                           // fill the display...
-        drawOverlay( GLF_EN, GRB_COLOR_BLACK, 0 );                  // blank out the inside three columns...
-        drawOverlay( glyphMap[ brightness ], GRB_COLOR_ORANGE, 1 ); // and overlay the brightness level number
+        disFillPix( RGB_COLOR_WHITE, NO_SHOW );                     // fill the display...
+        drawOverlay( GLF_EN, RGB_COLOR_BLACK, NO_SHOW );            //  blank out the inside three columns...
+        drawOverlay( glyphMap[ brLevel ], RGB_COLOR_ORANGE, SHOW ); //  and overlay the brightness level number
     }
-        
+
     while ( dButt.read() );                     // don't proeeed until the button is released.
-    updateTimeout = millis() + OP_MODE_TIMEOUT; // delete this line if you don't want to bug out after a period of inactivity
+    updateTimeout = millis() + OP_MODE_TIMEOUT;
 
     do {
-        if ( millis() >= updateTimeout ) {      // delete this if clause if you don't want to bug out after a period of inactivity
-            brightness = brightnessNow;         // we timed out, user didn't confirm the change, restore currentBrightness as it was on entry...
-            disSetBright( brightMap[ brightness ] );    // reset the display to that brightness...
+        if ( millis() >= updateTimeout ) {                  /* we timed out, user didn't confirm the change */
+            brLevel = brLevelNow;                           //  restore disLevel as it was on entry...
+            disSetBright( brightMap[ brLevelNow ], SHOW );  //  reset the display to that brightness...
             dButt.read();
-            return brightness;                  // and head back to the barn
+            return brLevelNow;                              //  and head back to the barn
         }
 
         dButt.read();
         if ( dButt.wasReleased() ) {
-            updateTimeout = millis() + OP_MODE_TIMEOUT;     // delete this line if you don't want to bug out after a period of inactivity
-            if ( brightness >= brightLevels ) brightness = 1;
-            else brightness++;                    
-            drawOverlay( GLF_EN, GRB_COLOR_BLACK, 0 );                      // blank out the inside three columns...
-            drawOverlay( glyphMap[ brightness ], GRB_COLOR_ORANGE, 0 );     // and overlay the new brightness setting number
-            disSetBright( brightMap[ brightness ] );                        // set the display to the new brightness setting
+            updateTimeout = millis() + OP_MODE_TIMEOUT;
+            if ( brLevel >= brightLevels ) {
+                brLevel = 1;
+            }
+            else {
+                brLevel++;
+            }
+            drawOverlay( GLF_EN, RGB_COLOR_BLACK, NO_SHOW );                // blank out the inside three columns...
+            drawOverlay( glyphMap[ brLevel ], RGB_COLOR_ORANGE, NO_SHOW );  // and overlay the new brightness setting number
+            disSetBright( brightMap[ brLevel ], SHOW );                     // set the display to the new brightness setting
         }
 
-        if ( dButt.pressedFor( SELECT_TIME ) ) {                // user wants to confirm the change and exit so...
-            drawGlyph( GLF_CK, gtgcolor, 1 );                   //   let the user know we're good to go
-            if ( brightnessNow != brightness ) {                // if the brightness level changed...
-                prefSpace.begin( nameSpace, PREFS_RW );         //   open up the pref namespace for R/W
-                prefSpace.putUChar( keyName, brightness );      //   save the new brightness in NVS
-                prefSpace.end();                                //   close the prefs namespace
+        if ( dButt.pressedFor( SELECT_TIME ) ) {            /* user wants to confirm the change and exit so... */
+            drawGlyph( GLF_CK, gtgcolor, SHOW );            //   let the user know we're good to go
+            if ( brLevelNow != brLevel ) {                  /* if the brightness level changed... */
+                prefSpace.begin( nameSpace, PREFS_RW );     //   open up the pref namespace for R/W
+                prefSpace.putUChar( keyName, brLevel );     //   save the new brightness in NVS
+                prefSpace.end();                            //   close the prefs namespace
             }
-            while ( dButt.read() );                             // don't proeeed until the button is released.
-            delay( 500 );
-            return brightness;
+            while ( dButt.read() );                         // don't proeeed until the button is released.
+            delay( GUI_PAUSE_SHORT );                                   // "GUI" pause
+            return brLevel;
         }
     } while ( true );
 
 }    // end updateBrightness()
+
+
+//  --- EOF ---

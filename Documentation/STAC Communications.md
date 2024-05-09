@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Short techie document describing the way a STAC communicates with a Roland device using the Smart Tally protocol.
+Short techie document describing the way a STAC communicates with a Roland model V-60HD video switch using the Smart Tally protocol.
 
 This is only relevant if you are using a STAC in an emulated environment. That is, where the STAC is not communicating with a physical Roland device but is operating in a system that emulates a Roland device using the Smart Tally protocol.
 
@@ -43,8 +43,31 @@ The STAC sends no identifiable information directly in the status request. Thus 
 
 Other methods, such as using the MAC address or IP address assigned to a STAC from the router, may be considered.
 
+## Regarding the V-160HD
+
+Implementation of the Smart Tally protocol on the V-160HD differs from the V-60HD. The V-160HD does not respond to a "short form" of a tally request, instead using HTML compliant standard protocol to query the switch.
+
+The V-160HD also implements and requires Basic Authentication for all HTML interactions, where the user ID (at the time of writing) is fixed to be '`user`' and the password is a four-digit number selectable by the user, with a default of '`0000`'.
+
+When configured for the V-160HD, the STAC bypasses the normal '`GET /`' request that a browser would do when first connecting to a URL. In place it immediately starts polling for status of the channel configured by the user in the format:
+
+`GET /tally/{CHAN_BANK}{BANK_NUM}/status\r\n\r\n`
+
+where:
+`CHAN_BANK` is either `hdmi_` or `sdi_`
+
+`BANK_NUM` is an ASCII integer from `1` to `8` representing the HDMI or SDI input of the V-160HD.
+
+This is sent with the Basic Authentication and other headers as required.
+
+The expected response in the return payload is as per the V-60HD described above.
+
+As the interaction with the V-160HD is standard HTML, the referring IP address of the STAC making the tally request is included in the headers from the STAC to the switch so this information may be of use when using the STAC in emulated environments.
+<br><br>
+
 ---
 ### Revision History
+**2024-05-09:** Revise for support of the V-160HD.  
 **2021-04-08:** Add "Other Considerations" section. Correct typos.  
 **2021-04-05:** First release.
 
