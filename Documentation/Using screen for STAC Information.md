@@ -24,33 +24,33 @@ Something like:
 
 ```
 ==========================================
-                STAC
-     A Roland Smart Tally Client
-            by: Team STAC
-  https://github.com/Xylopyrographer/STAC
+                  STAC
+        A Roland Smart Tally Client
+             by: Team STAC
+      github.com/Xylopyrographer/STAC
 
-    Version: 2.1 (273315)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-F8A87E
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:7E:A8:F8:00
-   --------------------------------
-    WiFi Network SSID: SmartTallyNet
-    Smart Tally IP: 192.168.1.90
-    Port #: 80
-    Max Tally Channel: 4
-    Polling Interval: 300 ms
-    =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    Active Tally Channel: 2
+    MAC: 94:55:7E:A6:55:2B
+  --------------------------------------
+    WiFi Network SSID: HammyNet
+    Switch IP: 192.168.7.99
+    Switch Port #: 80
+  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    Configured for Model: V-160HD
+    Active Tally Channel: HDMI 2
+    Max HDMI Tally Channel: 4
+    Max SDI Tally Channel: 7
     Tally Mode: Camera Operator
-    Auto start: Enabled
+    Auto start: Disabled
     Brightness Level: 1
-=========================================
-    WiFi Connected. IP: 192.168.1.21
-=========================================```
-Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are those from the STAC setup via a web browser. Items below that line are set using the STAC display button.
+    Polling Interval: 300 ms
+==========================================
+```
 
 The "`WiFi Connected.`" line will show up after the STAC connects to the WiFi network and has an IP address assigned.
 
@@ -65,18 +65,20 @@ If it is operating in Peripheral Mode, it'll send that info out, something like.
             by: Team STAC
   https://github.com/Xylopyrographer/STAC
 
-    Version: 2.1 (273315)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-F8A87E
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:7E:A8:F8:00
+    MAC: 94:55:7E:A6:55:2B
    --------------------------------
      OPERATING IN PERIPHERAL MODE
     Tally Mode: Talent
     Brightness Level: 1
-=======================================```
+=======================================
+```
+
 In Peripheral Mode, only the display brightness level and tally display mode can be set, using the display button.
 
 When doing a Factory Reset, it'll send out information to let you know how that's progressing.
@@ -111,13 +113,13 @@ Windows systems have a number of options for serial communications programs. Con
 If you're curious, part of the info dump looks like: 
 
 ```
-    Version: 2.1 (273315)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-F8A87E
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:7E:A8:F8:00
+    MAC: 94:55:7E:A6:55:2B
 ```
 Here:
 

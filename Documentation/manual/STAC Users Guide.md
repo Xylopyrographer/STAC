@@ -36,7 +36,8 @@ To ensure you see the pictures, make sure the `images` folder is in the same fol
   - [Quick Start](#quick-start)
   - [First Time Setup](#first-time-setup)
   - [Up and Running](#up-and-running)
-    - [Setting the Tally Channel](#setting-the-tally-channel)
+    - [Setting the Tally Channel (V-60HD)](#setting-the-tally-channel_V-60HD)
+    - [Setting the Tally Channel (V-160HD)](#setting-the-tally-channel_V-160HD)
     - [Setting the Tally Display Mode](#setting-the-tally-display-mode)
     - [Setting the Startup Mode](#setting-the-startup-mode)
     - [Setting the Brightness Level](#setting-the-brightness-level)
@@ -133,7 +134,8 @@ To do this you need the:
 * Password of the WiFi network to which your Roland switch is connected;
 * IP address of the Roland switch;
 * the port number used by the Roland switch;
-* maximum tally channel number of the Roland switch.
+* the desired maximum tally channel number(s) of the Roland switch;
+* for the V-160HD, the LAN Control Password.
 
 You'll also need a computer, phone, tablet, or some other device that can connect to a WiFi network and run a web browser as that is the tool you'll use to send the setup information to the STAC. Here's how...
 
@@ -141,34 +143,37 @@ You'll also need a computer, phone, tablet, or some other device that can connec
 <a name="stac_config_reqd"></a>
   <center><img src="./images/stac_config_reqd.png"></center>
 
-2. Using a computer, phone, tablet, or some other smarty pants device, open its WiFi settings and pick the SSID of your STAC. The STAC SSID starts with "**STAC-**" followed by eight characters. Something like "**STAC-4660A124**". <br><br>Each STAC has its own unique SSID.<br><center><img src="./images/wifi_connect.png"></center> 
+1. Using a computer, phone, tablet, or some other smarty pants device, open its WiFi settings and pick the SSID of your STAC. The STAC SSID starts with "**STAC-**" followed by eight characters. Something like "**STAC-4660A124**". <br><br>Each STAC has its own unique SSID.<br><center><img src="./images/wifi_connect.png"></center> 
 
-3. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890**. 
+1. Join the STAC WiFi network and when prompted, enter the STAC WiFi password which is **1234567890**. 
 
-4. Once connected&mdash;on your smart device: fire up a web browser; open a new browser window and go the STAC setup page at `http://setup.local`.
-<center><img src="./images/browser_connect.png"></center>
+1. Once connected&mdash;on your smart device: fire up a web browser; open a new browser window and go the STAC setup page at `http://setup.local`.
+<center><img src="./images/browser_connect_220.png"></center>
 
-5. In the browser, fill in the form with the: WiFi SSID and Password; the Roland device Smart Tally IP address; its port number; and the maximum channel number that you want to monitor. Remember, the Roland device must be on the WiFi network that matches this SSID and Password. <br>The Polling interval default is OK for most uses.
+1. In the first screen you see, tap the model list to pick the Model of the switch you are configuring and then tap the "Next" button. Default is the V-60HD.
 
-6. Once the information has been entered, tap the "Submit" button to send the form to the STAC.
-The STAC will: send a confirmation page to your browser; briefly show a confirmation checkmark on the display; and then shut down its WiFi hotspot.  
+1. In the browser, fill in the form with the: WiFi SSID and Password; the Roland device Smart Tally IP address; its port number; and the maximum channel number that you want to monitor. Remember, the Roland device must be on the WiFi network that matches this SSID and Password. <center><img src="./images/forms_220.png"></center><br><br>The Polling interval default is OK for most uses.<br><br>For the V-160HD; the LAN password is required and the maximum tally channel number can be specified for the HDMI and SDI channels independantly.<br><br>If you need to correct the model, tap the "Back" button to return to the Model Selection page.
+
+1. Once the information has been entered, tap the "Submit" button to send the form to the STAC.<br><br>The STAC will: send a confirmation page to your browser; briefly show a confirmation checkmark on the display; and then shut down its WiFi hotspot.  
 <center><img src="./images/browser_complete.png"></center>  
 
-7. Close the confirmation window in your browser, reconnect your smart device to your preferred WiFi network and you're done. Like dinner.
+1. Close the confirmation window in your browser, reconnect your smart device to your preferred WiFi network and you're done. Like dinner.
 
 After the configuration information is submitted and the STAC confirms receipt, the STAC will start up as described in the [Quick Start](#quick-start) section above. Unless it doesn't, in which case, pop down to the [Troubleshooting](#troubleshooting) section and it'll tell you how to fix that up. And since you're wondering yup&mdash;you sure can redo the setup. Nothing is forever. There's a how-to [below](#redoing-the-setup).
 
 But first, a few things about entering the setup information in your browser:
 
-* The SSID, Roland IP address, port number and maximum tally channel number are required. The form cannot be submitted with these fields blank.
+* The Model, SSID, Roland IP address, port number and maximum tally channel number are required. The form cannot be submitted with these fields blank.
 * The maximum SSID length is 32 characters
 * The password can be left empty to allow for open WiFi networks. The password is limited to 63 characters.
 * The Roland IP address must be in proper IP address format before the form can be submitted.
-* The maximum tally channel number is set to **6** by default. The highest number that can be entered is **8**. The smallest is **1**.
+* For the V-60HD, the maximum tally channel number is set to **6** by default. The highest number that can be entered is **8**. The smallest is **1**.
+* For the V-160HD, the maximum and default HDMI and SDI tally channel numbers are **8** . The smallest channel number for each is **1**.
 * The port number is set to a default of **80**. It should only be changed in special situations like described in [Special Configurations](#special-configurations) below.
-* The Polling interval is the amount of time the STAC will wait between sending tally channel status requests to the Roland device. Default is **300** ms. Minimum is 175 ms and the maximum is 2000 ms. Though the value can be set in 1 ms increments, the practical "chunk" is increments of 50 ms. 
+* The Polling interval is the amount of time the STAC will wait between sending tally channel status requests to the Roland device. Default is **300** ms. Minimum is 175 ms and the maximum is 2000 ms. Though the value can be set in 1 ms increments, the practical "chunk" is increments of 50 ms.
+* **WARNING:** though the form will let you enter a V-160HD Network User ID, it should be left as "user". Any other value will not let the STAC communicate with the switch.
 
-Regarding the SSID and Password, be cautious when entering quotes as most devices will by default convert these to "smart quotes" which, as per WiFi standards are not allowed.
+Regarding the SSID and Password, be cautious when entering quotes as most browsers will by default convert these to "smart quotes" which, as per WiFi standards are not allowed.
 
 If the Submit button is tapped and there is missing or incorrect information entered on the form, a little bubble will pop up by that field prompting you to complete or correct the information.
 
@@ -176,17 +181,17 @@ The SSID and Password fields stop accepting input after their limits are reached
 
 Taping the "Reset" button on the browser form will clear all information entered and set the port number, number of channels and the polling interval to their defaults, leaving the form open.
 
-At the bottom of the form some info about the STAC is shown as a bit of trivia.
+At the bottom of the Model Select form some info about the STAC is shown as a bit of trivia.
 
-Unit ID is the unique identifier for this STAC. It is SSID of the STAC when being configured and the label you'd see in the WiFi router client table for this STAC when it is operating.
+- Unit ID is the unique identifier for this STAC. It is the SSID of the STAC when being configured and the label you'd see in the WiFi router client table for this STAC when it is operating.
 
-MAC is the network interface MAC address. Skip ahead a couple of paragraphs for why you might need that.
+- MAC is the network interface MAC address. Skip ahead a couple of paragraphs for why you might need that.
 
-Version is the version number of the STAC software. The characters in brackets are the "build number" of this version.
+- Version is the version number of the STAC software. The characters in brackets are the "build number" of this version.
 
-Core is the arduino-esp32 core version used by the STAC software version.
+- Core is the arduino-esp32 core version used by the STAC software version.
 
-SDK is the espressif ESP-IDF software development kit version used by the arduino-esp32 core.
+- SDK is the espressif ESP-IDF software development kit version used by the arduino-esp32 core.
 
 If you're having trouble connecting to the STAC using `http://setup.local`, it may be because the `http:` bit wasn't entered and so the browser is trying to go use an `https:` connection. If checking that doesn't work, you can always connect by pointing the browser to the IP address of the STAC which is `192.168.6.14`.
 
@@ -195,7 +200,7 @@ Totally geeky stuff but that's where it is if we ask for it if you contact us wi
 One last point regarding the WiFi network. Configuring the STAC with a static IP address is not supported. Therefore, when the STAC negotiates a connection to the specified network, the network must supply an IP address via DHCP. If a static STAC IP address is desired, the STAC MAC can be used to assign the IP from the router. The MAC address of the STAC can be found:
 
 * via the WiFi router client table after the STAC has an address assigned from the DHCP pool;
-* on the web configuration form;
+* on the web Model Select configuration form;
 * from the STAC startup serial data information dump (refer to the *Using screen for STAC Information* document).
 
 Egads. That was a lot of jargon. Find a friend that knows networks if you need a hand with this.
@@ -236,8 +241,8 @@ From here, a button click will move to the next parameter that can be changed. O
 
 That was a lot of words. Let's show you how this works in detail for changing the tally channel. You can then apply the same method for the other parameters...
 
-<a name="setting-the-tally-channel"></a>
-### Setting the Tally Channel
+<a name="setting-the-tally-channel_V-60HD"></a>
+### Setting the Tally Channel (V-60HD)
 
 Power up your STAC. When you see the blue active tally number on the display, press and hold down the button. In about two seconds the display will change from a blue number on black background to an orange number on a blue background. The orange colour is a bit of a heads up to let you know the STAC is in a select state and you can now change or select the value. We use this convention with all the parameters when in a select state.  
 
@@ -263,6 +268,17 @@ While we're talking setups, if your STAC is set to monitor, say channel **6**, a
 
 And, oh yeah, the STAC remembers the last set Tally Channel across power cycles. Convenient, yes?
 
+<a name="setting-the-tally-channel_V-160HD"></a>
+### Setting the Tally Channel (V-160HD)
+
+Setting the Tally channel on the V-160HD is essentially the same as described above. Blue numbers represent HDMI channels. Pale green numbers are the SDI channels.
+
+<center><img src="./images/displays_tally_SDI.png"></center>
+
+So to set the active tally channel, hold down the button until the channel select colors appear. Release and then click the button to pick the next channel. When the last HDMI channel is shown, clicking the button again will move to select the SDI channels as noted by the display select state colors changing to orange on a pale green background. When the last SDI channel is shown, the next click will wrap back to the first HDMI channel again indicated by orange numbers on a blue background.
+
+Once the desired channel is shown, a long press will select that channel. The selection confirmation checkmark is shown and you're good to go.
+
 <a name="setting-the-tally-display-mode"></a>
 ### Setting the Tally Display Mode
 
@@ -274,7 +290,7 @@ In Talent mode, the display shows red when the tally channel being monitored is 
 
 In Camera Operator mode, the display is red when the channel is live, green when in Preview (a.k.a.: Inactive, Standby, PVW) and "dotted purple" when Unselected (neither in Program nor Preview). If the operation of the STAC becomes anything other than normal, the display changes to the alert the operator. More on that down in the [Troubleshooting](#troubleshooting) section.
 
-The sequence of steps to change the Tally Display Mode is the same as for setting the tally channel so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-chanel) above for the long-winded version.
+The sequence of steps to change the Tally Display Mode is the same as for setting the tally channel so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-chanel_V-60HD) above for the long-winded version.
 
 The Tally Display Mode is shown as a purple letter on a black background. A **C** means the STAC is in **Camera Operator Mode**. A **T** is shown for **Talent Mode**.  
 
@@ -296,7 +312,6 @@ When in a select state, the STAC has a timeout feature. If after entering the se
 **Note:** When the STAC is in Talent Mode, the WiFi connect icons show only on power up or when the STAC is reset. If WiFi is lost after having a WiFi connection, the display will switch to the Preview (green) state until WiFi is reestablished. Once connected, normal display operation will resume. In Camera Operator Mode, the WiFi connect information is always shown.
 
 The STAC also remembers the last set Tally Display Mode across power cycles. Genius.
-<br><br>
 
  <a name="setting-the-startup-mode"></a>
 ### Setting the Startup Mode
@@ -307,7 +322,7 @@ This is the Startup Mode and it can be set to "Standard" or "Autostart".
 
 In Standard mode you have to click through each operating parameter as described in [Quick Start](#quick-start), changing whichever one you would like along the way.
 
-When starting in Autostart mode the STAC will show the active tally channel and blink the corners off and on in green to let you know autostart is active. The STAC will wait like this for about 15 seconds. If the button is not pressed during this time, autostart kicks in and the STAC will jump right to the WiFi connect sequence. If the connection is made, the STAC then starts to monitor the active tally channel.
+When in Autostart mode, the STAC will show the active tally channel and blink the corners off and on in green to let you know autostart is active. The STAC will wait like this for about 15 seconds. If the button is not pressed during this time, autostart kicks in and the STAC will jump right to the WiFi connect sequence. If the connection is made, the STAC then starts to monitor the active tally channel.
 
 <center><img src="./images/autostart.png"></center>
 
@@ -315,7 +330,7 @@ When started or reset in autostart mode, the STAC responds to button presses jus
 
 A press or click of the button cancels autostart and you'll then have to click through the operating parameters to start the WiFi connect and tally channel monitoring. However autostart mode is still active on the next startup or reset.
 
-The sequence of steps to change the Startup Mode is the same as for setting the tally channel so this section is short. Check out [Setting the Tally Channel](#setting-the-tally-channel) above for the long-winded version.
+The sequence of steps to change the Startup Mode is the same as for setting the tally channel so this section is short. Check out [Setting the Tally Channel](#setting-the-tally-channel_V-60HD) above for the long-winded version.
 
 The Startup Mode is displayed as a teal letter on a black background. An **S** means the STAC is in **Standard Startup Mode**. An **A** is shown for **Autostart Mode**.  
 
@@ -339,7 +354,7 @@ The STAC also remembers the last set Startup Mode across power cycles. It's a wo
  <a name="setting-the-brightness-level"></a>
 ### Setting the Brightness Level
 
-To accommodate a range of ambient light levels when using the STAC, the brightness of the display can be changed. As with changing the active tally channel, the method is the same so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-channel) above for the extended directors cut.
+To accommodate a range of ambient light levels when using the STAC, the brightness of the display can be changed. As with changing the active tally channel, the method is the same so this section is abbreviated. Check out [Setting the Tally Channel](#setting-the-tally-channel_V-60HD) above for the extended directors cut.
 
 The current brightness level is shown as a white number on a spectacular field of red and green dots. Yes, it looks like Christmas. There are six brightness levels, increasing from **1** (lowest) to **6** (brightest). Bet you didn't see that coming. Anyway, as levels are selected, the display brightness changes to match.
 
@@ -382,7 +397,7 @@ At some point, probably, one or more of the WiFi SSID, Password or Roland device
 
 To change the setup you'll use the Reset button and Display button in combination. If this is your first setup redo rodeo, best to read though the rest of this section and then come back here. It's OK. We'll wait...
 
-1. Power up the STAC. It will pause at the tally channel display.
+1. Power up the STAC. It will pause at the tally channel display. (If autostart is active just click the button to cancel it.)
 1. Press and hold down the Reset button on the side of the STAC.
 1. While continuing to hold down the Reset button, press and hold down the Display button.
 1. While still holding down the Display button, release the Reset button. (Insert gratuitous Kraken reference.)
@@ -394,11 +409,13 @@ If you did this little dance right, (guess you figured it'll take two hands) the
 
 If the STAC returns to the tally display, just give the two-button dance another whirl. You got this.
 
-From here follow the directions under [First Time Setup](#first-time-setup) above; connecting to the STAC by WiFi and using a browser to bring up the Setup form and so on.
+From here follow the directions under [First Time Setup](#first-time-setup) above; connecting to the STAC by WiFi and using a browser to bring up the Setup forms and so on.
 
 If you mysteriously entered this setup state by accident or you change your mind at this point, click the Reset button and the STAC will return to its normal startup sequence.
 
 That's all there is to it.
+
+"One more thing". If a STAC was configured for one model, and is later configured for a different one, the tally channel, tally operating mode, startup mode and display brightness level are all reset to their defaults. If the model is not changed, these settings are retained.
 
 <a name="peripheral-mode"></a> 
 ## Peripheral Mode
@@ -430,7 +447,7 @@ For the STAC you want to operate in Peripheral Mode:
 
 Only one of the STACs should be powered via its USB-C port. The other STAC is powered through the GROVE cable.
 
-⚠️ **Do not** connect a USB cable to both STACs when the GROVE cable is connected. Galaxies will collide and other bad things will occur.
+⚠️ **DO NOT** connect a USB cable to both STACs when the GROVE cable is connected. Galaxies will collide and other bad things will occur.
 
 Install a jumper in only one of the two STACs. It wouldn't make sense to have two STACs in Peripheral Mode trying to talk to each other.
 
@@ -476,7 +493,7 @@ See the bits above on setting the [Brightness Level](#setting-the-brightness-lev
 To disable Peripheral Mode and return the STAC it to its normal operating state:
 
 1. Remove power from the Peripheral Mode STAC.
-1. Remove the GROVE cable connecting the STACs.<br>⚠️ **Do not** use the GROVE cable to power up two STAC's that are in their normal operating state.
+1. Remove the GROVE cable connecting the STACs.<br>⚠️ **DO NOT** use the GROVE cable to power up two STAC's that are in their normal operating state.
 1. Remove the jumper wire from the rear of the STAC.
 1. Power up the STAC via its USB port.
 
@@ -488,17 +505,18 @@ To disable Peripheral Mode and return the STAC it to its normal operating state:
 1. Peripheral Mode retains its own display brightness level and tally display mode settings independent of those for its normal operating state. The values are retained until changed (when in Peripheral Mode) or when a Factory Reset is performed&mdash;in which case the Peripheral Mode display brightness will be set to **1** and the tally display mode to Talent.
 1. The orientation feature works in Peripheral Mode so the display will always be shown the right way up. Pop back up to [that section](#setting-the-display-orientation) to review.
 1. It is recommended to place a piece of electrical tape over the jumper wire to secure it in place. Take care not to cover the ventilation holes on the side.
-1. The cable needed to connect the two STACs is known as a GROVE cable, as popularized by [seeed Studio](https://wiki.seeedstudio.com/Grove_System/). More specifically, the cable is a female-female 4-pin HY series 2.0mm pitch.
+1. The cable needed to connect the two STACs is known as a GROVE cable, as popularized by [seeed Studio](https://wiki.seeedstudio.com/Grove_System/). More specifically, the cable is a female-female 4-pin HY series, 2.0mm pitch.
     - Searching for a 4-pin GROVE cable should turn up a few sources.
     - Alternately, if searching for an HY-2.0 4-pin cable, make sure to purchase one with "standard" pinout where pin 1 is connected to pin 1, 2 to 2, 3 to 3 and 4 to 4. <br>**Some companies offer a "reversed" cable (pin 1 to pin 4, 2 to 3, 3 to 2, 4 to 1) which will irreparably damage the STAC if used**. So, like, don't use it. 
-    - Either "buckled" or "unbuckled" connectors on the cable work. Buckled connectors have a latch that will lock the cable connectors to the STACs.
+    - Either "buckled" or "unbuckled" connectors on the cable work. Buckled connectors have a latch that will lock the cable connectors to the STAC.
 
 <a name="factory-reset"></a>
 ## Factory Reset
 
 All righty then. Maybe you want to hand off your STAC to someone else or just for giggles restore the STAC to its "fresh-out-of-the-box" state. Doing this erases the SSID, Password, Roland Smart Tally IP address, port number, maximum tally channel number and polling interval from the STAC and sets the active tally channel, operating mode, brightness level and polling interval to their default values. The Normal Operating Mode defaults are: 
 
-* Tally Channel 1
+* Tally Channel 1 (V-60HD)
+* Tally Channel HDMI 1 (V-160HD)
 * Tally Display Mode set to Camera Operator 
 * Standard Startup Mode
 * Brightness Level 1
@@ -534,23 +552,22 @@ OK. In the repository where you found all this stuff in the first place, inside 
 
 We do that by:
 
-* Copying the "`STAC_2-1-a1b2c3.bin`" file to the device you'll use to talk to the STAC. Same type of device you used to do the setup.
+* Copying the "`STAC_XXXXXX.bin`" file to the device you'll use to talk to the STAC. Same type of device you used to do the setup.
 * Putting the STAC into software update mode.
 * Connecting your device to the STAC WiFi hotspot.
 * Using the browser on your device to go to the STAC Updater page.
-* Selecting the "`STAC_2-1-a1b2c3.bin`" file on your device.
+* Selecting the "`STAC_XXXXXX.bin`" file on your device.
 * Sending that file over to the STAC.
 
 All right. Let's get into the steps, each in all their incredible glory.
 
-1. **Copy the file to your device**<br>Actually, not a lot to say here. If you're using a computer computer, it should already be there if you downloaded the STAC repository. If you're using a mobile device, "it's an exercise left to the reader" to determine how to copy the file to your device. Too many permutations to cover here.
+1. **Copy the file to your device**<br>Actually, not a lot to say here. If you're using a computer computer, it should already be there if you downloaded the STAC repository. If you're using a mobile device, it's "an exercise left to the reader" to determine how to copy the file to your device. Too many permutations to cover here.
 
 2. **Put the STAC into Software Update Mode**<br>Remember that two finger dance we covered back in [Redoing the Setup](#redoing-the-setup)? We're going to do the same thing to get the STAC set for a software update.<br><br>Follow the same procedure as [Redoing the Setup](#redoing-the-setup) except, instead of releasing the display button at step 5, keep holding down the button after the [setup icon](#stac_config_change) stops flashing. In about two seconds, the display will start flashing the [factory reset icon](#cleanslate). Keep holding down the button. About two seconds after the factory reset icon stops flashing, the software update icon will start to flash.<br><center><img src="./images/set_dfu.png"></center><br>Release the button. The software update icon remains on the display. <center><img src="./images/dfu.png"></center>Yup it's weird looking. Only so much you can do with 5 by 5 pixels. It's supposed to indicate you can download something to the box. We try.
-
  
 3. **Connect to the STAC WiFi**<br>The STAC has now fired up a hotspot. Just like when you [set up](#first-time-setup) the STAC, open the device's WiFi settings and pick the SSID of your STAC. It starts with **"STAC-"** followed by eight characters. Something like **STAC-4660A124**. Each STAC has its own unique SSID.<br><br>If prompted, enter the STAC WiFi password which is **1234567890**.<center><img src="./images/wifi_connect.png"></center>
 
-4. **Go to the Updater page**<br>Now, on your device, fire up a browser and go to `http://update.local`. The STAC will send over the update form like pictured below.<br><center><img src="./images/udbrowser_sequence.png"></center><br>Tap the `Choose file` button and navigate to the location where you saved the "`STAC_2-1-a1b2c3.bin`" file and select that. The page in your browser should show the file name. The `Update` button is now active too.
+4. **Go to the Updater page**<br>Now, on your device, fire up a browser and go to `http://update.local`. The STAC will send over the update form like pictured below.<br><center><img src="./images/udbrowser_sequence.png"></center><br>Tap the `Choose file` button and navigate to the location on your device where you saved the "`STAC_XXXXXX.bin`" file and select that. The page in your browser should show the file name. The `Update` button is now active too.
 
 5. **Update the Software**<br>Tap the `Update` button. The progress bar in the browser should start to move. In about ten or so seconds, the browser page will refresh to let you know the status of the update. The STAC display will briefly show a green checkmark or a red X depending if the update succeeded or failed.<br><center><img src="./images/udstatus_result.png"></center><br>After updating its software the STAC will shut down its hotspot and then reset itself, returning to it's normal startup sequence fresh as a daisy with new clean software.
 
@@ -574,7 +591,7 @@ Here are a few points worth noting when doing a software update.
 
 1. If the STAC is reset or looses power or the WiFi connection before the update completes, the STAC should return to the same state it was in before the update was tried. Give the update another go.
 
-1. If, after step 5 above the software update fails, the browser will show that along with a reason for the failure. Gross. Some things to try in this case.<br><br>Make sure:<br>&nbsp;&nbsp;**•**  the correct "`STAC_2-1-a1b2c3.bin`" file was selected;<br>&nbsp;&nbsp;**•**  you're not so far away from the STAC that the WiFi connection was lost;<br>&nbsp;&nbsp;**•**  the power connection to the STAC is good.
+1. If, after step 5 above the software update fails, the browser will show that along with a reason for the failure. Gross. Some things to try in this case.<br><br>Make sure:<br>&nbsp;&nbsp;**•**  the correct "`STAC_XXXXXX.bin`" file was selected;<br>&nbsp;&nbsp;**•**  you're not so far away from the STAC that the WiFi connection was lost;<br>&nbsp;&nbsp;**•**  the power connection to the STAC is good.
 
 Try the update again. If things are still wacky, open a Discussion topic on the [STAC GitHub site](https://github.com/Xylopyrographer/STAC) including a screen shot of the error message. We'll try and sort things out.
 
@@ -820,10 +837,12 @@ To the awesome and dedicated folks on our production, tech and worship teams&mda
 
 To those that have signed on to become contributors; I am humbled that you find this work to be of use. It's incredible to be able to learn as you share your knowledge and experiences.
 
+Shout out to GitHUb user `feta00` who first asked about the V-160HD and then went *way* above and beyond in support of the development to add that model. You rock.
+
 But most of all to my wife who, as companion to a guy who can become obsessively dogged in pursuit of a goal, has shown&mdash;once more&mdash;saintly patience and forbearance as I chewed up an inordinate number of hours, days, and weeks to bring this project to fruition. My dear, you are a true angel and I remain your blessed fool. Thank-you.
 
 &nbsp;&nbsp;&nbsp;*- Xylopyrographer*  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*April, 2021*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*April, 2024*
 <br><br><br>
 
 ---
@@ -865,32 +884,49 @@ No warranties are given. The license may not give you all of the permissions nec
  <a name="revision-history"></a>
 ### Revision History
 <br>
-**2023-02-03**<br>
-&nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.1.<br>
-&nbsp;&nbsp;&nbsp;&nbsp;- Revise *First Time Setup section*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Peripheral Mode section*<br>
-&nbsp;&nbsp;&nbsp;&nbsp;- Add *Updating the Software section*<br>
+**2024-05-09:**<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.2.0 which brings V-160HD support.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *First Time Setup* section to include new setup method. <br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Setting the Tally Channel* section to *Setting the Tally Channel (V-60HD)* for V-60HD items.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Add *Setting the Tally Channel (V-160HD)* section for V-160HD specific items.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Redoing the Setup* section to include V-160HD items.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Factory Reset* section to include V-160HD items.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Usual grammatical and spelling touch-ups.<br>
-**2022-08-09**<br>
+
+**2023-02-03:**<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.1.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *First Time Setup* section<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Revise *Peripheral Mode* section<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Add *Updating the Software* section<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Usual grammatical and spelling touch-ups.<br>
+
+**2022-08-09:**<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 2.0.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add note about IP addressing under *First Time Configuration*.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add "Orange X" error description section.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add "Polling Interval" configuration option.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise configuration screen images.
 <br>
+
 **2022-01-04:** Revise for STAC software version 1.10, detailing Peripheral Mode operation.<br>
-<b>2021-04-30:</b>  
+
+**2021-04-30:**<br> 
 &nbsp;&nbsp;&nbsp;&nbsp;- Revise for STAC software version 1.9.  
 &nbsp;&nbsp;&nbsp;&nbsp;- Add Display Orientation.<br>
 &nbsp;&nbsp;&nbsp;&nbsp;- Add Contents.  
+
 **2021-04-15:** Revise for STAC software version 1.8. Add Startup Mode.  
+
 **2021-04-05:**  
 &nbsp;&nbsp;&nbsp;&nbsp;- Add user configurable Smart Tally device port number.  
 &nbsp;&nbsp;&nbsp;&nbsp;- Add "Special Configurations" section.  
 &nbsp;&nbsp;&nbsp;&nbsp;- Correct STAC response to loosing WiFi connection when operating in "Troubleshooting".  
 &nbsp;&nbsp;&nbsp;&nbsp;- Other minor changes.   
+
 **2021-04-01:** Change all pictures to use the `<img src=" ">` syntax. Fixed a formatting error.  
+
 **2021-03-31:** Add the "Back to the Beginning" section. Other minor editorial changes.  
+
 **2021-03-29:** First release.
 
 ---

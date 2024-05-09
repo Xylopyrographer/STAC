@@ -3,6 +3,18 @@
 
 Intended for developers and others interested in the nitty gritty.
 
+### Version 2.2.0
+* Refactored pretty much the entire code base. Not an insignificant effort as you know.
+* Moved things about in and inside the `STACLib` "`.h`" files.
+* Add support for the Roland V-160HD Streaming Video Switch.
+* Rearranged items in the serial port info dump & added a few more needed for the V-160HD.
+* Replace the FastLED library with the LiteLED library.
+    - See docs in the LiteLED library.
+* Replace the JC\_Button with the XP\_Button library.
+    - See docs in the XP\_Button library.
+* Add short "How to" to the serial monitor out when doing an OTA update.
+* migrate to arduino-esp32 core v2.0.14.
+
 ### Version 2.1.1
 
 * Bug fix - STAC ID.

@@ -7,6 +7,11 @@ An Arduino sketch designed to run on an [M5Stack ATOM Matrix](https://docs.m5sta
 Its purpose is to monitor the tally status of a single video input channel 
 of a Roland video device that implements their Smart Tally protocol.
 
+Starting with STAC v2.2.0, the following Roland video switches are supported:
+
+* V-60HD
+* V-160HD
+
 The sketch uses WiFi to connect to the same network as that of the Roland device.
 
 For the Roland video input channel being monitored, STAC will set
@@ -55,32 +60,33 @@ Done! Your ATOM Matrix is now a STAC 👍. Next steps are in the *STAC User Guid
 1. Install the libraries:<br>
 The following libraries are required to compile this sketch.<br>
 
-    + [FastLED](https://github.com/FastLED/FastLED) by Daniel Garcia
-    + [JC_Button](https://github.com/JChristensen/JC_Button) by Jack Christensen
+    + [LiteLED](https://github.com/Xylopyrographer/LiteLED) by Xylopyrographer
+    + [XP_Button](https://github.com/Xylopyrographer/XP_Button) by Xylopyrographer
     + [I2C_MPU6886](https://github.com/tanakamasayuki/I2C_MPU6886) by TANAKA Masayuki
 
     All of these can be installed using the Arduino IDE Library Manager.
 
-    When compiling, you may see a message that JC_Button may not work as expected with the ESP32. This can be ignored.
 
 **Build System Compatibility**
 
 This sketch has been built and tested using:    
     
-+ arduino-esp32 core version 2.0.5
-  + core v2.0.3 is the minimum required. *Older cores will not work*.
-+ Arduino IDE version 1.8.19
-+ Arduino IDE version 2.0.3
-+ Visual Studio Code version 1.68.1 (macOS)
-    - using Microsoft Arduino extension version 0.4.12
++ ESP arduino-esp32 core version 2.0.14.
+  + core v2.0.5 is the minimum required. *Older cores will not work*.
+  + *do not* use the esp32 core version supplied by M5Stack.
++ Arduino IDE version 2.3.2
 + Depending on how support for the ATOM Matrix was added, selecting either the M5Stick-C, or the M5Stack-ATOM as the target board should work.
 + To compile, make sure the `STACLib` folder is located in the same folder as the `STAC.ino` file.
-+ Starting with v2.1, the Partition Scheme must be set to "Minimal SPIFFS (Large APPS with OTA)".
++ Starting with STAC software v2.1, the Partition Scheme must be set to "Minimal SPIFFS (Large APPS with OTA)".
+
+*Note:* STAC is not compatible with ESP arduino-esp32 core version 3.
 <br><br>
 
 ---
 ### Revision History
 
+**2024-05-09:** Revise for STAC v2.2.0, adding V-160HD support.<br>
+**2023-09-09:** Revise required libraries, Build System Compatibility.<br>
 **2023-02-21:** Include info on using an ESP flasher.<br>
 **2023-02-04:** Revised for software v2.1.<br>
 **2022-07-09:** Revised arduino-esp32 core compatibility information. Added required libraries.<br>

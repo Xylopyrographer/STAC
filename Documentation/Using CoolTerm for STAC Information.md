@@ -34,33 +34,33 @@ Something like:
 
 ```
 ==========================================
-                STAC
-     A Roland Smart Tally Client
-            by: Team STAC
-  https://github.com/Xylopyrographer/STAC
+                  STAC
+        A Roland Smart Tally Client
+             by: Team STAC
+      github.com/Xylopyrographer/STAC
 
-    Version: 2.1.1 (17e4e0)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-00F8A86C
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:6C:A8:F8:00
-   --------------------------------
-    WiFi Network SSID: SmartTallyNet
-    Smart Tally IP: 192.168.1.90
-    Port #: 80
-    Max Tally Channel: 4
-    Polling Interval: 300 ms
-    =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-    Active Tally Channel: 5
+    MAC: 94:55:7E:A6:55:2B
+  --------------------------------------
+    WiFi Network SSID: HammyNet
+    Switch IP: 192.168.7.99
+    Switch Port #: 80
+  =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+    Configured for Model: V-160HD
+    Active Tally Channel: HDMI 2
+    Max HDMI Tally Channel: 4
+    Max SDI Tally Channel: 7
     Tally Mode: Camera Operator
-    Auto start: Enabled
+    Auto start: Disabled
     Brightness Level: 1
-=========================================
-    WiFi Connected. IP: 192.168.1.14
-=========================================```
-Items above the "`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=`" line are those from the STAC setup via a web browser. Items below that line are set using the STAC display button.
+    Polling Interval: 300 ms
+==========================================
+```
 
 The "`WiFi Connected.`" line will show up after the STAC connects to the WiFi network and has an IP address assigned.
 
@@ -70,18 +70,18 @@ If it is operating in Peripheral Mode, it'll send that info out, something like.
 
 ```
 ==========================================
-                STAC
-     A Roland Smart Tally Client
-            by: Team STAC
-  https://github.com/Xylopyrographer/STAC
+                  STAC
+        A Roland Smart Tally Client
+             by: Team STAC
+      github.com/Xylopyrographer/STAC
 
-    Version: 2.1.1 (17e4e0)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-00F8A86C
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:6C:A8:F8:00
+    MAC: 94:55:7E:A6:55:2B
    --------------------------------
      OPERATING IN PERIPHERAL MODE
     Tally Mode: Talent
@@ -107,13 +107,13 @@ CoolTerm is available for a number of systems and platforms. The serial communic
 If you're curious, part of the info dump looks like: 
 
 ```
-    Version: 2.1.1 (17e4e0)
-    Core: 2.0.5
-    SDK: v4.4.2
-    Setup SSID: STAC-00F8A86C
+    Version: 2.2.0 (1a2bc3)
+    Core: 2.0.14
+    SDK: v4.4.6
+    Setup SSID: STAC-1C54267E
     Setup URL: http://setup.local
     Setup IP: 192.168.6.14
-    MAC: 94:B9:6C:A8:F8:00
+    MAC: 94:55:7E:A6:55:2B
 ```
 Here:
 
