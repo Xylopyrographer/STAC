@@ -2,49 +2,123 @@
 #include "Device_Config.h"
 #include "Config/Constants.h"
 #include "Config/Types.h"
+#include "Hardware/Display/DisplayFactory.h"
+#include "Hardware/Display/Colors.h"
+
+using namespace STAC;
+using namespace STAC::Display;
+
+// Create display object
+std::unique_ptr<IDisplay> display;
 
 void setup() {
-    Serial.begin(115200);
-    delay(1000);  // Give time for USB CDC
-    
-    // Test that our configuration is working
-    Serial.println("\n=== STAC Configuration Test ===");
-    Serial.printf("Board: %s\n", STAC::Config::Strings::BOARD_NAME);
-    Serial.printf("ID Prefix: %s\n", STAC::Config::Strings::ID_PREFIX);
-    Serial.printf("Display: %dx%d (%d LEDs)\n", 
-                  STAC::Config::Display::MATRIX_WIDTH,
-                  STAC::Config::Display::MATRIX_HEIGHT,
-                  STAC::Config::Display::MATRIX_SIZE);
-    Serial.printf("Display Pin: %d\n", STAC::Config::Pins::DISPLAY_DATA);
-    Serial.printf("Button Pin: %d\n", STAC::Config::Pins::BUTTON);
-    
-    #ifdef IMU_HAS_IMU
-        Serial.printf("IMU: Present (SCL=%d, SDA=%d)\n", 
-                      STAC::Config::Pins::IMU_SCL,
-                      STAC::Config::Pins::IMU_SDA);
-    #else
-        Serial.println("IMU: Not present");
-    #endif
-    
-    Serial.printf("Brightness: Min=%d, Max=%d, Default=%d\n",
-                  STAC::Config::Display::BRIGHTNESS_MIN,
-                  STAC::Config::Display::BRIGHTNESS_MAX,
-                  STAC::Config::Display::BRIGHTNESS_DEFAULT);
-    
-    // Test creating a struct
-    STAC::StacOperations ops;
-    Serial.printf("\nDefault operations:\n");
-    Serial.printf("  Model: %s\n", ops.switchModel.c_str());
-    Serial.printf("  Channel: %d\n", ops.tallyChannel);
-    Serial.printf("  Poll Interval: %lu ms\n", ops.statusPollInterval);
-    
-    Serial.println("\n=== Configuration Test Complete ===");
-    Serial.println("Phase 1 foundation is working!");
+    Serial.begin( 115200 );
+    delay( 1000 ); // Give time for USB CDC
+
+    Serial.println( "\n=== STAC Phase 2: Display Test ===" );
+    Serial.printf( "Board: %s\n", Config::Strings::BOARD_NAME );
+    Serial.printf( "Display Type: %s\n", DisplayFactory::getDisplayType() );
+
+    // Create display using factory
+    display = DisplayFactory::create();
+
+    if ( !display->begin() ) {
+        Serial.println( "ERROR: Failed to initialize display!" );
+        while ( true ) {
+            delay( 1000 );
+        }
+    }
+
+    Serial.println( "Display initialized successfully!" );
+    Serial.printf( "Display size: %dx%d (%d pixels)\n",
+                   display->getWidth(),
+                   display->getHeight(),
+                   display->getPixelCount() );
+
+    // Test 1: Fill with different colors
+    Serial.println( "\nTest 1: Color fills" );
+
+    Serial.println( "  RED..." );
+    display->fill( STACColors::ALERT, true );
+    delay( 1000 );
+
+    Serial.println( "  GREEN..." );
+    display->fill( STACColors::GTG, true );
+    delay( 1000 );
+
+    Serial.println( "  BLUE..." );
+    display->fill( STACColors::POWER_ON, true );
+    delay( 1000 );
+
+    Serial.println( "  PURPLE..." );
+    display->fill( STACColors::UNSELECTED, true );
+    delay( 1000 );
+
+    // Test 2: Individual pixels
+    Serial.println( "\nTest 2: Individual pixels" );
+    display->clear( true );
+    delay( 500 );
+
+    // Light up corner pixels
+    display->setPixel( 0, StandardColors::RED, false ); // Top-left
+    display->setPixel( display->getWidth() - 1, StandardColors::GREEN, false ); // Top-right
+    display->setPixel( display->getPixelCount() - display->getWidth(), StandardColors::BLUE, false ); // Bottom-left
+    display->setPixel( display->getPixelCount() - 1, StandardColors::YELLOW, false ); // Bottom-right
+    display->show();
+    delay( 2000 );
+
+    // Test 3: Center pixel (power indicator position)
+    Serial.println( "\nTest 3: Power indicator pixel" );
+    display->clear( false );
+    display->setPixel( Config::Display::POWER_LED_PIXEL, STACColors::POWER_ON, true );
+    delay( 2000 );
+
+    // Test 4: Brightness
+    Serial.println( "\nTest 4: Brightness levels" );
+    display->fill( StandardColors::WHITE, true );
+
+    for ( uint8_t brightness = 0; brightness <= 40; brightness += 10 ) {
+        Serial.printf( "  Brightness: %d\n", brightness );
+        display->setBrightness( brightness, true );
+        delay( 500 );
+    }
+
+    // Test 5: XY coordinates
+    Serial.println( "\nTest 5: XY coordinate test" );
+    display->clear( true );
+    delay( 500 );
+
+    // Draw a diagonal line
+    for ( uint8_t i = 0; i < display->getWidth() && i < display->getHeight(); i++ ) {
+        display->setPixelXY( i, i, StandardColors::TEAL, false );
+    }
+    display->show();
+    delay( 2000 );
+
+    Serial.println( "\n=== All Display Tests Passed! ===" );
+    Serial.println( "Phase 2 display abstraction is working!" );
+
+    // Leave display with power indicator on
+    display->clear( false );
+    display->setPixel( Config::Display::POWER_LED_PIXEL, STACColors::POWER_ON, true );
 }
 
 void loop() {
-    // Nothing to do yet
-    delay(1000);
+    // Pulse the power indicator
+    static unsigned long lastPulse = 0;
+    static bool pulseState = true;
+
+    if ( millis() - lastPulse > 2000 ) {
+        lastPulse = millis();
+        pulseState = !pulseState;
+
+        if ( pulseState ) {
+            display->setPixel( Config::Display::POWER_LED_PIXEL, STACColors::POWER_ON, true );
+        }
+        else {
+            display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::DARK_BLUE, true );
+        }
+    }
 }
 
 
