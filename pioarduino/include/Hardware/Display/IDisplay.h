@@ -36,7 +36,7 @@ namespace STAC {
              * @param color RGB color value
              * @param show If true, immediately update the physical display
              */
-            virtual void setPixel( uint8_t position, rgb_t color, bool show = true ) = 0;
+            virtual void setPixel( uint8_t position, color_t color, bool show = true ) = 0;
 
             /**
              * @brief Set a single pixel by X,Y coordinates
@@ -45,14 +45,14 @@ namespace STAC {
              * @param color RGB color value
              * @param show If true, immediately update the physical display
              */
-            virtual void setPixelXY( uint8_t x, uint8_t y, rgb_t color, bool show = true ) = 0;
+            virtual void setPixelXY( uint8_t x, uint8_t y, color_t color, bool show = true ) = 0;
 
             /**
              * @brief Fill entire display with a color
              * @param color RGB color value
              * @param show If true, immediately update the physical display
              */
-            virtual void fill( rgb_t color, bool show = true ) = 0;
+            virtual void fill( color_t color, bool show = true ) = 0;
 
             /**
              * @brief Draw a glyph on the display
@@ -61,7 +61,7 @@ namespace STAC {
              * @param background Background color (for '0' bits)
              * @param show If true, immediately update the physical display
              */
-            virtual void drawGlyph( const uint8_t* glyph, rgb_t foreground, rgb_t background, bool show = true ) = 0;
+            virtual void drawGlyph( const uint8_t* glyph, color_t foreground, color_t background, bool show = true ) = 0;
 
             /**
              * @brief Set display brightness

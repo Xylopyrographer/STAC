@@ -1,0 +1,122 @@
+#include "Hardware/Sensors/QMI8658_IMU.h"
+#include "Device_Config.h"  // Add this line to get IMU_ORIENTATION_OFFSET
+#include <Arduino.h>
+
+namespace STAC {
+    namespace Hardware {
+
+        QMI8658_IMU::QMI8658_IMU( uint8_t sclPin, uint8_t sdaPin, uint8_t address )
+            : sensor()
+            , sclPin( sclPin )
+            , sdaPin( sdaPin )
+            , address( address )
+            , initialized( false ) {
+        }
+
+        bool QMI8658_IMU::begin() {
+            if ( !sensor.begin( Wire, address, sdaPin, sclPin ) ) {
+                log_e( "Failed to initialize QMI8658 IMU" );
+                Wire.flush();
+                initialized = false;
+                return false;
+            }
+
+            // Configure accelerometer
+            sensor.configAccelerometer(
+                SensorQMI8658::ACC_RANGE_2G,
+                SensorQMI8658::ACC_ODR_1000Hz,
+                SensorQMI8658::LPF_MODE_0
+            );
+
+            // Configure gyroscope
+            sensor.configGyroscope(
+                SensorQMI8658::GYR_RANGE_64DPS,
+                SensorQMI8658::GYR_ODR_896_8Hz,
+                SensorQMI8658::LPF_MODE_3
+            );
+
+            // Enable sensors
+            sensor.enableGyroscope();
+            sensor.enableAccelerometer();
+
+            // Wait for data to be ready
+            uint32_t timeout = millis() + DATA_WAIT_TIMEOUT_MS;
+            while ( !sensor.getDataReady() ) {
+                if ( millis() > timeout ) {
+                    log_e( "Timeout waiting for QMI8658 data ready" );
+                    sensor.powerDown();
+                    Wire.flush();
+                    initialized = false;
+                    return false;
+                }
+                delay( 10 );
+            }
+
+            initialized = true;
+            log_i( "QMI8658 IMU initialized on I2C (SCL=%d, SDA=%d, Addr=0x%02X)",
+                   sclPin, sdaPin, address );
+            return true;
+        }
+
+        Orientation QMI8658_IMU::getOrientation() {
+            if ( !initialized ) {
+                log_w( "QMI8658 not initialized, returning UNKNOWN" );
+                return Orientation::UNKNOWN;
+            }
+
+            IMUdata acc;
+
+            // Read accelerometer data
+            uint32_t timeout = millis() + DATA_WAIT_TIMEOUT_MS;
+            while ( !sensor.getAccelerometer( acc.x, acc.y, acc.z ) ) {
+                if ( millis() > timeout ) {
+                    log_e( "Timeout retrieving QMI8658 accelerometer data" );
+                    return Orientation::UNKNOWN;
+                }
+                delay( 10 );
+            }
+
+            // Scale accelerometer values
+            float scaledAccX = acc.x * ACCL_SCALE;
+            float scaledAccY = acc.y * ACCL_SCALE;
+            float scaledAccZ = acc.z * ACCL_SCALE;
+
+            // Determine orientation based on accelerometer readings
+            // The USB port is the reference point
+
+            if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
+                if ( scaledAccY > 0 ) {
+                    return Orientation::LEFT;  // USB port to the left
+                }
+                else {
+                    return Orientation::RIGHT; // USB port to the right
+                }
+            }
+            else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
+                if ( scaledAccX > 0 ) {
+                    return Orientation::DOWN;  // USB port at the top
+                }
+                else {
+                    return Orientation::UP;    // USB port at the bottom
+                }
+            }
+            else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
+                return Orientation::FLAT;      // Device is horizontal
+            }
+
+            return Orientation::UNKNOWN;
+        }
+
+        bool QMI8658_IMU::isAvailable() const {
+            return initialized;
+        }
+
+        const char *QMI8658_IMU::getType() const {
+            return "QMI8658";
+        }
+
+    } // namespace Hardware
+} // namespace STAC
+
+
+//  --- EOF --- //

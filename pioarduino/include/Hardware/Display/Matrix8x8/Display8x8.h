@@ -32,10 +32,10 @@ namespace STAC {
             // IDisplay interface implementation
             bool begin() override;
             void clear( bool show = true ) override;
-            void setPixel( uint8_t position, rgb_t color, bool show = true ) override;
-            void setPixelXY( uint8_t x, uint8_t y, rgb_t color, bool show = true ) override;
-            void fill( rgb_t color, bool show = true ) override;
-            void drawGlyph( const uint8_t* glyph, rgb_t foreground, rgb_t background, bool show = true ) override;
+            void setPixel( uint8_t position, color_t color, bool show = true ) override;
+            void setPixelXY( uint8_t x, uint8_t y, color_t color, bool show = true ) override;
+            void fill( color_t color, bool show = true ) override;
+            void drawGlyph( const uint8_t* glyph, color_t foreground, color_t background, bool show = true ) override;
             void setBrightness( uint8_t brightness, bool show = true ) override;
             uint8_t getBrightness() const override;
             void show() override;
@@ -86,7 +86,7 @@ namespace STAC {
              * @param foreground Foreground color
              * @param background Background color
              */
-            void unpackGlyphRow( uint8_t packedByte, uint8_t row, rgb_t foreground, rgb_t background );
+            void unpackGlyphRow( uint8_t packedByte, uint8_t row, color_t foreground, color_t background );
         };
 
     } // namespace Display

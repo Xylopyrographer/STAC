@@ -29,18 +29,18 @@ namespace STAC {
             display.clear( show );
         }
 
-        void Display5x5::setPixel( uint8_t position, rgb_t color, bool show ) {
+        void Display5x5::setPixel( uint8_t position, color_t color, bool show ) {
             if ( !isValidPosition( position ) ) {
                 log_w( "Invalid pixel position: %d (valid: 0-%d)", position, numLeds - 1 );
                 return;
             }
 
             // Convert color to board-specific order
-            rgb_t boardSpecificColor = boardColor( color );
+            color_t boardSpecificColor = boardColor( color );
             display.setPixel( position, boardSpecificColor, show );
         }
 
-        void Display5x5::setPixelXY( uint8_t x, uint8_t y, rgb_t color, bool show ) {
+        void Display5x5::setPixelXY( uint8_t x, uint8_t y, color_t color, bool show ) {
             if ( x >= 5 || y >= 5 ) {
                 log_w( "Invalid coordinates: (%d, %d) (valid: 0-4)", x, y );
                 return;
@@ -50,8 +50,8 @@ namespace STAC {
             setPixel( position, color, show );
         }
 
-        void Display5x5::fill( rgb_t color, bool show ) {
-            rgb_t boardSpecificColor = boardColor( color );
+        void Display5x5::fill( color_t color, bool show ) {
+            color_t boardSpecificColor = boardColor( color );
 
             for ( uint8_t i = 0; i < numLeds; i++ ) {
                 display.setPixel( i, boardSpecificColor, false );
@@ -62,19 +62,19 @@ namespace STAC {
             }
         }
 
-        void Display5x5::drawGlyph( const uint8_t* glyph, rgb_t foreground, rgb_t background, bool show ) {
+        void Display5x5::drawGlyph( const uint8_t* glyph, color_t foreground, color_t background, bool show ) {
             if ( glyph == nullptr ) {
                 log_e( "Null glyph pointer" );
                 return;
             }
 
             // Convert colors to board-specific order
-            rgb_t fgColor = boardColor( foreground );
-            rgb_t bgColor = boardColor( background );
+            color_t fgColor = boardColor( foreground );
+            color_t bgColor = boardColor( background );
 
             // Draw glyph (unpacked format: 25 bytes, 1 byte per pixel)
             for ( uint8_t i = 0; i < numLeds; i++ ) {
-                rgb_t color = ( glyph[ i ] != 0 ) ? fgColor : bgColor;
+                color_t color = ( glyph[ i ] != 0 ) ? fgColor : bgColor;
                 display.setPixel( i, color, false );
             }
 
@@ -117,18 +117,18 @@ namespace STAC {
         uint8_t Display5x5::xyToPosition( uint8_t x, uint8_t y ) const {
             // For 5x5 matrix, assuming row-major order
             // This may need adjustment based on actual wiring
-#ifdef DISPLAY_WIRING_SERPENTINE
-            // Serpentine wiring (zigzag pattern)
-            if ( y % 2 == 0 ) {
+            #ifdef DISPLAY_WIRING_SERPENTINE
+                // Serpentine wiring (zigzag pattern)
+                if ( y % 2 == 0 ) {
+                    return y * 5 + x;
+                }
+                else {
+                    return y * 5 + ( 4 - x );
+                }
+            #else
+                // Row-by-row wiring
                 return y * 5 + x;
-            }
-            else {
-                return y * 5 + ( 4 - x );
-            }
-#else
-            // Row-by-row wiring
-            return y * 5 + x;
-#endif
+            #endif
         }
 
     } // namespace Display
