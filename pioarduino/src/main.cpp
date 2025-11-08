@@ -5,6 +5,8 @@
 #include "Hardware/Display/DisplayFactory.h"
 #include "Hardware/Display/Colors.h"
 #include "Hardware/Sensors/IMUFactory.h"
+#include "Hardware/Input/ButtonFactory.h"
+#include "Hardware/Interface/InterfaceFactory.h"
 
 using namespace STAC;
 using namespace STAC::Display;
@@ -13,164 +15,202 @@ using namespace STAC::Hardware;
 // Create hardware objects
 std::unique_ptr<IDisplay> display;
 std::unique_ptr<IIMU> imu;
+std::unique_ptr<IButton> button;
+std::unique_ptr<GrovePort> grovePort;
+std::unique_ptr<PeripheralMode> peripheralDetector;
+
+// State tracking
+TallyState currentTallyState = TallyState::NO_TALLY;
+bool isPeripheralMode = false;
+int tallyStateIndex = 0;
 
 void setup() {
     Serial.begin( 115200 );
-    delay( 1000 ); // Give time for USB CDC
+    delay( 1000 );
 
-    Serial.println( "\n=== STAC Phase 3: IMU Test ===" );
+    Serial.println( "\n=== STAC Phase 4: Hardware Interfaces Test ===" );
     Serial.printf( "Board: %s\n", Config::Strings::BOARD_NAME );
 
     // Initialize display
-    Serial.printf( "Display Type: %s\n", DisplayFactory::getDisplayType() );
+    Serial.printf( "\nDisplay Type: %s\n", DisplayFactory::getDisplayType() );
     display = DisplayFactory::create();
 
     if ( !display->begin() ) {
-        Serial.println( "ERROR: Failed to initialize display! - Halting program." );
+        Serial.println( "ERROR: Failed to initialize display!" );
         while ( true ) {
             delay( 1000 );
         }
     }
-    Serial.println( "Display initialized successfully!" );
+    Serial.println( "✓ Display initialized" );
 
     // Initialize IMU
-    Serial.printf( "IMU Type: %s\n", IMUFactory::getIMUType() );
-    Serial.printf( "Has IMU: %s\n", IMUFactory::hasIMU() ? "Yes" : "No" );
-
+    Serial.printf( "\nIMU Type: %s\n", IMUFactory::getIMUType() );
     imu = IMUFactory::create();
 
     if ( !imu->begin() ) {
-        Serial.println( "WARNING: Failed to initialize IMU (may not be present)" );
+        Serial.println( "⚠ IMU not initialized" );
     }
     else {
-        Serial.println( "IMU initialized successfully!" );
+        Serial.println( "✓ IMU initialized" );
     }
 
-    // Test orientation detection
-    if ( imu->isAvailable() ) {
-        Serial.println( "\nTesting orientation detection..." );
-        Serial.println( "Rotate the device to see orientation changes:" );
+    // Detect peripheral mode
+    Serial.println( "\nChecking for peripheral mode..." );
+    peripheralDetector = InterfaceFactory::createPeripheralDetector();
+    isPeripheralMode = peripheralDetector->detect();
 
-        for ( int i = 0; i < 10; i++ ) {
-            Orientation orient = imu->getOrientation();
+    if ( isPeripheralMode ) {
+        Serial.println( "✓ PERIPHERAL MODE DETECTED" );
+        Serial.println( "  GROVE port will be used as INPUT" );
+    }
+    else {
+        Serial.println( "✓ NORMAL MODE" );
+        Serial.println( "  GROVE port will be used as OUTPUT" );
+    }
 
-            const char *orientStr = "UNKNOWN";
-            switch ( orient ) {
-                case Orientation::UP:
-                    orientStr = "UP";
-                    break;
-                case Orientation::DOWN:
-                    orientStr = "DOWN";
-                    break;
-                case Orientation::LEFT:
-                    orientStr = "LEFT";
-                    break;
-                case Orientation::RIGHT:
-                    orientStr = "RIGHT";
-                    break;
-                case Orientation::FLAT:
-                    orientStr = "FLAT";
-                    break;
-                default:
-                    break;
-            }
+    // Initialize GROVE port
+    Serial.println( "\nInitializing GROVE port..." );
+    grovePort = InterfaceFactory::createGrovePort( !isPeripheralMode );
+    Serial.println( "✓ GROVE port initialized" );
 
-            Serial.printf( "  Orientation %d/10: %s\n", i + 1, orientStr );
+    // Initialize button
+    Serial.println( "\nInitializing button..." );
+    button = ButtonFactory::create();
 
-            // Show orientation on display
-            display->clear( false );
-
-            // Draw a simple indicator based on orientation
-            uint8_t centerPixel = Config::Display::POWER_LED_PIXEL;
-            display->setPixel( centerPixel, STACColors::POWER_ON, false );
-
-            // Add directional indicator
-            switch ( orient ) {
-                case Orientation::UP:
-                    // Light up top pixel
-                    display->setPixel( centerPixel - display->getWidth(),
-                                       StandardColors::GREEN, false );
-                    break;
-                case Orientation::DOWN:
-                    // Light up bottom pixel
-                    display->setPixel( centerPixel + display->getWidth(),
-                                       StandardColors::GREEN, false );
-                    break;
-                case Orientation::LEFT:
-                    // Light up left pixel
-                    display->setPixel( centerPixel - 1,
-                                       StandardColors::GREEN, false );
-                    break;
-                case Orientation::RIGHT:
-                    // Light up right pixel
-                    display->setPixel( centerPixel + 1,
-                                       StandardColors::GREEN, false );
-                    break;
-                case Orientation::FLAT:
-                    // Light up all around center
-                    display->fill( StandardColors::DARK_BLUE, false );
-                    display->setPixel( centerPixel, STACColors::POWER_ON, false );
-                    break;
-                default:
-                    // Unknown - pulse red
-                    display->setPixel( centerPixel, StandardColors::RED, false );
-                    break;
-            }
-
-            display->show();
+    if ( !button->begin() ) {
+        Serial.println( "ERROR: Failed to initialize button!" );
+        while ( true ) {
             delay( 1000 );
         }
     }
+    Serial.println( "✓ Button initialized" );
+
+    Serial.println( "\n=== Phase 4 Test Instructions ===" );
+    if ( isPeripheralMode ) {
+        Serial.println( "PERIPHERAL MODE:" );
+        Serial.println( "  - Reading tally state from GROVE port" );
+        Serial.println( "  - Display shows received tally state" );
+    }
     else {
-        Serial.println( "\nIMU not available - skipping orientation tests" );
+        Serial.println( "NORMAL MODE:" );
+        Serial.println( "  - Button press cycles tally states:" );
+        Serial.println( "    1. NO_TALLY (Purple)" );
+        Serial.println( "    2. PREVIEW (Green)" );
+        Serial.println( "    3. PROGRAM (Red)" );
+        Serial.println( "    4. UNSELECTED (Blue)" );
+        Serial.println( "  - States sent to GROVE port pins" );
     }
 
-    Serial.println( "\n=== Phase 3 IMU Tests Complete! ===" );
-
-    // Leave display with power indicator
+    // Show ready state
     display->clear( false );
-    display->setPixel( Config::Display::POWER_LED_PIXEL, STACColors::POWER_ON, true );
+    display->setPixel( Config::Display::POWER_LED_PIXEL,
+                       STACColors::POWER_ON, true );
+
+    Serial.println( "\n=== Setup Complete! ===\n" );
 }
 
 void loop() {
-    // Show current orientation continuously
-    if ( imu->isAvailable() ) {
-        static unsigned long lastUpdate = 0;
-        static Orientation lastOrient = Orientation::UNKNOWN;
+    button->update();
 
-        if ( millis() - lastUpdate > 500 ) {
-            lastUpdate = millis();
-            Orientation currentOrient = imu->getOrientation();
+    if ( isPeripheralMode ) {
+        // PERIPHERAL MODE: Read tally state from GROVE port
+        static unsigned long lastRead = 0;
+        if ( millis() - lastRead > 100 ) { // Read every 100ms
+            lastRead = millis();
 
-            // Only update if orientation changed
-            if ( currentOrient != lastOrient ) {
-                lastOrient = currentOrient;
+            TallyState readState = grovePort->readTallyState();
 
-                const char *orientStr = "UNKNOWN";
-                switch ( currentOrient ) {
-                    case Orientation::UP:
-                        orientStr = "UP";
+            if ( readState != currentTallyState ) {
+                currentTallyState = readState;
+
+                const char *stateStr = "UNKNOWN";
+                color_t stateColor = StandardColors::PURPLE;
+
+                switch ( currentTallyState ) {
+                    case TallyState::PROGRAM:
+                        stateStr = "PROGRAM";
+                        stateColor = STACColors::PROGRAM;
                         break;
-                    case Orientation::DOWN:
-                        orientStr = "DOWN";
+                    case TallyState::PREVIEW:
+                        stateStr = "PREVIEW";
+                        stateColor = STACColors::PREVIEW;
                         break;
-                    case Orientation::LEFT:
-                        orientStr = "LEFT";
+                    case TallyState::UNSELECTED:
+                        stateStr = "UNSELECTED";
+                        stateColor = STACColors::UNSELECTED;
                         break;
-                    case Orientation::RIGHT:
-                        orientStr = "RIGHT";
-                        break;
-                    case Orientation::FLAT:
-                        orientStr = "FLAT";
+                    case TallyState::NO_TALLY:
+                        stateStr = "NO_TALLY";
+                        stateColor = StandardColors::PURPLE;
                         break;
                     default:
                         break;
                 }
 
-                Serial.printf( "Orientation changed: %s\n", orientStr );
+                Serial.printf( "Received tally state: %s\n", stateStr );
+                display->fill( stateColor, true );
             }
         }
+
     }
+    else {
+        // NORMAL MODE: Button cycles tally states
+        if ( button->wasClicked() ) {
+            // Cycle through tally states
+            tallyStateIndex = ( tallyStateIndex + 1 ) % 4;
+
+            TallyState states[] = {
+                TallyState::NO_TALLY,
+                TallyState::PREVIEW,
+                TallyState::PROGRAM,
+                TallyState::UNSELECTED
+            };
+
+            currentTallyState = states[ tallyStateIndex ];
+
+            const char *stateStr = "UNKNOWN";
+            color_t stateColor = StandardColors::PURPLE;
+
+            switch ( currentTallyState ) {
+                case TallyState::PROGRAM:
+                    stateStr = "PROGRAM";
+                    stateColor = STACColors::PROGRAM;
+                    break;
+                case TallyState::PREVIEW:
+                    stateStr = "PREVIEW";
+                    stateColor = STACColors::PREVIEW;
+                    break;
+                case TallyState::UNSELECTED:
+                    stateStr = "UNSELECTED";
+                    stateColor = STACColors::UNSELECTED;
+                    break;
+                case TallyState::NO_TALLY:
+                    stateStr = "NO_TALLY";
+                    stateColor = StandardColors::PURPLE;
+                    break;
+                default:
+                    break;
+            }
+
+            Serial.printf( "Tally state: %s\n", stateStr );
+
+            // Send to GROVE port
+            grovePort->setTallyState( currentTallyState );
+
+            // Show on display
+            display->fill( stateColor, true );
+
+            delay( 300 ); // Visual feedback
+        }
+
+        // Show button state
+        if ( button->isPressed() && !button->isLongPress() ) {
+            display->setPixel( Config::Display::POWER_LED_PIXEL,
+                               StandardColors::WHITE, true );
+        }
+    }
+
+    delay( 10 );
 }
 
 

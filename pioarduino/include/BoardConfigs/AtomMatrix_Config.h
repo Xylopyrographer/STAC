@@ -46,6 +46,7 @@
     #define PIN_BUTTON 39
     #define BUTTON_DEBOUNCE_MS 25
     #define BUTTON_ACTIVE_LOW true
+    #define BUTTON_NEEDS_EXTERNAL_PULLUP true  // Add this line - GPIO39 is input-only
 
     // ============================================================================
     // IMU CONFIGURATION
