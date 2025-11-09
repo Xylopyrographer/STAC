@@ -44,8 +44,10 @@ namespace STAC {
             constexpr color_t PROGRAM         = StandardColors::RED;      // On-air
             constexpr color_t PREVIEW         = StandardColors::GREEN;    // Preview
             constexpr color_t UNSELECTED      = StandardColors::BLUE;     // Changed from PURPLE
-            constexpr color_t WARNING         = StandardColors::ORANGE;   // Warning state
-            constexpr color_t ALERT           = StandardColors::RED;      // Alert/error
+            // constexpr color_t WARNING         = StandardColors::ORANGE;   // Warning state
+            constexpr color_t WARNING         = StandardColors::YELLOW;   // Warning state
+            // constexpr color_t ALERT           = StandardColors::RED;      // Alert/error
+            constexpr color_t ALERT           = StandardColors::ORANGE;      // Alert/error
             constexpr color_t GTG             = StandardColors::GREEN;    // Good-to-go
             constexpr color_t POWER_ON        = StandardColors::BLUE;     // Power indicator
             constexpr color_t HDMI_VALUE      = StandardColors::BLUE;     // HDMI channel

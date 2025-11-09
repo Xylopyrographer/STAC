@@ -9,270 +9,286 @@
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/WiFiManager.h"
 #include "Storage/ConfigManager.h"
+#include "State/SystemState.h"
 
 using namespace STAC;
 using namespace STAC::Display;
 using namespace STAC::Hardware;
 using namespace STAC::Network;
 using namespace STAC::Storage;
+using namespace STAC::State;
 
-// Create hardware objects
+// Hardware objects
 std::unique_ptr<IDisplay> display;
 std::unique_ptr<IIMU> imu;
 std::unique_ptr<IButton> button;
 std::unique_ptr<GrovePort> grovePort;
 std::unique_ptr<PeripheralMode> peripheralDetector;
 
-// Create network & storage objects
+// Network & Storage
 std::unique_ptr<WiFiManager> wifiManager;
 std::unique_ptr<ConfigManager> configManager;
 
-// State
-bool isPeripheralMode = false;
-String stacID;
+// State Management
+std::unique_ptr<SystemState> systemState;
+
+// Demo state cycling
+int demoStateIndex = 0;
+TallyState demoStates[] = {
+    TallyState::NO_TALLY,
+    TallyState::PREVIEW,
+    TallyState::PROGRAM,
+    TallyState::UNSELECTED,
+    TallyState::ERROR
+};
 
 void setup() {
     Serial.begin( 115200 );
     delay( 1000 );
 
-    Serial.println( "\n╔════════════════════════════════════════════╗" );
-    Serial.println( "║  STAC Phase 5: Network & Storage Test     ║" );
+    Serial.println();
+    Serial.println( "╔════════════════════════════════════════════╗" );
+    Serial.println( "║    STAC Phase 6: State Management Test     ║" );
     Serial.println( "╚════════════════════════════════════════════╝" );
     Serial.printf( "\nBoard: %s\n", Config::Strings::BOARD_NAME );
 
     // ========================================================================
-    // DISPLAY
+    // HARDWARE INITIALIZATION
     // ========================================================================
-    Serial.println( "\n--- Display Initialization ---" );
-    display = DisplayFactory::create();
+    Serial.println( "\n--- Hardware Initialization ---" );
 
+    // Display
+    display = DisplayFactory::create();
     if ( !display->begin() ) {
-        Serial.println( "❌ Display initialization failed!" );
+        Serial.println( "❌ Display failed!" );
         while ( true ) {
             delay( 1000 );
         }
     }
-    Serial.println( "✓ Display initialized" );
+    Serial.println( "✓ Display" );
 
-    // Show startup animation
     display->fill( StandardColors::BLUE, true );
     delay( 200 );
-    display->clear( false );
-    display->setPixel( Config::Display::POWER_LED_PIXEL, STACColors::POWER_ON, true );
+    display->clear( true );
 
-    // ========================================================================
     // IMU
-    // ========================================================================
-    Serial.println( "\n--- IMU Initialization ---" );
     imu = IMUFactory::create();
-
-    if ( !imu->begin() ) {
-        Serial.println( "⚠ IMU not initialized" );
+    if ( imu->begin() ) {
+        Serial.printf( "✓ IMU (%s)\n", imu->getType() );
     }
     else {
-        Serial.printf( "✓ IMU initialized (%s)\n", imu->getType() );
+        Serial.println( "⚠ IMU unavailable" );
     }
 
-    // ========================================================================
-    // PERIPHERAL MODE DETECTION
-    // ========================================================================
-    Serial.println( "\n--- Peripheral Mode Detection ---" );
+    // Peripheral mode detection
     peripheralDetector = InterfaceFactory::createPeripheralDetector();
-    isPeripheralMode = peripheralDetector->detect();
+    bool isPeripheralMode = peripheralDetector->detect();
 
-    if ( isPeripheralMode ) {
-        Serial.println( "✓ PERIPHERAL MODE detected" );
-        display->fill( StandardColors::ORANGE, true );
-        delay( 500 );
-    }
-    else {
-        Serial.println( "✓ NORMAL MODE" );
-    }
-
-    // ========================================================================
-    // GROVE PORT
-    // ========================================================================
-    Serial.println( "\n--- GROVE Port Initialization ---" );
+    // GROVE port
     grovePort = InterfaceFactory::createGrovePort( !isPeripheralMode );
-    Serial.printf( "✓ GROVE port initialized (%s mode)\n",
-                   isPeripheralMode ? "INPUT" : "OUTPUT" );
+    Serial.printf( "✓ GROVE (%s)\n", isPeripheralMode ? "INPUT" : "OUTPUT" );
 
-    // ========================================================================
-    // BUTTON
-    // ========================================================================
-    Serial.println( "\n--- Button Initialization ---" );
+    // Button
     button = ButtonFactory::create();
-
     if ( !button->begin() ) {
-        Serial.println( "❌ Button initialization failed!" );
+        Serial.println( "❌ Button failed!" );
     }
     else {
-        Serial.println( "✓ Button initialized" );
+        Serial.println( "✓ Button" );
     }
 
     // ========================================================================
-    // CONFIG MANAGER
+    // STORAGE & NETWORK
     // ========================================================================
-    Serial.println( "\n--- Configuration Manager ---" );
+    Serial.println( "\n--- Storage & Network ---" );
+
+    // Config Manager
     configManager = std::make_unique<ConfigManager>();
+    configManager->begin();
+    Serial.println( "✓ Config Manager" );
 
-    if ( !configManager->begin() ) {
-        Serial.println( "❌ Config manager initialization failed!" );
-    }
-    else {
-        Serial.println( "✓ Config manager initialized" );
-    }
+    // WiFi Manager
+    wifiManager = std::make_unique<WiFiManager>();
+    wifiManager->begin();
+    Serial.println( "✓ WiFi Manager" );
 
     // Load or generate STAC ID
+    String stacID;
     if ( !configManager->loadStacID( stacID ) ) {
-        Serial.println( "  No STAC ID found, generating..." );
         stacID = configManager->generateAndSaveStacID();
     }
     Serial.printf( "  STAC ID: %s\n", stacID.c_str() );
 
-    // Check for existing configuration
-    if ( configManager->hasWiFiCredentials() ) {
-        String ssid, password;
-        configManager->loadWiFiCredentials( ssid, password );
-        Serial.printf( "  Stored WiFi: %s\n", ssid.c_str() );
-    }
-    else {
-        Serial.println( "  No WiFi credentials stored" );
-    }
-
-    // ========================================================================
-    // WIFI MANAGER
-    // ========================================================================
-    Serial.println( "\n--- WiFi Manager ---" );
-    wifiManager = std::make_unique<WiFiManager>();
-
-    if ( !wifiManager->begin() ) {
-        Serial.println( "❌ WiFi manager initialization failed!" );
-    }
-    else {
-        Serial.println( "✓ WiFi manager initialized" );
-    }
-
-    // Set hostname
+    // Start AP for testing
     wifiManager->setHostname( stacID );
-    Serial.printf( "  Hostname: %s\n", wifiManager->getHostname().c_str() );
-    Serial.printf( "  MAC Address: %s\n", wifiManager->getMacAddress().c_str() );
+    if ( wifiManager->startAP( stacID, "" ) ) {
+        Serial.printf( "  AP: %s @ %s\n", stacID.c_str(),
+                       wifiManager->getLocalIP().c_str() );
+    }
 
-    // Start in AP mode for testing
-    String apSSID = stacID;
-    Serial.printf( "\n  Starting AP mode: %s\n", apSSID.c_str() );
+    // ========================================================================
+    // STATE MANAGEMENT
+    // ========================================================================
+    Serial.println( "\n--- State Management ---" );
 
-    if ( wifiManager->startAP( apSSID, "" ) ) {
-        Serial.println( "  ✓ Access Point started" );
-        Serial.printf( "  AP IP: %s\n", wifiManager->getLocalIP().c_str() );
+    systemState = std::make_unique<SystemState>();
 
-        // Show AP mode on display
-        display->fill( StandardColors::TEAL, true );
-        delay( 500 );
+    if ( !systemState->begin() ) {
+        Serial.println( "❌ System state failed!" );
+        while ( true ) {
+            delay( 1000 );
+        }
+    }
+    Serial.println( "✓ System State initialized" );
+
+    // Set operating mode based on peripheral detection
+    if ( isPeripheralMode ) {
+        systemState->getOperatingMode().setMode( OperatingMode::PERIPHERAL );
     }
     else {
-        Serial.println( "  ❌ Failed to start Access Point" );
+        systemState->getOperatingMode().setMode( OperatingMode::NORMAL );
     }
+
+    Serial.printf( "  Operating Mode: %s\n",
+                   systemState->getOperatingMode().getModeString() );
+    Serial.printf( "  Tally State: %s\n",
+                   systemState->getTallyState().getStateString() );
+
+    // Set up tally state change callback
+    systemState->getTallyState().setStateChangeCallback(
+    []( TallyState oldState, TallyState newState ) {
+        Serial.printf( "🔔 Tally changed: %s -> %s\n",
+                       TallyStateManager::stateToString( oldState ),
+                       TallyStateManager::stateToString( newState ) );
+    }
+    );
+
+    // Load and display operations
+    StacOperations& ops = systemState->getOperations();
+    if ( configManager->loadOperations( ops ) ) {
+        Serial.println( "  Loaded operations from NVS" );
+        Serial.printf( "    Switch: %s\n", ops.switchModel.c_str() );
+        Serial.printf( "    Channel: %d\n", ops.tallyChannel );
+        Serial.printf( "    Auto-start: %s\n", ops.autoStartEnabled ? "Yes" : "No" );
+    }
+
+    // Check if system is ready
+    Serial.printf( "  System Ready: %s\n",
+                   systemState->isReady() ? "Yes" : "No (needs config)" );
 
     // ========================================================================
     // SETUP COMPLETE
     // ========================================================================
-    Serial.println( "\n╔════════════════════════════════════════════╗" );
-    Serial.println( "║  Setup Complete!                           ║" );
+    Serial.println();
+    Serial.println( "╔════════════════════════════════════════════╗" );
+    Serial.println( "║              Setup Complete!               ║" );
     Serial.println( "╚════════════════════════════════════════════╝" );
     Serial.println( "\n--- Test Instructions ---" );
     Serial.println( "Button Actions:" );
-    Serial.println( "  • Short press: Save test WiFi credentials" );
-    Serial.println( "  • Long press:  Clear all configuration" );
-    Serial.println( "\nConnect to WiFi:" );
-    Serial.printf( "  SSID: %s (open network)\n", apSSID.c_str() );
-    Serial.printf( "  IP:   %s\n", wifiManager->getLocalIP().c_str() );
-    Serial.println( "\n" );
+    Serial.println( "  • Short press: Cycle tally states" );
+    Serial.println( "  • Long press:  Toggle operating mode" );
+    Serial.println( "\nWatch display change color with tally state:" );
+    Serial.println( "  NO_TALLY:    Purple" );
+    Serial.println( "  PREVIEW:     Green" );
+    Serial.println( "  PROGRAM:     Red" );
+    Serial.println( "  UNSELECTED:  Blue" );
+    Serial.println( "  ERROR:       Red (bright)" );
+    Serial.println();
 
-    // Ready state
-    display->clear( false );
-    display->setPixel( Config::Display::POWER_LED_PIXEL,
-                       StandardColors::TEAL, true );
+    // Show initial state
+    display->fill( systemState->getTallyState().getStateColor(), true );
 }
 
 void loop() {
     // Update button
     button->update();
 
-    // Handle button events
+    // Short press: Cycle tally states
     if ( button->wasClicked() ) {
-        Serial.println( "\n--- Saving Test Configuration ---" );
+        demoStateIndex = ( demoStateIndex + 1 ) % 5;
+        TallyState newState = demoStates[ demoStateIndex ];
 
-        // Save test WiFi credentials
-        configManager->saveWiFiCredentials( "TestNetwork", "TestPassword123" );
-        Serial.println( "✓ WiFi credentials saved" );
+        // Update system state
+        systemState->getTallyState().setState( newState );
 
-        // Save test switch config
-        IPAddress testIP( 192, 168, 1, 100 );
-        configManager->saveSwitchConfig( "V-60HD", testIP, 80 );
-        Serial.println( "✓ Switch config saved" );
+        // Update display
+        display->fill( systemState->getTallyState().getStateColor(), true );
 
-        // Save test operations
-        StacOperations ops;
-        ops.switchModel = "V-60HD";
-        ops.tallyChannel = 3;
-        ops.autoStartEnabled = true;
-        ops.displayBrightnessLevel = 5;
-        configManager->saveOperations( ops );
-        Serial.println( "✓ Operations saved" );
+        // Update GROVE port (if in normal mode)
+        if ( systemState->getOperatingMode().isNormalMode() ) {
+            grovePort->setTallyState( newState );
+            Serial.printf( "  → GROVE output: %s\n",
+                           systemState->getTallyState().getStateString() );
+        }
+    }
+
+    // Long press: Toggle between Normal and Peripheral modes
+    static bool longPressHandled = false;
+    if ( button->isLongPress() && !longPressHandled ) {
+        longPressHandled = true;
+
+        // Toggle mode
+        if ( systemState->getOperatingMode().isNormalMode() ) {
+            systemState->getOperatingMode().setMode( OperatingMode::PERIPHERAL );
+            Serial.println( "\n→ Switched to PERIPHERAL mode" );
+
+            // Reconfigure GROVE as input
+            grovePort = InterfaceFactory::createGrovePort( false ); // Input mode
+
+        }
+        else {
+            systemState->getOperatingMode().setMode( OperatingMode::NORMAL );
+            Serial.println( "\n→ Switched to NORMAL mode" );
+
+            // Reconfigure GROVE as output
+            grovePort = InterfaceFactory::createGrovePort( true ); // Output mode
+        }
 
         // Visual feedback
-        display->fill( StandardColors::GREEN, true );
+        display->fill( StandardColors::YELLOW, true );
         delay( 500 );
-        display->clear( false );
-        display->setPixel( Config::Display::POWER_LED_PIXEL,
-                           StandardColors::TEAL, true );
-
-        Serial.println( "Configuration saved! Reset to see it loaded.\n" );
+        display->fill( systemState->getTallyState().getStateColor(), true );
     }
 
-    if ( button->isLongPress() ) {
-        static bool longPressHandled = false;
+    if ( !button->isPressed() ) {
+        longPressHandled = false;
+    }
 
-        if ( !longPressHandled ) {
-            longPressHandled = true;
+    // In peripheral mode, read tally state from GROVE
+    if ( systemState->getOperatingMode().isPeripheralMode() ) {
+        static unsigned long lastRead = 0;
+        if ( millis() - lastRead > 100 ) {
+            lastRead = millis();
 
-            Serial.println( "\n--- Clearing All Configuration ---" );
-            configManager->clearAll();
-            Serial.println( "✓ All configuration cleared" );
+            TallyState receivedState = grovePort->readTallyState();
 
-            // Visual feedback
-            display->fill( StandardColors::RED, true );
-            delay( 1000 );
-            display->clear( false );
-            display->setPixel( Config::Display::POWER_LED_PIXEL,
-                               StandardColors::TEAL, true );
-
-            Serial.println( "Configuration cleared!\n" );
-        }
-
-        if ( !button->isPressed() ) {
-            longPressHandled = false;
+            if ( receivedState != systemState->getTallyState().getCurrentState() ) {
+                systemState->getTallyState().setState( receivedState );
+                display->fill( systemState->getTallyState().getStateColor(), true );
+                Serial.printf( "  ← GROVE input: %s\n",
+                               systemState->getTallyState().getStateString() );
+            }
         }
     }
 
-    // Update WiFi manager
+    // Update managers
+    systemState->update();
     wifiManager->update();
 
-    // Show WiFi state on serial periodically
-    static unsigned long lastStatusUpdate = 0;
-    if ( millis() - lastStatusUpdate > 30000 ) { // Every 30 seconds
-        lastStatusUpdate = millis();
+    // Status updates
+    static unsigned long lastStatus = 0;
+    if ( millis() - lastStatus > 30000 ) {
+        lastStatus = millis();
 
         Serial.println( "\n--- Status Update ---" );
-        Serial.printf( "WiFi State: %s\n",
+        Serial.printf( "Operating Mode: %s\n",
+                       systemState->getOperatingMode().getModeString() );
+        Serial.printf( "Tally State: %s (for %lu sec)\n",
+                       systemState->getTallyState().getStateString(),
+                       systemState->getTallyState().getTimeSinceChange() / 1000 );
+        Serial.printf( "WiFi: %s\n",
                        wifiManager->isAPMode() ? "AP Mode" :
                        wifiManager->isConnected() ? "Connected" : "Disconnected" );
-        Serial.printf( "IP: %s\n", wifiManager->getLocalIP().c_str() );
-
-        if ( wifiManager->isConnected() ) {
-            Serial.printf( "RSSI: %d dBm\n", wifiManager->getRSSI() );
-        }
         Serial.println();
     }
 
