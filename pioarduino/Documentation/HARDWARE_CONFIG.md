@@ -28,6 +28,7 @@ STAC uses a compile-time configuration system based on `Device_Config.h`. This a
 ### M5Stack ATOM Matrix
 
 **Specifications:**
+
 - **Display:** 5×5 RGB LED matrix (WS2812, GRB color order, serpentine wiring)
 - **IMU:** MPU6886 (6-axis accelerometer/gyroscope)
 - **Button:** GPIO 39 (active low, input-only pin - needs external pullup)
@@ -44,6 +45,7 @@ STAC uses a compile-time configuration system based on `Device_Config.h`. This a
 ### Waveshare ESP32-S3-Matrix
 
 **Specifications:**
+
 - **Display:** 8×8 RGB LED matrix (WS2812, GRB color order, serpentine wiring)
 - **IMU:** QMI8658 (6-axis accelerometer/gyroscope)
 - **Button:** GPIO 7 (active low, internal pullup available)
@@ -63,6 +65,7 @@ STAC uses a compile-time configuration system based on `Device_Config.h`. This a
 ### Step 1: Select Your Board
 
 Edit `pioarduino/include/Device_Config.h`:
+
 ```cpp
 // Uncomment ONE board definition
 #define BOARD_M5STACK_ATOM_MATRIX
@@ -74,6 +77,7 @@ Edit `pioarduino/include/Device_Config.h`:
 ### Step 2: Compile
 
 The build system automatically includes the correct board configuration:
+
 ```bash
 # PlatformIO
 pio run -e atom-matrix
@@ -83,6 +87,7 @@ pio run -e atom-matrix
 ```
 
 ### Step 3: Upload
+
 ```bash
 pio run -e atom-matrix -t upload
 ```
@@ -96,6 +101,7 @@ That's it! The correct drivers, pin assignments, and settings are automatically 
 Each board configuration file (`BoardConfigs/XYZ_Config.h`) defines:
 
 ### Display Configuration
+
 ```cpp
 #define DISPLAY_MATRIX_WIDTH 5          // Matrix width (5 or 8)
 #define DISPLAY_MATRIX_HEIGHT 5         // Matrix height (5 or 8)
@@ -110,6 +116,7 @@ Each board configuration file (`BoardConfigs/XYZ_Config.h`) defines:
 **Display Wiring Patterns:**
 
 **Serpentine** (zigzag):
+
 ```
 → → → → →
         ↓
@@ -119,6 +126,7 @@ Each board configuration file (`BoardConfigs/XYZ_Config.h`) defines:
 ```
 
 **Row-by-row** (all left-to-right):
+
 ```
 → → → → →
 → → → → →
@@ -126,6 +134,7 @@ Each board configuration file (`BoardConfigs/XYZ_Config.h`) defines:
 ```
 
 ### IMU Configuration
+
 ```cpp
 #define IMU_TYPE_MPU6886               // IMU chip type
 #define IMU_HAS_IMU true               // Board has IMU
@@ -145,11 +154,13 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 - `3` = 270° clockwise (or 90° counter-clockwise)
 
 **How to determine correct offset:**
+
 1. Hold device with USB port at bottom (your expected "UP")
 2. Note what orientation is reported
 3. Adjust offset until "UP" is correct
 
 ### Button Configuration
+
 ```cpp
 #define PIN_BUTTON 39                  // Button GPIO pin
 #define BUTTON_DEBOUNCE_MS 25          // Debounce time
@@ -158,11 +169,13 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 ```
 
 **Note on GPIO 39 (ATOM Matrix):**
+
 - GPIO 39 is input-only on ESP32 (no internal pullup/pulldown)
 - ATOM Matrix has external pullup resistor
 - Must set `BUTTON_NEEDS_EXTERNAL_PULLUP true`
 
 ### Interface Pins
+
 ```cpp
 // Peripheral mode detection
 #define PIN_PM_CHECK_OUT 3             // Output toggle pin
@@ -180,7 +193,8 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 - Multiple tests confirm solid connection
 
 **Tally Encoding** (2-bit binary):
-| TS_1 | TS_0 | State |
+
+| `TS_1` | `TS_0` | State |
 |------|------|-------|
 | LOW  | LOW  | NO_TALLY |
 | LOW  | HIGH | UNSELECTED |
@@ -188,6 +202,7 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 | HIGH | HIGH | PROGRAM |
 
 ### Timing Constants
+
 ```cpp
 #define TIMING_BUTTON_SELECT_MS 1500   // Long press threshold
 #define TIMING_WIFI_CONNECT_TIMEOUT_MS 60000  // WiFi timeout
@@ -195,12 +210,14 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 ```
 
 ### Glyph Configuration
+
 ```cpp
 #define GLYPH_SIZE_5X5                 // 5×5 or 8×8 glyphs
 #define GLYPH_FORMAT_UNPACKED          // Unpacked or bit-packed
 ```
 
 **Glyph Formats:**
+
 - **5×5 Unpacked:** 25 bytes per glyph (1 byte = 1 pixel)
 - **8×8 Bit-packed:** 8 bytes per glyph (8 bits = 8 pixels per row)
 
@@ -211,6 +228,7 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 ### Step 1: Create Board Configuration
 
 Copy an existing config as a template:
+
 ```bash
 cd pioarduino/include/BoardConfigs
 cp Custom5x5_Config.h MyBoard_Config.h
@@ -219,6 +237,7 @@ cp Custom5x5_Config.h MyBoard_Config.h
 ### Step 2: Edit Configuration
 
 Open `MyBoard_Config.h` and update all settings:
+
 ```cpp
 #ifndef MY_BOARD_CONFIG_H
 #define MY_BOARD_CONFIG_H
@@ -307,6 +326,7 @@ Open `MyBoard_Config.h` and update all settings:
 ### Step 3: Add to Device_Config.h
 
 Edit `include/Device_Config.h`:
+
 ```cpp
 // Add your board option
 #define BOARD_M5STACK_ATOM_MATRIX
@@ -328,6 +348,7 @@ Edit `include/Device_Config.h`:
 ### Step 4: Add PlatformIO Environment (Optional)
 
 Edit `platformio.ini`:
+
 ```ini
 [env:my-custom-board]
 extends = common_settings
@@ -344,6 +365,7 @@ lib_deps =
 ```
 
 ### Step 5: Test
+
 ```bash
 pio run -e my-custom-board -t upload
 pio device monitor
@@ -354,18 +376,21 @@ pio device monitor
 Common issues and fixes:
 
 **Wrong colors?**
+
 ```cpp
 // Try the other color order
 #define DISPLAY_COLOR_ORDER_GRB  // Was RGB
 ```
 
 **Display upside down?**
+
 ```cpp
 // Adjust orientation offset
 #define IMU_ORIENTATION_OFFSET 2  // 180° rotation
 ```
 
 **Wrong pixel order?**
+
 ```cpp
 // Try other wiring pattern
 #define DISPLAY_WIRING_ROW_BY_ROW  // Was SERPENTINE
@@ -378,7 +403,7 @@ Common issues and fixes:
 ### M5Stack ATOM Matrix
 
 | Function | GPIO | Notes |
-|----------|------|-------|
+|----------|:------:|-------|
 | Display Data | 27 | WS2812 data |
 | Button | 39 | Active low, input-only (needs external pullup) |
 | IMU SCL | 21 | I2C clock |
@@ -389,6 +414,7 @@ Common issues and fixes:
 | Tally Status 1 | 26 | GROVE port / Tally bit 1 |
 
 **Reserved Pins:**
+
 - GPIO 0: Boot mode select (don't use)
 - GPIO 2: Boot mode select (don't use)
 - GPIO 12: Flash voltage (don't use)
@@ -397,21 +423,22 @@ Common issues and fixes:
 ### Waveshare ESP32-S3-Matrix
 
 | Function | GPIO | Notes |
-|----------|------|-------|
+|----------|:------:|-------|
 | Display Data | 47 | WS2812 data |
 | Button | 7 | Active low, internal pullup available |
 | IMU SCL | 6 | I2C clock |
 | IMU SDA | 5 | I2C data |
 | PM Check Out | 3 | Peripheral mode detection output |
 | PM Check In | 4 | Peripheral mode detection input |
-| Tally Status 0 | 5 | GROVE port / Tally bit 0 (shared with IMU SDA) |
-| Tally Status 1 | 6 | GROVE port / Tally bit 1 (shared with IMU SCL) |
+| Tally Status 0 | 5 | GROVE port / Tally bit 0 |
+| Tally Status 1 | 6 | GROVE port / Tally bit 1 |
 
 **GROVE Connector:**
+
 - Pin 1: GND
-- Pin 2: VCC (5V or 3.3V selectable)
-- Pin 3: GPIO 5 (SDA / TS_0)
-- Pin 4: GPIO 6 (SCL / TS_1)
+- Pin 2: VCC (5V)
+- Pin 3: GPIO 5 (`TS_0`)
+- Pin 4: GPIO 6 (`TS_1`)
 
 ---
 
@@ -420,52 +447,64 @@ Common issues and fixes:
 ### Compilation Errors
 
 **Error:** `No board selected in Device_Config.h`
+
 - **Fix:** Uncomment exactly ONE `#define BOARD_XXX` line in `Device_Config.h`
 
 **Error:** `namespace STAC::Hardware has no member IDisplay`
+
 - **Fix:** Check that all namespaces are correct in STACApp.h
 
 **Error:** `GPIO number error (input-only pad has no internal PU)`
+
 - **Fix:** Set `#define BUTTON_NEEDS_EXTERNAL_PULLUP true` for GPIO 34-39
 
 ### Display Issues
 
 **Problem:** Display shows wrong colors (red appears green, etc.)
+
 - **Fix:** Change `DISPLAY_COLOR_ORDER_RGB` to `DISPLAY_COLOR_ORDER_GRB` or vice versa
 
 **Problem:** Display pattern is wrong (pixels in wrong locations)
+
 - **Fix:** Try `DISPLAY_WIRING_ROW_BY_ROW` instead of `DISPLAY_WIRING_SERPENTINE`
 
 **Problem:** Display too bright/dim
+
 - **Fix:** Adjust `DISPLAY_BRIGHTNESS_DEFAULT` and `DISPLAY_BRIGHTNESS_MAX`
 
 ### IMU Issues
 
 **Problem:** Orientation detection incorrect
+
 - **Fix:** Adjust `IMU_ORIENTATION_OFFSET` (try 0, 1, 2, or 3)
 
 **Problem:** IMU not detected
+
 - **Fix:** Check I2C pins and `IMU_I2C_ADDRESS` (if applicable)
 - **Fix:** Ensure IMU library is installed
 
 ### Button Issues
 
 **Problem:** Button presses not detected
+
 - **Fix:** Check `BUTTON_ACTIVE_LOW` setting matches your hardware
 - **Fix:** Adjust `BUTTON_DEBOUNCE_MS` if getting multiple triggers
 
 **Problem:** GPIO 39 pullup error (ATOM Matrix)
+
 - **Fix:** Set `BUTTON_NEEDS_EXTERNAL_PULLUP true`
 
 ### Peripheral Mode Issues
 
 **Problem:** Peripheral mode not detected with jumper installed
+
 - **Fix:** Verify jumper connects `PM_CHECK_OUT` to `PM_CHECK_IN`
 - **Fix:** Check pin numbers in board config
 - **Fix:** Reset device after installing jumper
 
 **Problem:** Tally not received in peripheral mode
-- **Fix:** Check GROVE port wiring (pin-to-pin: TS_0 to TS_0, TS_1 to TS_1, GND to GND)
+
+- **Fix:** Check GROVE port wiring (pin-to-pin: `TS_0` to `TS_0`, `TS_1` to `TS_1`, `GND` to `GND`)
 - **Fix:** Ensure one device in Normal mode, other in Peripheral mode
 
 ---
@@ -484,12 +523,14 @@ Common issues and fixes:
 ### GPIO Selection
 
 **Good practices:**
+
 - Avoid GPIO 0, 2, 12, 15 (boot mode and flash)
 - Avoid GPIO 6-11 on ESP32 (flash interface)
 - Use input-only GPIOs (34-39) only for inputs
 - Check board schematic for conflicts
 
 **Pin conflicts:**
+
 - ATOM: GPIO 27 is display, don't use for other purposes
 - Waveshare: GPIO 47 is display, don't use for other purposes
 - Always check if pins are already assigned
@@ -506,11 +547,13 @@ Common issues and fixes:
 ## Support
 
 **Need help?**
+
 - Check [Troubleshooting](#troubleshooting) section above
 - Open an issue: [GitHub Issues](https://github.com/Xylopyrographer/STAC/issues)
 - Join discussion: [GitHub Discussions](https://github.com/Xylopyrographer/STAC/discussions)
 
 **Contributing:**
+
 - Submit custom board configs via pull request
 - Document any quirks or special requirements
 - Test thoroughly before submitting
