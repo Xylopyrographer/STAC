@@ -18,6 +18,7 @@ A comprehensive guide for developers working on STAC or building similar embedde
 ## Architecture Overview
 
 STAC uses a layered architecture with clear separation of concerns:
+
 ```
 ┌─────────────────────────────────────────┐
 │        Application Layer                │
@@ -69,65 +70,66 @@ STAC uses a layered architecture with clear separation of concerns:
 
 ## Project Structure
 ```
-STAC/
-├── pioarduino/                    # PlatformIO project (primary)
-│   ├── platformio.ini             # Build configuration
-│   ├── src/
-│   │   ├── main.cpp               # Entry point
-│   │   ├── Application/
-│   │   │   └── STACApp.cpp        # Main application
-│   │   ├── Hardware/
-│   │   │   ├── Display/
-│   │   │   │   ├── Matrix5x5/
-│   │   │   │   │   └── Display5x5.cpp
-│   │   │   │   └── Matrix8x8/
-│   │   │   │       └── Display8x8.cpp
-│   │   │   ├── Sensors/
-│   │   │   │   ├── MPU6886_IMU.cpp
-│   │   │   │   └── QMI8658_IMU.cpp
-│   │   │   ├── Input/
-│   │   │   │   └── ButtonHandler.cpp
-│   │   │   └── Interface/
-│   │   │       ├── GrovePort.cpp
-│   │   │       └── PeripheralMode.cpp
-│   │   ├── Network/
-│   │   │   └── WiFiManager.cpp
-│   │   ├── Storage/
-│   │   │   └── ConfigManager.cpp
-│   │   └── State/
-│   │       ├── TallyStateManager.cpp
-│   │       ├── OperatingModeManager.cpp
-│   │       └── SystemState.cpp
-│   └── include/
-│       ├── Device_Config.h        # User edits this
-│       ├── BoardConfigs/          # Board-specific configs
-│       │   ├── AtomMatrix_Config.h
-│       │   └── WaveshareS3_Config.h
-│       ├── Config/
-│       │   ├── Constants.h        # System constants
-│       │   └── Types.h            # Common types
-│       ├── Hardware/              # Hardware interfaces & headers
-│       ├── Network/               # Network headers
-│       ├── Storage/               # Storage headers
-│       ├── State/                 # State management headers
-│       └── Application/           # Application headers
-├── Arduino/                       # Arduino IDE compatibility
-└── Documentation/                 # All documentation
+STAC/                          # PlatformIO project (primary    
+├── platformio.ini             # Build configuration
+├── src/
+│   ├── main.cpp               # Entry point
+│   ├── Application/
+│   │   └── STACApp.cpp        # Main application
+│   ├── Hardware/
+│   │   ├── Display/
+│   │   │   ├── Matrix5x5/
+│   │   │   │   └── Display5x5.cpp
+│   │   │   └── Matrix8x8/
+│   │   │       └── Display8x8.cpp
+│   │   ├── Sensors/
+│   │   │   ├── MPU6886_IMU.cpp
+│   │   │   └── QMI8658_IMU.cpp
+│   │   ├── Input/
+│   │   │   └── ButtonHandler.cpp
+│   │   └── Interface/
+│   │       ├── GrovePort.cpp
+│   │       └── PeripheralMode.cpp
+│   ├── Network/
+│   │   └── WiFiManager.cpp
+│   ├── Storage/
+│   │   └── ConfigManager.cpp
+│   └── State/
+│       ├── TallyStateManager.cpp
+│       ├── OperatingModeManager.cpp
+│       └── SystemState.cpp
+└── include/
+│   ├── Device_Config.h        # User edits this
+│   ├── BoardConfigs/          # Board-specific configs
+│   │   ├── AtomMatrix_Config.h
+│   │   └── WaveshareS3_Config.h
+│   ├── Config/
+│   │   ├── Constants.h        # System constants
+│   │   └── Types.h            # Common types
+│   ├── Hardware/              # Hardware interfaces & headers
+│   ├── Network/               # Network headers
+│   ├── Storage/               # Storage headers
+│   ├── State/                 # State management headers
+│   └── Application/           # Application headers
+└── Documentation/             # All documentation
 ```
 
 ### File Organization Rules
 
 **Headers (.h):** `include/` directory
+
 - Interface definitions
 - Class declarations
 - Inline functions
 - Template definitions
 
 **Implementations (.cpp):** `src/` directory
+
 - Class implementations
 - Non-inline functions
 
 **Why this split?**
+
 - PlatformIO standard
 - Clean separation
 - Faster compilation (headers included less often)
@@ -141,6 +143,7 @@ STAC/
 **When:** Hardware abstraction, testability
 
 **Example:**
+
 ```cpp
 // IDisplay.h - Interface
 class IDisplay {
@@ -160,6 +163,7 @@ public:
 ```
 
 **Benefits:**
+
 - Polymorphism
 - Testing with mocks
 - Easy to add implementations
@@ -169,6 +173,7 @@ public:
 **When:** Creating hardware-specific implementations
 
 **Example:**
+
 ```cpp
 // DisplayFactory.h
 class DisplayFactory {
@@ -187,6 +192,7 @@ auto display = DisplayFactory::create();  // Gets correct type
 ```
 
 **Benefits:**
+
 - Compile-time selection
 - Application code doesn't know concrete types
 - Easy to extend
@@ -196,6 +202,7 @@ auto display = DisplayFactory::create();  // Gets correct type
 **When:** Single system-wide instance needed (WiFi, Config)
 
 **Example:**
+
 ```cpp
 // Not a true singleton, but managed at application level
 class STACApp {
@@ -206,6 +213,7 @@ private:
 ```
 
 **Why not global singletons?**
+
 - Harder to test
 - Hidden dependencies
 - Initialization order issues
@@ -217,6 +225,7 @@ private:
 **When:** Component needs to notify others of changes
 
 **Example:**
+
 ```cpp
 // TallyStateManager.h
 class TallyStateManager {
@@ -242,6 +251,7 @@ tallyState.setStateChangeCallback([](TallyState old, TallyState new) {
 ```
 
 **Benefits:**
+
 - Loose coupling
 - Multiple observers possible
 - Event-driven architecture
@@ -251,6 +261,7 @@ tallyState.setStateChangeCallback([](TallyState old, TallyState new) {
 **When:** Different behaviors based on mode
 
 **Example:**
+
 ```cpp
 void STACApp::loop() {
     switch (systemState->getOperatingMode().getCurrentMode()) {
@@ -268,6 +279,7 @@ void STACApp::loop() {
 ```
 
 **Could be improved with:**
+
 ```cpp
 // Strategy pattern (future refactor)
 class OperatingModeHandler {
@@ -288,6 +300,7 @@ class PeripheralModeHandler : public OperatingModeHandler { ... };
 See [HARDWARE_CONFIG.md](HARDWARE_CONFIG.md) for detailed steps.
 
 **Quick summary:**
+
 1. Create `BoardConfigs/YourBoard_Config.h`
 2. Define all pins and settings
 3. Add to `Device_Config.h`
@@ -299,6 +312,7 @@ See [HARDWARE_CONFIG.md](HARDWARE_CONFIG.md) for detailed steps.
 **Example: Adding a TFT display**
 
 **Step 1:** Create interface implementation
+
 ```cpp
 // include/Hardware/Display/TFT/TFTDisplay.h
 #include "../IDisplay.h"
@@ -316,6 +330,7 @@ private:
 ```
 
 **Step 2:** Implement in .cpp
+
 ```cpp
 // src/Hardware/Display/TFT/TFTDisplay.cpp
 #include "Hardware/Display/TFT/TFTDisplay.h"
@@ -338,6 +353,7 @@ void TFTDisplay::fill(color_t color, bool show) {
 ```
 
 **Step 3:** Add to factory
+
 ```cpp
 // include/Hardware/Display/DisplayFactory.h
 #if defined(GLYPH_SIZE_5X5)
@@ -353,6 +369,7 @@ void TFTDisplay::fill(color_t color, bool show) {
 ```
 
 **Step 4:** Update board config
+
 ```cpp
 // BoardConfigs/TFTBoard_Config.h
 #define DISPLAY_TYPE_TFT
@@ -366,6 +383,7 @@ void TFTDisplay::fill(color_t color, bool show) {
 **Example: Adding BMP280 (just accelerometer)**
 
 **Step 1:** Create implementation
+
 ```cpp
 // include/Hardware/Sensors/BMP280_IMU.h
 #include "IIMU.h"
@@ -385,6 +403,7 @@ private:
 ```
 
 **Step 2:** Add to factory
+
 ```cpp
 // include/Hardware/Sensors/IMUFactory.h
 #elif defined(IMU_TYPE_BMP280)  // NEW
@@ -394,6 +413,7 @@ private:
 ```
 
 **Step 3:** Add to board config
+
 ```cpp
 #define IMU_TYPE_BMP280
 #define IMU_HAS_IMU true
@@ -405,6 +425,7 @@ private:
 **Example: Adding a "Calibration" operating mode**
 
 **Step 1:** Add to enum
+
 ```cpp
 // include/Config/Types.h
 enum class OperatingMode : uint8_t {
@@ -416,6 +437,7 @@ enum class OperatingMode : uint8_t {
 ```
 
 **Step 2:** Add handler
+
 ```cpp
 // src/Application/STACApp.cpp
 void STACApp::handleCalibrationMode() {
@@ -425,6 +447,7 @@ void STACApp::handleCalibrationMode() {
 ```
 
 **Step 3:** Add to loop
+
 ```cpp
 void STACApp::loop() {
     switch (systemState->getOperatingMode().getCurrentMode()) {
@@ -440,6 +463,7 @@ void STACApp::loop() {
 ```
 
 **Step 4:** Add trigger
+
 ```cpp
 // In handleButton() or wherever appropriate
 if (specialCondition) {
@@ -456,16 +480,19 @@ if (specialCondition) {
 STAC is designed for testability but doesn't yet have unit tests.
 
 **What's testable:**
+
 - State managers (TallyStateManager, OperatingModeManager)
 - Utility functions
 - Configuration parsing
 
 **What requires mocking:**
+
 - Hardware interfaces (IDisplay, IIMU, IButton)
 - Network (WiFiManager)
 - Storage (ConfigManager)
 
 **Example test structure:**
+
 ```cpp
 // test/test_tally_state.cpp
 #include <unity.h>
@@ -484,11 +511,13 @@ void test_state_transitions() {
 ### Hardware-in-the-Loop Testing
 
 **Required:**
+
 - Test on actual hardware
 - Both ATOM Matrix and Waveshare
 - All operating modes
 
 **Test checklist:**
+
 - [ ] Startup animation
 - [ ] Button input (short press, long press)
 - [ ] IMU orientation detection
@@ -504,12 +533,14 @@ void test_state_transitions() {
 ### Integration Testing
 
 **Two-device test:**
+
 1. Device A in Normal mode
 2. Device B in Peripheral mode
 3. Connect GROVE ports
 4. Button press on A should update display on B
 
 **Expected behavior:**
+
 - NO_TALLY → PREVIEW → PROGRAM → UNSELECTED → NO_TALLY
 - B mirrors A's display
 - <2ms latency
@@ -521,30 +552,35 @@ void test_state_transitions() {
 ### Naming Conventions
 
 **Classes:** PascalCase
+
 ```cpp
 class DisplayFactory { ... };
 class TallyStateManager { ... };
 ```
 
 **Functions/Methods:** camelCase
+
 ```cpp
 void updateDisplay();
 bool isConnected() const;
 ```
 
 **Variables:** camelCase
+
 ```cpp
 int buttonPressCount;
 unsigned long lastUpdate;
 ```
 
 **Constants:** UPPER_SNAKE_CASE or constexpr
+
 ```cpp
 #define MAX_RETRIES 5
 constexpr int BUFFER_SIZE = 128;
 ```
 
 **Namespaces:** PascalCase
+
 ```cpp
 namespace STAC {
 namespace Hardware {
@@ -554,6 +590,7 @@ namespace Hardware {
 ```
 
 **Private members:** camelCase (no prefix/suffix)
+
 ```cpp
 class Example {
 private:
@@ -566,6 +603,7 @@ private:
 ### File Organization
 
 **Header guards:** `#ifndef STAC_COMPONENT_NAME_H`
+
 ```cpp
 #ifndef STAC_DISPLAY_FACTORY_H
 #define STAC_DISPLAY_FACTORY_H
@@ -574,10 +612,12 @@ private:
 ```
 
 **Include order:**
+
 1. Own header (in .cpp files)
 2. Standard library
 3. Third-party libraries
 4. Project headers
+
 ```cpp
 #include "MyClass.h"        // Own header first
 
@@ -593,6 +633,7 @@ private:
 ### Comments
 
 **Function documentation:**
+
 ```cpp
 /**
  * @brief Initialize the WiFi subsystem
@@ -606,6 +647,7 @@ bool begin();
 ```
 
 **Inline comments:**
+
 ```cpp
 // Use for brief explanations
 int retryCount = 0;  // Number of connection attempts
@@ -616,6 +658,7 @@ int retryCount = 0;  // Number of connection attempts
 ```
 
 **TODO comments:**
+
 ```cpp
 // TODO: Implement Roland V-160HD protocol
 // FIXME: Button debounce needs tuning
@@ -627,6 +670,7 @@ int retryCount = 0;  // Number of connection attempts
 **Indentation:** 4 spaces (no tabs)
 
 **Braces:** Opening on same line
+
 ```cpp
 if (condition) {
     doSomething();
@@ -636,6 +680,7 @@ if (condition) {
 **Line length:** Aim for 100 characters, hard limit 120
 
 **Whitespace:**
+
 ```cpp
 // Good
 int value = calculateValue(param1, param2);
@@ -657,8 +702,9 @@ if(value>threshold){
 ### Serial Logging
 
 **Log levels (ESP32):**
+
 ```cpp
-log_e("Error: %s", errorMsg);      // ERROR
+log_e("Error: %s", errorMsg);       // ERROR
 log_w("Warning: %d", value);        // WARNING
 log_i("Info: connected");           // INFO
 log_d("Debug: x=%d", x);            // DEBUG
@@ -666,6 +712,7 @@ log_v("Verbose: entering loop");    // VERBOSE
 ```
 
 **Setting log level in platformio.ini:**
+
 ```ini
 [debug_level]
 build_flags =
@@ -673,6 +720,7 @@ build_flags =
 ```
 
 **Conditional logging:**
+
 ```cpp
 #if CORE_DEBUG_LEVEL >= 4
     log_d("Detailed debug info: %d, %d, %d", a, b, c);
@@ -682,31 +730,37 @@ build_flags =
 ### Common Issues
 
 **Problem:** Device keeps resetting
+
 - **Check:** Power supply (USB may not provide enough current)
 - **Check:** Display brightness (lower to reduce current)
 - **Debug:** Add `log_i()` at start of `setup()` to see if it reaches there
 
 **Problem:** WiFi won't connect
+
 - **Check:** SSID/password correct
 - **Check:** 2.4GHz network (ESP32 doesn't support 5GHz)
 - **Debug:** Enable WiFi debug: `-DCORE_DEBUG_LEVEL=5`
 
 **Problem:** Button not responding
+
 - **Check:** GPIO pin number correct
 - **Check:** Active low/high setting
 - **Debug:** Add `log_d()` in `ButtonHandler::update()`
 
 **Problem:** IMU orientation wrong
+
 - **Fix:** Adjust `IMU_ORIENTATION_OFFSET` (0-3)
 - **Debug:** Log raw accelerometer values
 
 **Problem:** Display wrong colors
+
 - **Fix:** Toggle `DISPLAY_COLOR_ORDER_RGB` ↔ `DISPLAY_COLOR_ORDER_GRB`
 - **Test:** Use `display->fill(StandardColors::RED, true)` to verify
 
-### Using esp32_exception_decoder
+### Using `esp32_exception_decoder`
 
 When you get a crash with a stack trace:
+
 ```
 Guru Meditation Error: Core  0 panic'ed (LoadProhibited)
 PC: 0x400d1234 SP: 0x3ffb2340
@@ -714,6 +768,7 @@ Backtrace: 0x400d1234 0x400d5678 0x400d9abc
 ```
 
 The `esp32_exception_decoder` filter (enabled in platformio.ini) automatically decodes this to:
+
 ```
 PC: 0x400d1234: loop() at main.cpp:45
 Backtrace:
@@ -726,16 +781,19 @@ Shows exactly where the crash occurred!
 ### Hardware Debugging Tools
 
 **Multimeter:**
+
 - Check voltage levels (should be 3.3V)
 - Check continuity for jumper wires
 - Measure current draw
 
 **Logic Analyzer:**
+
 - Analyze I2C communication (IMU)
 - Debug WS2812 data signal
 - Check GROVE port signals
 
 **Oscilloscope:**
+
 - Verify WS2812 timing
 - Check button debounce
 - Power supply stability
@@ -747,23 +805,27 @@ Shows exactly where the crash occurred!
 ### Changing Default Settings
 
 **Brightness:**
+
 ```cpp
 // BoardConfigs/YourBoard_Config.h
 #define DISPLAY_BRIGHTNESS_DEFAULT 30  // Was 20
 ```
 
 **Button timing:**
+
 ```cpp
 #define BUTTON_DEBOUNCE_MS 50          // Was 25
 #define TIMING_BUTTON_SELECT_MS 2000   // Was 1500 (long press)
 ```
 
 **WiFi timeout:**
+
 ```cpp
 #define TIMING_WIFI_CONNECT_TIMEOUT_MS 30000  // Was 60000 (30 seconds)
 ```
 
 ### Adding a New Color
+
 ```cpp
 // include/Hardware/Display/Colors.h
 namespace StandardColors {
@@ -773,6 +835,7 @@ namespace StandardColors {
 ```
 
 ### Changing Tally Color Scheme
+
 ```cpp
 // include/Hardware/Display/Colors.h
 namespace STACColors {
@@ -785,6 +848,7 @@ namespace STACColors {
 ### Adding a Configuration Parameter
 
 **Step 1:** Add to types
+
 ```cpp
 // include/Config/Types.h
 struct StacOperations {
@@ -794,6 +858,7 @@ struct StacOperations {
 ```
 
 **Step 2:** Add to ConfigManager
+
 ```cpp
 // src/Storage/ConfigManager.cpp
 bool ConfigManager::saveOperations(const StacOperations& ops) {
@@ -808,6 +873,7 @@ bool ConfigManager::loadOperations(StacOperations& ops) {
 ```
 
 **Step 3:** Use in application
+
 ```cpp
 // src/Application/STACApp.cpp
 void STACApp::someFunction() {
@@ -819,6 +885,7 @@ void STACApp::someFunction() {
 ### Profiling Performance
 
 **Measure execution time:**
+
 ```cpp
 unsigned long startTime = micros();
 someFunction();
@@ -827,6 +894,7 @@ log_i("someFunction() took %lu microseconds", elapsed);
 ```
 
 **Measure loop frequency:**
+
 ```cpp
 void loop() {
     static unsigned long lastLoop = 0;
@@ -860,6 +928,7 @@ void loop() {
 ### Commit Messages
 
 **Format:**
+
 ```
 Type: Short description
 
@@ -870,6 +939,7 @@ Longer explanation if needed.
 ```
 
 **Types:**
+
 - `feat:` New feature
 - `fix:` Bug fix
 - `docs:` Documentation
@@ -878,6 +948,7 @@ Longer explanation if needed.
 - `chore:` Maintenance
 
 **Examples:**
+
 ```
 feat: Add support for WS2815 RGBW LEDs
 
@@ -894,6 +965,7 @@ BUTTON_NEEDS_EXTERNAL_PULLUP for boards with input-only pins.
 ### Pull Request Checklist
 
 Before submitting PR:
+
 - [ ] Code compiles without warnings
 - [ ] Tested on hardware (both boards if applicable)
 - [ ] Documentation updated
@@ -928,7 +1000,7 @@ Before submitting PR:
 
 **Happy coding!** 🚀
 
-**Last Updated:** December 2024  
+**Last Updated:** 2025-11-10 
 **Version:** 2.3.0
 
 

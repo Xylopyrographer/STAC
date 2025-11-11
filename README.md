@@ -181,7 +181,7 @@ Template configurations provided for custom builds with:
 
 2. **Configure for your hardware:**
  
-   - Edit `pioarduino/include/Device_Config.h`
+   - Edit `STAC/include/Device_Config.h`
    - Uncomment the line for your board:
    - 
 ```cpp
@@ -194,18 +194,12 @@ Template configurations provided for custom builds with:
    
    **PlatformIO:**
    
-```bash
-   cd pioarduino
+```zsh
+   cd STAC
    pio run -e atom-matrix -t upload
    # or for Waveshare:
    # pio run -e waveshare-s3 -t upload
 ```
-   
-   **Arduino IDE:**
-   
-   - Open `Arduino/STAC/STAC.ino`
-   - Select your board from Tools → Board
-   - Click Upload
 
 ### First Run
 
@@ -293,20 +287,18 @@ For custom hardware or modifications, see [HARDWARE_CONFIG.md](Documentation/HAR
 ### Project Structure
 
 ```
-STAC/
-├── pioarduino/              # PlatformIO project (primary)
-│   ├── include/             # Header files
-│   │   ├── Device_Config.h  # Hardware selection
-│   │   ├── BoardConfigs/    # Board-specific configs
-│   │   ├── Hardware/        # HAL implementations
-│   │   ├── Network/         # WiFi, web server
-│   │   ├── Storage/         # NVS configuration
-│   │   ├── State/           # State management
-│   │   └── Application/     # Main app logic
-│   ├── src/                 # Implementation files
-│   └── platformio.ini       # Build configuration
-├── Arduino/                 # Arduino IDE compatibility
-└── Documentation/           # User guides and docs
+STAC/                    # PlatformIO project (primary)             
+├── include/             # Header files
+│   ├── Device_Config.h  # Hardware selection
+│   ├── BoardConfigs/    # Board-specific configs
+│   ├── Hardware/        # HAL implementations
+│   ├── Network/         # WiFi, web server
+│   ├── Storage/         # NVS configuration
+│   ├── State/           # State management
+│   └── Application/     # Main app logic
+├── src/                 # Implementation files
+├── platformio.ini       # Build configuration
+└── Documentation/       # User guides and docs
 ```
 
 ### Building from Source

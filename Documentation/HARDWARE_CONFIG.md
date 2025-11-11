@@ -64,7 +64,7 @@ STAC uses a compile-time configuration system based on `Device_Config.h`. This a
 
 ### Step 1: Select Your Board
 
-Edit `pioarduino/include/Device_Config.h`:
+Edit `STAC/include/Device_Config.h`:
 
 ```cpp
 // Uncomment ONE board definition
@@ -230,7 +230,7 @@ The IMU may be mounted rotated relative to your expected "UP" orientation. Use t
 Copy an existing config as a template:
 
 ```bash
-cd pioarduino/include/BoardConfigs
+cd STAC/include/BoardConfigs
 cp Custom5x5_Config.h MyBoard_Config.h
 ```
 
