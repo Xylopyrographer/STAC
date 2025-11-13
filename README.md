@@ -201,6 +201,15 @@ Template configurations provided for custom builds with:
    # pio run -e waveshare-s3 -t upload
 ```
 
+### Merged Binaries + Web Serial Flashing
+
+- After a build, single-file merged images are created automatically:
+   - `.pio/build/atom-matrix/merged-atom-matrix.bin`
+   - `.pio/build/waveshare-s3/merged-waveshare-s3.bin`
+- Flash in a Web Serial browser by selecting the merged file and writing at address `0x0`.
+- Alternatively, flash the individual files with offsets: `0x1000` bootloader, `0x8000` partitions, `0xE000` boot_app0 (if present), `0x10000` firmware.
+- Full instructions: `Documentation/Developer/Web Serial Flashing.md`.
+
 ### First Run
 
 1. Power on the device
