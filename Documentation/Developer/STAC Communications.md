@@ -54,9 +54,16 @@ When configured for the V-160HD, the STAC bypasses the normal '`GET /`' request 
 `GET /tally/{CHAN_BANK}{BANK_NUM}/status\r\n\r\n`
 
 where:
+
 `CHAN_BANK` is either `hdmi_` or `sdi_`
 
 `BANK_NUM` is an ASCII integer from `1` to `8` representing the HDMI or SDI input of the V-160HD.
+
+The braces are not part of the `GET` request. 
+
+For example, a request for the tally status of SDI channel 4 would be:
+
+`GET /tally/sdi_4/status\r\n\r\n`
 
 This is sent with the Basic Authentication and other headers as required.
 
@@ -67,6 +74,7 @@ As the interaction with the V-160HD is standard HTML, the referring IP address o
 
 ---
 ### Revision History
+**2025-11-10:** Add clarification and example for the V-160HD `GET` syntax.
 **2024-05-09:** Revise for support of the V-160HD.  
 **2021-04-08:** Add "Other Considerations" section. Correct typos.  
 **2021-04-05:** First release.
