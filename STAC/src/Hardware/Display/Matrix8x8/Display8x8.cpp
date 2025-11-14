@@ -73,9 +73,10 @@ namespace STAC {
             color_t fgColor = boardColor( foreground );
             color_t bgColor = boardColor( background );
 
-            // Unpack and draw bit-packed glyph (8 bytes, 1 byte per row)
-            for ( uint8_t row = 0; row < 8; row++ ) {
-                unpackGlyphRow( glyph[ row ], row, fgColor, bgColor );
+            // Draw glyph (unpacked format: 64 bytes, 1 byte per pixel)
+            for ( uint8_t i = 0; i < numLeds; i++ ) {
+                color_t color = ( glyph[ i ] != 0 ) ? fgColor : bgColor;
+                display.setPixel( i, color, false );
             }
 
             if ( show ) {
@@ -128,20 +129,6 @@ namespace STAC {
             // Row-by-row wiring
             return y * 8 + x;
 #endif
-        }
-
-        void Display8x8::unpackGlyphRow( uint8_t packedByte, uint8_t row, color_t foreground, color_t background ) {
-            // Unpack a single row (8 bits) of the glyph
-            // MSB is leftmost pixel
-            for ( uint8_t col = 0; col < 8; col++ ) {
-                bool pixelOn = ( packedByte & 0x80 ) != 0; // Test MSB
-                color_t color = pixelOn ? foreground : background;
-
-                uint8_t position = xyToPosition( col, row );
-                display.setPixel( position, color, false );
-
-                packedByte <<= 1;  // Shift to next bit
-            }
         }
 
     } // namespace Display

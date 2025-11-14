@@ -11,8 +11,7 @@ namespace STAC {
          * @brief 8x8 LED Matrix Display Implementation
          *
          * Implements IDisplay for 8x8 LED matrix panels.
-         * Uses bit-packed glyph format (8 bytes per glyph, 1 bit per pixel).
-         * Unpacks glyphs on-the-fly for efficient memory usage.
+         * Uses unpacked glyph format (64 bytes per glyph, 1 byte per pixel).
          */
         class Display8x8 : public IDisplay {
           public:
@@ -78,15 +77,6 @@ namespace STAC {
              * @return Linear pixel position
              */
             uint8_t xyToPosition( uint8_t x, uint8_t y ) const;
-
-            /**
-             * @brief Unpack a bit-packed glyph row
-             * @param packedByte Single byte representing 8 pixels
-             * @param row Row number (0-7)
-             * @param foreground Foreground color
-             * @param background Background color
-             */
-            void unpackGlyphRow( uint8_t packedByte, uint8_t row, color_t foreground, color_t background );
         };
 
     } // namespace Display
