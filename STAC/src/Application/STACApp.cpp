@@ -1,5 +1,8 @@
 #include "Application/STACApp.h"
 #include "Hardware/Display/DisplayFactory.h"
+#include "Hardware/Display/GlyphManager.h"
+#include "Hardware/Display/Glyphs5x5.h"
+#include "Hardware/Display/Glyphs8x8.h"
 #include "Hardware/Sensors/IMUFactory.h"
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
@@ -17,7 +20,11 @@ namespace STAC {
         STACApp::STACApp()
             : initialized( false )
             , stacID( "" )
-            , lastOrientation( Orientation::UNKNOWN ) {
+            , lastOrientation( Orientation::UNKNOWN )
+            , glyphTestMode( false )
+            , currentGlyphIndex( 0 )
+            , lastGlyphChange( 0 )
+            , autoAdvanceGlyphs( true ) {
             // unique_ptr members default to nullptr
         }
 
@@ -114,6 +121,12 @@ namespace STAC {
             wifiManager->update();
             systemState->update();
 
+            // Check for glyph test mode
+            if ( glyphTestMode ) {
+                handleGlyphTestMode();
+                return;
+            }
+            
             // Mode-specific handling
             switch ( systemState->getOperatingMode().getCurrentMode() ) {
                 case OperatingMode::NORMAL:
@@ -226,31 +239,64 @@ namespace STAC {
         }
 
         void STACApp::handleButton() {
-            // For now, simple tally state cycling for demo
-            if ( button->wasClicked() ) {
-                // Cycle through states
-                TallyState currentState = systemState->getTallyState().getCurrentState();
-                TallyState newState;
-
-                switch ( currentState ) {
-                    case TallyState::NO_TALLY:
-                        newState = TallyState::PREVIEW;
-                        break;
-                    case TallyState::PREVIEW:
-                        newState = TallyState::PROGRAM;
-                        break;
-                    case TallyState::PROGRAM:
-                        newState = TallyState::UNSELECTED;
-                        break;
-                    case TallyState::UNSELECTED:
-                        newState = TallyState::NO_TALLY;
-                        break;
-                    default:
-                        newState = TallyState::NO_TALLY;
-                        break;
+            // Long press: Toggle between tally mode and glyph test mode
+            static bool longPressHandled = false;
+            
+            if ( button->isLongPress() ) {
+                if ( !longPressHandled ) {
+                    longPressHandled = true;
+                    glyphTestMode = !glyphTestMode;
+                    
+                    if ( glyphTestMode ) {
+                        log_i( "Entering GLYPH TEST mode" );
+                        currentGlyphIndex = 0;
+                        autoAdvanceGlyphs = true;
+                        lastGlyphChange = millis();
+                        advanceToNextGlyph();
+                    } else {
+                        log_i( "Returning to TALLY mode" );
+                        updateDisplay();
+                    }
                 }
+                return;  // Don't process short press while long press is active
+            }
+            
+            // Reset long press flag when button is released
+            if ( !button->isPressed() && longPressHandled ) {
+                longPressHandled = false;
+            }
+            
+            // Short press behavior depends on mode
+            if ( button->wasClicked() ) {
+                if ( glyphTestMode ) {
+                    // In glyph test mode: advance to next glyph
+                    advanceToNextGlyph();
+                    autoAdvanceGlyphs = false;  // Stop auto-advance when user manually advances
+                } else {
+                    // In tally mode: cycle through states
+                    TallyState currentState = systemState->getTallyState().getCurrentState();
+                    TallyState newState;
 
-                systemState->getTallyState().setState( newState );
+                    switch ( currentState ) {
+                        case TallyState::NO_TALLY:
+                            newState = TallyState::PREVIEW;
+                            break;
+                        case TallyState::PREVIEW:
+                            newState = TallyState::PROGRAM;
+                            break;
+                        case TallyState::PROGRAM:
+                            newState = TallyState::UNSELECTED;
+                            break;
+                        case TallyState::UNSELECTED:
+                            newState = TallyState::NO_TALLY;
+                            break;
+                        default:
+                            newState = TallyState::NO_TALLY;
+                            break;
+                    }
+
+                    systemState->getTallyState().setState( newState );
+                }
             }
 
             // Disable provisioning mode for now
@@ -403,6 +449,48 @@ namespace STAC {
                 delay( 300 );
                 display->clear( true );
                 delay( 300 );
+            }
+        }
+        
+        void STACApp::handleGlyphTestMode() {
+            // Auto-advance glyphs every 500ms if enabled
+            if ( autoAdvanceGlyphs && ( millis() - lastGlyphChange >= 500 ) ) {
+                advanceToNextGlyph();
+            }
+        }
+        
+        void STACApp::advanceToNextGlyph() {
+            // Get the appropriate glyph manager for this display size
+            uint8_t displaySize = display->getWidth();
+            uint8_t maxGlyphs = ( displaySize == 5 ) ? 32 : 28;
+            
+            // Advance to next glyph
+            currentGlyphIndex++;
+            if ( currentGlyphIndex >= maxGlyphs ) {
+                currentGlyphIndex = 0;
+            }
+            
+            lastGlyphChange = millis();
+            
+            // Get the glyph data and draw it
+            const uint8_t* glyphData = nullptr;
+            
+            if ( displaySize == 5 ) {
+                Display::GlyphManager5x5 glyphMgr;
+                glyphMgr.updateOrientation( lastOrientation );
+                glyphData = glyphMgr.getGlyph( currentGlyphIndex );
+            } else {
+                Display::GlyphManager8x8 glyphMgr;
+                glyphMgr.updateOrientation( lastOrientation );
+                glyphData = glyphMgr.getGlyph( currentGlyphIndex );
+            }
+            
+            if ( glyphData != nullptr ) {
+                display->drawGlyph( glyphData, 
+                                   Display::StandardColors::GREEN,
+                                   Display::StandardColors::BLACK,
+                                   true );
+                log_d( "Displaying glyph %d", currentGlyphIndex );
             }
         }
 

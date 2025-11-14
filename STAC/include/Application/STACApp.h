@@ -67,6 +67,12 @@ namespace STAC {
             bool initialized;
             String stacID;
             Orientation lastOrientation;
+            
+            // Glyph test mode
+            bool glyphTestMode;
+            uint8_t currentGlyphIndex;
+            unsigned long lastGlyphChange;
+            bool autoAdvanceGlyphs;
 
             /**
              * @brief Initialize hardware subsystems
@@ -115,6 +121,16 @@ namespace STAC {
              * @brief Handle provisioning mode
              */
             void handleProvisioningMode();
+            
+            /**
+             * @brief Handle glyph test mode
+             */
+            void handleGlyphTestMode();
+            
+            /**
+             * @brief Advance to next glyph in test mode
+             */
+            void advanceToNextGlyph();
 
             /**
              * @brief Show startup animation
