@@ -1,0 +1,5 @@
+# VS Code workspace files
+*.code-workspace
+
+# Development/planning documents (not for release)
+Documentation/VSCode_Context.md
