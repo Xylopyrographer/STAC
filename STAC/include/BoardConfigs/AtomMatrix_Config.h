@@ -110,11 +110,10 @@
     #define NVS_PM_PREFS_VERSION 2     // Peripheral mode version
 
     // ============================================================================
-    // GLYPH CONFIGURATION
+    // DISPLAY SIZE (for DisplayFactory)
     // ============================================================================
 
     #define GLYPH_SIZE_5X5
-    #define GLYPH_FORMAT_UNPACKED  // 25 bytes per glyph, 1 byte per pixel
 
 #endif // ATOM_MATRIX_CONFIG_H
 

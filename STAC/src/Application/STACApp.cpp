@@ -161,6 +161,8 @@ namespace STAC {
             if ( imu->begin() ) {
                 log_i( "✓ IMU (%s)", imu->getType() );
                 lastOrientation = imu->getOrientation();
+                const char* orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
+                log_i( "  Initial orientation: %s", orientationNames[static_cast<int>( lastOrientation )] );
             }
             else {
                 log_w( "⚠ IMU unavailable" );
@@ -332,8 +334,9 @@ namespace STAC {
 
                 lastOrientation = currentOrientation;
 
-                // TODO: Rotate glyphs based on orientation
-                // This will be implemented when we add glyph management
+                // Log orientation changes
+                const char* orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
+                log_i( "Orientation changed to: %s", orientationNames[static_cast<int>( currentOrientation )] );
 
                 log_d( "Orientation: %d", static_cast<int>( currentOrientation ) );
             }

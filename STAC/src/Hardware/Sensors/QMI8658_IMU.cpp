@@ -81,30 +81,35 @@ namespace STAC {
             float scaledAccY = acc.y * ACCL_SCALE;
             float scaledAccZ = acc.z * ACCL_SCALE;
 
-            // Determine orientation based on accelerometer readings
+            // Determine raw orientation based on accelerometer readings
             // The USB port is the reference point
+            Orientation rawOrientation = Orientation::UNKNOWN;
 
             if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccY > 0 ) {
-                    return Orientation::LEFT;  // USB port to the left
+                    rawOrientation = Orientation::LEFT;  // USB port to the left
                 }
                 else {
-                    return Orientation::RIGHT; // USB port to the right
+                    rawOrientation = Orientation::RIGHT; // USB port to the right
                 }
             }
             else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccX > 0 ) {
-                    return Orientation::DOWN;  // USB port at the top
+                    rawOrientation = Orientation::DOWN;  // USB port at the top
                 }
                 else {
-                    return Orientation::UP;    // USB port at the bottom
+                    rawOrientation = Orientation::UP;    // USB port at the bottom
                 }
             }
             else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
-                return Orientation::FLAT;      // Device is horizontal
+                rawOrientation = Orientation::FLAT;      // Device is horizontal
             }
 
-            return Orientation::UNKNOWN;
+            // Apply orientation offset correction
+            OrientationOffset offset = static_cast<OrientationOffset>( IMU_ORIENTATION_OFFSET );
+            Orientation corrected = applyOrientationOffset( rawOrientation, offset );
+
+            return corrected;
         }
 
         bool QMI8658_IMU::isAvailable() const {

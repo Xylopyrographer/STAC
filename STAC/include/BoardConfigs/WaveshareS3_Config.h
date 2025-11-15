@@ -29,7 +29,7 @@
     // #define DISPLAY_WIRING_SERPENTINE
 
     // Display pin (Waveshare board-specific)
-    #define PIN_DISPLAY_DATA 47
+    #define PIN_DISPLAY_DATA 14
 
     // Power indicator pixel (top-left of center 4 pixels in 8x8)
     #define DISPLAY_POWER_LED_PIXEL 27
@@ -37,7 +37,7 @@
     // Brightness limits
     #define DISPLAY_BRIGHTNESS_MIN 0
     #define DISPLAY_BRIGHTNESS_MAX 60
-    #define DISPLAY_BRIGHTNESS_DEFAULT 20
+    #define DISPLAY_BRIGHTNESS_DEFAULT 10
 
     // ============================================================================
     // BUTTON CONFIGURATION
@@ -54,14 +54,18 @@
     #define IMU_TYPE_QMI8658
     #define IMU_HAS_IMU true
 
-    // I2C pins (defined in Waveshare board variant)
-    #define PIN_IMU_SCL 6
-    #define PIN_IMU_SDA 5
+    // I2C pins for QMI8658 IMU
+    #define PIN_IMU_SCL 12
+    #define PIN_IMU_SDA 11
     #define IMU_I2C_ADDRESS 0x6B
+
+    // IMU interrupt pins (available but not currently used)
+    // #define PIN_IMU_INT1 10
+    // #define PIN_IMU_INT2 13
 
     // IMU orientation offset
     // Defines which physical direction corresponds to "UP" orientation
-    #define IMU_ORIENTATION_OFFSET OFFSET_0  // No offset (adjust as needed)
+    #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_180  // 180 degree correction needed
 
     // Note: QMI8658 library doesn't allow setting I2C clock
     // Uses default 100kHz
@@ -111,11 +115,10 @@
     #define NVS_PM_PREFS_VERSION 2     // Peripheral mode version
 
     // ============================================================================
-    // GLYPH CONFIGURATION
+    // DISPLAY SIZE (for DisplayFactory)
     // ============================================================================
 
     #define GLYPH_SIZE_8X8
-    #define GLYPH_FORMAT_BITPACKED  // 8 bytes per glyph, bit-packed rows
 
 #endif // WAVESHARE_S3_CONFIG_H
 
