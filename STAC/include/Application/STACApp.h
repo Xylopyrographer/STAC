@@ -8,6 +8,7 @@
 #include "Hardware/Interface/GrovePort.h"
 #include "Hardware/Interface/PeripheralMode.h"
 #include "Network/WiFiManager.h"
+#include "Network/Protocol/IRolandClient.h"
 #include "Storage/ConfigManager.h"
 #include "State/SystemState.h"
 
@@ -58,6 +59,7 @@ namespace STAC {
 
             // Network & Storage
             std::unique_ptr<Network::WiFiManager> wifiManager;
+            std::unique_ptr<Network::IRolandClient> rolandClient;
             std::unique_ptr<Storage::ConfigManager> configManager;
 
             // State
@@ -67,12 +69,17 @@ namespace STAC {
             bool initialized;
             String stacID;
             Orientation lastOrientation;
-            
+
             // Glyph test mode
             bool glyphTestMode;
             uint8_t currentGlyphIndex;
             unsigned long lastGlyphChange;
             bool autoAdvanceGlyphs;
+
+            // Roland polling state
+            unsigned long lastRolandPoll;
+            uint32_t rolandPollInterval;
+            bool rolandClientInitialized;
 
             /**
              * @brief Initialize hardware subsystems
@@ -113,6 +120,17 @@ namespace STAC {
             void handleNormalMode();
 
             /**
+             * @brief Initialize Roland client based on stored configuration
+             * @return true if initialization successful
+             */
+            bool initializeRolandClient();
+
+            /**
+             * @brief Poll Roland switch for tally status
+             */
+            void pollRolandSwitch();
+
+            /**
              * @brief Handle peripheral operating mode
              */
             void handlePeripheralMode();
@@ -121,12 +139,12 @@ namespace STAC {
              * @brief Handle provisioning mode
              */
             void handleProvisioningMode();
-            
+
             /**
              * @brief Handle glyph test mode
              */
             void handleGlyphTestMode();
-            
+
             /**
              * @brief Advance to next glyph in test mode
              */

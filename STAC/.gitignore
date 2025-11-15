@@ -13,3 +13,6 @@ scripts/
 
 # Build outputs (not tracked until final release)
 bin/
+
+# Test configuration with sensitive credentials
+include/Utils/TestConfig.h

@@ -6,6 +6,8 @@
 #include "Hardware/Sensors/IMUFactory.h"
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
+#include "Network/Protocol/RolandClientFactory.h"
+#include "Utils/TestConfig.h"
 #include <Arduino.h>
 
 // Add these using declarations
@@ -24,7 +26,10 @@ namespace STAC {
             , glyphTestMode( false )
             , currentGlyphIndex( 0 )
             , lastGlyphChange( 0 )
-            , autoAdvanceGlyphs( true ) {
+            , autoAdvanceGlyphs( true )
+            , lastRolandPoll( 0 )
+            , rolandPollInterval( 300 )
+            , rolandClientInitialized( false ) {
             // unique_ptr members default to nullptr
         }
 
@@ -126,7 +131,7 @@ namespace STAC {
                 handleGlyphTestMode();
                 return;
             }
-            
+
             // Mode-specific handling
             switch ( systemState->getOperatingMode().getCurrentMode() ) {
                 case OperatingMode::NORMAL:
@@ -161,8 +166,8 @@ namespace STAC {
             if ( imu->begin() ) {
                 log_i( "✓ IMU (%s)", imu->getType() );
                 lastOrientation = imu->getOrientation();
-                const char* orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-                log_i( "  Initial orientation: %s", orientationNames[static_cast<int>( lastOrientation )] );
+                const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
+                log_i( "  Initial orientation: %s", orientationNames[ static_cast<int>( lastOrientation ) ] );
             }
             else {
                 log_w( "⚠ IMU unavailable" );
@@ -205,6 +210,50 @@ namespace STAC {
                 log_i( "  STAC ID: %s", stacID.c_str() );
             }
 
+#ifdef ENABLE_TEST_CONFIG
+            // TEST MODE: Apply hardcoded test configuration
+            log_w( "═══════════════════════════════════════════" );
+            log_w( "   TEST MODE: Using hardcoded config" );
+            log_w( "═══════════════════════════════════════════" );
+            
+            // Save test WiFi credentials
+            configManager->saveWiFiCredentials( 
+                Test::TEST_WIFI_SSID, 
+                Test::TEST_WIFI_PASSWORD 
+            );
+            log_i( "  WiFi: %s", Test::TEST_WIFI_SSID );
+
+            // Save test switch configuration
+            IPAddress testSwitchIP;
+            testSwitchIP.fromString( Test::TEST_SWITCH_IP );
+            configManager->saveSwitchConfig(
+                Test::TEST_SWITCH_MODEL,
+                testSwitchIP,
+                Test::TEST_SWITCH_PORT,
+                Test::TEST_SWITCH_USERNAME,
+                Test::TEST_SWITCH_PASSWORD
+            );
+            log_i( "  Switch: %s @ %s:%d", 
+                   Test::TEST_SWITCH_MODEL, 
+                   Test::TEST_SWITCH_IP, 
+                   Test::TEST_SWITCH_PORT );
+
+            // Save test operations
+            StacOperations testOps;
+            testOps.switchModel = Test::TEST_SWITCH_MODEL;
+            testOps.tallyChannel = Test::TEST_TALLY_CHANNEL;
+            testOps.channelBank = Test::TEST_CHANNEL_BANK;
+            testOps.statusPollInterval = Test::TEST_POLL_INTERVAL_MS;
+            testOps.cameraOperatorMode = Test::TEST_CAMERA_OPERATOR_MODE;
+            testOps.displayBrightnessLevel = Test::TEST_BRIGHTNESS_LEVEL;
+            configManager->saveOperations( testOps );
+            log_i( "  Channel: %d, Poll: %dms", 
+                   Test::TEST_TALLY_CHANNEL, 
+                   Test::TEST_POLL_INTERVAL_MS );
+            
+            log_w( "═══════════════════════════════════════════" );
+#endif
+
             // WiFi Manager
             wifiManager = std::make_unique<Network::WiFiManager>();
             if ( !wifiManager->begin() ) {
@@ -243,38 +292,40 @@ namespace STAC {
         void STACApp::handleButton() {
             // Long press: Toggle between tally mode and glyph test mode
             static bool longPressHandled = false;
-            
+
             if ( button->isLongPress() ) {
                 if ( !longPressHandled ) {
                     longPressHandled = true;
                     glyphTestMode = !glyphTestMode;
-                    
+
                     if ( glyphTestMode ) {
                         log_i( "Entering GLYPH TEST mode" );
                         currentGlyphIndex = 0;
                         autoAdvanceGlyphs = true;
                         lastGlyphChange = millis();
                         advanceToNextGlyph();
-                    } else {
+                    }
+                    else {
                         log_i( "Returning to TALLY mode" );
                         updateDisplay();
                     }
                 }
                 return;  // Don't process short press while long press is active
             }
-            
+
             // Reset long press flag when button is released
             if ( !button->isPressed() && longPressHandled ) {
                 longPressHandled = false;
             }
-            
+
             // Short press behavior depends on mode
             if ( button->wasClicked() ) {
                 if ( glyphTestMode ) {
                     // In glyph test mode: advance to next glyph
                     advanceToNextGlyph();
                     autoAdvanceGlyphs = false;  // Stop auto-advance when user manually advances
-                } else {
+                }
+                else {
                     // In tally mode: cycle through states
                     TallyState currentState = systemState->getTallyState().getCurrentState();
                     TallyState newState;
@@ -335,8 +386,8 @@ namespace STAC {
                 lastOrientation = currentOrientation;
 
                 // Log orientation changes
-                const char* orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-                log_i( "Orientation changed to: %s", orientationNames[static_cast<int>( currentOrientation )] );
+                const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
+                log_i( "Orientation changed to: %s", orientationNames[ static_cast<int>( currentOrientation ) ] );
 
                 log_d( "Orientation: %d", static_cast<int>( currentOrientation ) );
             }
@@ -365,28 +416,33 @@ namespace STAC {
         //     }
         // }
 
-        void STACApp::handleNormalMode() {
-            
-            // [RJL] Commented out this whole thing to prevent repeated connection attempts flooding the serial monitor
-            
-            // TODO: Implement Roland switch polling
-            // For now, tally state is controlled by button
+void STACApp::handleNormalMode() {
+    // Ensure WiFi is connected
+    static bool wifiAttempted = false;
 
-            // // Only try to connect if we have credentials and aren't already connected
-            // static bool wifiAttempted = false;
+    if ( !wifiAttempted && !wifiManager->isConnected() && configManager->hasWiFiCredentials() ) {
+        wifiAttempted = true;
 
-            // if ( !wifiAttempted && !wifiManager->isConnected() && configManager->hasWiFiCredentials() ) {
-            //     wifiAttempted = true;  // Only try once
-
-            //     String ssid, password;
-            //     if ( configManager->loadWiFiCredentials( ssid, password ) ) {
-            //         log_i( "Attempting to connect to WiFi: %s", ssid.c_str() );
-            //         wifiManager->connect( ssid, password );
-            //     }
-            // }
-            // // If connection failed, WiFiManager will handle auto-reconnect
+        String ssid, password;
+        if ( configManager->loadWiFiCredentials( ssid, password ) ) {
+            log_i( "Attempting to connect to WiFi: %s", ssid.c_str() );
+            wifiManager->connect( ssid, password );
         }
+    }
 
+    // Initialize Roland client if WiFi connected and not yet initialized
+    if ( wifiManager->isConnected() && !rolandClientInitialized ) {
+        if ( initializeRolandClient() ) {
+            rolandClientInitialized = true;
+            log_i( "Roland client initialized" );
+        }
+    }
+
+    // Poll Roland switch if initialized
+    if ( rolandClientInitialized ) {
+        pollRolandSwitch();
+    }
+}
         void STACApp::handlePeripheralMode() {
             // Read tally state from GROVE port
             static unsigned long lastRead = 0;
@@ -454,46 +510,141 @@ namespace STAC {
                 delay( 300 );
             }
         }
-        
+
         void STACApp::handleGlyphTestMode() {
             // Auto-advance glyphs every 500ms if enabled
             if ( autoAdvanceGlyphs && ( millis() - lastGlyphChange >= 500 ) ) {
                 advanceToNextGlyph();
             }
         }
-        
+
         void STACApp::advanceToNextGlyph() {
             // Get the appropriate glyph manager for this display size
             uint8_t displaySize = display->getWidth();
             uint8_t maxGlyphs = ( displaySize == 5 ) ? 32 : 28;
-            
+
             // Advance to next glyph
             currentGlyphIndex++;
             if ( currentGlyphIndex >= maxGlyphs ) {
                 currentGlyphIndex = 0;
             }
-            
+
             lastGlyphChange = millis();
-            
+
             // Get the glyph data and draw it
-            const uint8_t* glyphData = nullptr;
-            
+            const uint8_t *glyphData = nullptr;
+
             if ( displaySize == 5 ) {
                 Display::GlyphManager5x5 glyphMgr;
                 glyphMgr.updateOrientation( lastOrientation );
                 glyphData = glyphMgr.getGlyph( currentGlyphIndex );
-            } else {
+            }
+            else {
                 Display::GlyphManager8x8 glyphMgr;
                 glyphMgr.updateOrientation( lastOrientation );
                 glyphData = glyphMgr.getGlyph( currentGlyphIndex );
             }
-            
+
             if ( glyphData != nullptr ) {
-                display->drawGlyph( glyphData, 
-                                   Display::StandardColors::GREEN,
-                                   Display::StandardColors::BLACK,
-                                   true );
+                display->drawGlyph( glyphData,
+                                    Display::StandardColors::GREEN,
+                                    Display::StandardColors::BLACK,
+                                    true );
                 log_d( "Displaying glyph %d", currentGlyphIndex );
+            }
+        }
+
+        bool STACApp::initializeRolandClient() {
+            // Load switch configuration from storage
+            String model;
+            IPAddress switchIP;
+            uint16_t switchPort;
+            String username, password;
+
+            if ( !configManager->loadSwitchConfig( model, switchIP, switchPort, username, password ) ) {
+                log_w( "No switch configuration found" );
+                return false;
+            }
+
+            // Load operations (for tally channel and bank)
+            StacOperations ops;
+            if ( !configManager->loadOperations( ops ) ) {
+                log_w( "No operations configuration found" );
+                return false;
+            }
+
+            // Cache poll interval to avoid repeated NVS reads
+            rolandPollInterval = ops.statusPollInterval;
+
+            // Create Roland client based on switch model
+            rolandClient = Network::RolandClientFactory::createFromString( model );
+            if ( !rolandClient ) {
+                log_e( "Failed to create Roland client for model: %s", model.c_str() );
+                return false;
+            }
+
+            // Build configuration
+            Network::RolandConfig rolandConfig;
+            rolandConfig.switchIP = switchIP;
+            rolandConfig.switchPort = switchPort;
+            rolandConfig.tallyChannel = ops.tallyChannel;
+            rolandConfig.username = username;
+            rolandConfig.password = password;
+            rolandConfig.channelBank = ops.channelBank;
+            rolandConfig.stacID = stacID;
+
+            // Initialize the client
+            if ( !rolandClient->begin( rolandConfig ) ) {
+                log_e( "Failed to initialize Roland client" );
+                rolandClient.reset();
+                return false;
+            }
+
+            log_i( "Roland client ready: %s @ %s:%d (ch %d)",
+                   model.c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
+
+            return true;
+        }
+
+        void STACApp::pollRolandSwitch() {
+            // Check if it's time to poll
+            unsigned long now = millis();
+
+            if ( now - lastRolandPoll < rolandPollInterval ) {
+                return;
+            }
+
+            lastRolandPoll = now;
+
+            // Query tally status
+            Network::TallyQueryResult result;
+            if ( !rolandClient->queryTallyStatus( result ) ) {
+                log_w( "Roland query failed: %s", Network::tallyStatusToString( result.status ).c_str() );
+                return;
+            }
+
+            // Map Roland status to TallyState
+            TallyState newState = TallyState::UNSELECTED;
+            switch ( result.status ) {
+                case Network::TallyStatus::ONAIR:
+                    newState = TallyState::PROGRAM;
+                    break;
+                case Network::TallyStatus::SELECTED:
+                    newState = TallyState::PREVIEW;
+                    break;
+                case Network::TallyStatus::UNSELECTED:
+                    newState = TallyState::UNSELECTED;
+                    break;
+                default:
+                    log_w( "Unexpected tally status: %s", result.rawResponse.c_str() );
+                    return;
+            }
+
+            // Update tally state if changed
+            if ( newState != systemState->getTallyState().getCurrentState() ) {
+                systemState->getTallyState().setState( newState );
+                log_i( "Tally updated from Roland: %s",
+                       State::TallyStateManager::stateToString( newState ) );
             }
         }
 

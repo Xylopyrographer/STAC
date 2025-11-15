@@ -66,18 +66,24 @@ namespace STAC {
              * @param model Switch model ("V-60HD" or "V-160HD")
              * @param ipAddress Switch IP address
              * @param port Switch HTTP port
+             * @param username Username for authentication (V-160HD only, optional)
+             * @param password Password for authentication (V-160HD only, optional)
              * @return true if saved successfully
              */
-            bool saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port );
+            bool saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+                                   const String &username = "", const String &password = "" );
 
             /**
              * @brief Load switch configuration
              * @param model Output: Switch model
              * @param ipAddress Output: Switch IP address
              * @param port Output: Switch HTTP port
+             * @param username Output: Username for authentication (may be empty)
+             * @param password Output: Password for authentication (may be empty)
              * @return true if configuration exists
              */
-            bool loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port );
+            bool loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+                                   String &username, String &password );
 
             // ========================================================================
             // Operating Parameters
@@ -159,6 +165,7 @@ namespace STAC {
             static constexpr const char *KEY_MODEL = "model";
             static constexpr const char *KEY_IP = "ip";
             static constexpr const char *KEY_PORT = "port";
+            static constexpr const char *KEY_USERNAME = "username";
             static constexpr const char *KEY_STAC_ID = "stacid";
 
             /**

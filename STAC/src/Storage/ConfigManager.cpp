@@ -67,7 +67,8 @@ namespace STAC {
             log_i( "WiFi credentials cleared" );
         }
 
-        bool ConfigManager::saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port ) {
+        bool ConfigManager::saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+                                                       const String &username, const String &password ) {
             if ( !prefs.begin( NS_SWITCH, false ) ) {
                 log_e( "Failed to open switch preferences" );
                 return false;
@@ -76,6 +77,8 @@ namespace STAC {
             prefs.putString( KEY_MODEL, model );
             prefs.putUInt( KEY_IP, ( uint32_t )ipAddress );
             prefs.putUShort( KEY_PORT, port );
+            prefs.putString( KEY_USERNAME, username );
+            prefs.putString( KEY_PASSWORD, password );
             prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
             prefs.end();
 
@@ -83,7 +86,8 @@ namespace STAC {
             return true;
         }
 
-        bool ConfigManager::loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port ) {
+        bool ConfigManager::loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+                                                       String &username, String &password ) {
             if ( !prefs.begin( NS_SWITCH, true ) ) {
                 log_w( "No switch preferences found" );
                 return false;
@@ -92,6 +96,8 @@ namespace STAC {
             model = prefs.getString( KEY_MODEL, "" );
             uint32_t ip = prefs.getUInt( KEY_IP, 0 );
             port = prefs.getUShort( KEY_PORT, 80 );
+            username = prefs.getString( KEY_USERNAME, "" );
+            password = prefs.getString( KEY_PASSWORD, "" );
             prefs.end();
 
             if ( model.isEmpty() || ip == 0 ) {
@@ -145,7 +151,7 @@ namespace STAC {
             ops.statusPollInterval = prefs.getULong( "pollInterval", 300 );
             prefs.end();
 
-            log_i( "Operations loaded" );
+            log_v( "Operations loaded" );  // Changed to verbose to reduce log spam
             return true;
         }
 
