@@ -93,20 +93,24 @@ namespace STAC {
             }
             );
 
-            initialized = true;
+        initialized = true;
 
-            Serial.println();
-            Serial.println( "╔════════════════════════════════════════════╗" );
-            Serial.println( "║               STAC Ready!                  ║" );
-            Serial.println( "╚════════════════════════════════════════════╝\n" );
+        Serial.println();
+        Serial.println( "╔════════════════════════════════════════════╗" );
+        Serial.println( "║               STAC Ready!                  ║" );
+        Serial.println( "╚════════════════════════════════════════════╝\n" );
 
-            // Initial display update
-            updateDisplay();
-
-            return true;
+        // Handle provisioning mode if needed (blocking call)
+        if ( systemState->getOperatingMode().getCurrentMode() == OperatingMode::PROVISIONING ) {
+            handleProvisioningMode();
+            // After provisioning completes, device will restart
         }
 
-        void STACApp::loop() {
+        // Initial display update
+        updateDisplay();
+
+        return true;
+    }        void STACApp::loop() {
             if ( !initialized ) {
                 return;
             }
@@ -143,8 +147,7 @@ namespace STAC {
                     break;
 
                 case OperatingMode::PROVISIONING:
-                    // Skip provisioning for now
-                    // handleProvisioningMode();
+                    // Provisioning is handled once in setup(), not in loop
                     break;
             }
         }
@@ -273,20 +276,32 @@ namespace STAC {
                 return OperatingMode::PERIPHERAL;
             }
 
-            // For now, always start in NORMAL mode for testing
-            // TODO: Check configuration and decide if provisioning is needed
-            log_i( "Starting in NORMAL mode" );
-            return OperatingMode::NORMAL;
+            // Check for button hold at boot (provisioning/factory reset/OTA)
+            OperatingMode bootMode = checkBootButtonSequence();
+            if (bootMode == OperatingMode::PROVISIONING) {
+                log_i("Boot button: Forced provisioning mode");
+                return OperatingMode::PROVISIONING;
+            }
+            // Note: Factory reset and OTA modes restart the device, so we never return from them
 
-            /* Original code - uncomment when ready for provisioning
             // Check if configured
             if (!configManager->hasWiFiCredentials()) {
-                log_i("No configuration found, entering provisioning mode");
+                log_i("No WiFi configuration found, entering provisioning mode");
                 return OperatingMode::PROVISIONING;
             }
 
+            // Check if switch is configured
+            String switchModel;
+            IPAddress switchIP;
+            uint16_t switchPort;
+            String username, password;  // Not used for check, but required by loadSwitchConfig
+            if (!configManager->loadSwitchConfig(switchModel, switchIP, switchPort, username, password)) {
+                log_i("No switch configuration found, entering provisioning mode");
+                return OperatingMode::PROVISIONING;
+            }
+
+            log_i("Configuration found, starting in NORMAL mode");
             return OperatingMode::NORMAL;
-            */
         }
 
         void STACApp::handleButton() {
@@ -318,78 +333,23 @@ namespace STAC {
                 longPressHandled = false;
             }
 
-            // Short press behavior depends on mode
-            if ( button->wasClicked() ) {
-                if ( glyphTestMode ) {
-                    // In glyph test mode: advance to next glyph
-                    advanceToNextGlyph();
-                    autoAdvanceGlyphs = false;  // Stop auto-advance when user manually advances
-                }
-                else {
-                    // In tally mode: cycle through states
-                    TallyState currentState = systemState->getTallyState().getCurrentState();
-                    TallyState newState;
-
-                    switch ( currentState ) {
-                        case TallyState::NO_TALLY:
-                            newState = TallyState::PREVIEW;
-                            break;
-                        case TallyState::PREVIEW:
-                            newState = TallyState::PROGRAM;
-                            break;
-                        case TallyState::PROGRAM:
-                            newState = TallyState::UNSELECTED;
-                            break;
-                        case TallyState::UNSELECTED:
-                            newState = TallyState::NO_TALLY;
-                            break;
-                        default:
-                            newState = TallyState::NO_TALLY;
-                            break;
-                    }
-
-                    systemState->getTallyState().setState( newState );
-                }
+        // Short press behavior depends on mode
+        if ( button->wasClicked() ) {
+            if ( glyphTestMode ) {
+                // In glyph test mode: advance to next glyph
+                advanceToNextGlyph();
+                autoAdvanceGlyphs = false;  // Stop auto-advance when user manually advances
             }
-
-            // Disable provisioning mode for now
-            // Long press - enter provisioning mode
-            // if ( button->isLongPress() ) {
-            //     static bool longPressHandled = false;
-
-            //     if ( !longPressHandled ) {
-            //         longPressHandled = true;
-            //         log_i( "Long press detected - entering provisioning mode" );
-            //         systemState->getOperatingMode().setMode( OperatingMode::PROVISIONING );
-
-            //         // Start AP for configuration
-            //         wifiManager->startAP( stacID, "" );
-
-            //         // Visual feedback
-            //         display->fill( Display::StandardColors::YELLOW, true );
-            //         delay( 500 );
-            //         updateDisplay();
-            //     }
-
-            //     if ( !button->isPressed() ) {
-            //         longPressHandled = false;
-            //     }
-            // }
+            // Note: Tally state is controlled by Roland switch polling, not button presses
         }
-
-        void STACApp::handleOrientation() {
+    }        void STACApp::handleOrientation() {
             Orientation currentOrientation = imu->getOrientation();
 
             if ( currentOrientation != lastOrientation &&
                     currentOrientation != Orientation::UNKNOWN ) {
 
                 lastOrientation = currentOrientation;
-
-                // Log orientation changes
-                const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-                log_i( "Orientation changed to: %s", orientationNames[ static_cast<int>( currentOrientation ) ] );
-
-                log_d( "Orientation: %d", static_cast<int>( currentOrientation ) );
+                // Orientation tracking active (logging disabled for normal operation)
             }
         }
 
@@ -458,30 +418,111 @@ void STACApp::handleNormalMode() {
         }
 
         void STACApp::handleProvisioningMode() {
-            // Ensure AP is running
-            // [RJL] Following 3 line commented out to avoid starting AP repeatedly 
-            // if ( !wifiManager->isAPMode() ) {
-            //     wifiManager->startAP( stacID, "" );
-            // }
-
-            // TODO: Implement web server for configuration
-            // For now, just pulse the display
-            static unsigned long lastPulse = 0;
-            static bool pulseState = false;
-
-            if ( millis() - lastPulse > 1000 ) {
-                lastPulse = millis();
+            log_i("Entering provisioning mode");
+            
+            // Create and start web configuration server
+            Network::WebConfigServer configServer(stacID);
+            
+            // Set up pulsing teal display callback
+            bool pulseState = false;
+            configServer.setDisplayUpdateCallback([this, &pulseState]() {
                 pulseState = !pulseState;
-
-                if ( pulseState ) {
-                    display->fill( Display::StandardColors::TEAL, true );
+                if (pulseState) {
+                    display->fill(Display::StandardColors::TEAL, true);
+                } else {
+                    display->fill(Display::StandardColors::DARK_TEAL, true); // Dimmer teal
                 }
-                else {
-                    display->clear( false );
-                    display->setPixel( Config::Display::POWER_LED_PIXEL,
-                                       Display::StandardColors::TEAL, true );
-                }
+            });
+            
+            if (!configServer.begin()) {
+                log_e("Failed to start configuration server");
+                showError(2); // Show error code 2
+                return;
             }
+            
+            // Initial teal display
+            display->fill(Display::StandardColors::TEAL, true);
+            
+            // Wait for configuration
+            ProvisioningData provData = configServer.waitForConfiguration();
+            
+            // Show green to confirm receipt
+            display->fill(Display::StandardColors::GREEN, true);
+            delay(1000);
+            
+            // Stop the web server
+            configServer.end();
+            
+            // Save configuration to NVS
+            log_i("Saving configuration to NVS");
+            
+            // Save WiFi credentials
+            if (!configManager->saveWiFiCredentials(provData.wifiSSID, provData.wifiPassword)) {
+                log_e("Failed to save WiFi credentials");
+                showError(3);
+                return;
+            }
+            
+            // Convert IP string to IPAddress
+            IPAddress switchIP;
+            if (!switchIP.fromString(provData.switchIPString)) {
+                log_e("Invalid IP address: %s", provData.switchIPString.c_str());
+                showError(4);
+                return;
+            }
+            
+            // Save switch configuration
+            String username = provData.lanUserID;
+            String password = provData.lanPassword;
+            
+            if (!configManager->saveSwitchConfig(
+                provData.switchModel,
+                switchIP,
+                provData.switchPort,
+                username,
+                password)) {
+                log_e("Failed to save switch configuration");
+                showError(5);
+                return;
+            }
+            
+            // Create and save operations configuration
+            StacOperations ops;
+            ops.switchModel = provData.switchModel;
+            ops.tallyChannel = 1; // Default to channel 1
+            ops.statusPollInterval = provData.pollInterval;
+            ops.displayBrightnessLevel = 1; // Default brightness
+            ops.cameraOperatorMode = true; // Camera operator mode
+            ops.autoStartEnabled = false;
+            
+            // Set model-specific parameters
+            if (provData.switchModel == "V-60HD") {
+                ops.maxChannelCount = provData.maxChannel;
+                ops.maxHDMIChannel = 0;
+                ops.maxSDIChannel = 0;
+                ops.channelBank = "";
+            } else { // V-160HD
+                ops.maxChannelCount = 0;
+                ops.maxHDMIChannel = provData.maxHDMIChannel;
+                ops.maxSDIChannel = provData.maxSDIChannel;
+                ops.channelBank = "hdmi_"; // Default to HDMI bank
+            }
+            
+            if (!configManager->saveOperations(ops)) {
+                log_e("Failed to save operations configuration");
+                showError(6);
+                return;
+            }
+            
+            log_i("Configuration saved successfully");
+            
+            // Show success animation
+            display->fill(Display::StandardColors::GREEN, true);
+            delay(2000);
+            
+            // Restart to apply new configuration
+            log_i("Restarting to apply configuration");
+            ESP.restart();
         }
 
         void STACApp::showStartupAnimation() {
@@ -646,6 +687,185 @@ void STACApp::handleNormalMode() {
                 log_i( "Tally updated from Roland: %s",
                        State::TallyStateManager::stateToString( newState ) );
             }
+        }
+
+        void STACApp::handleOTAUpdateMode() {
+            log_i("Entering OTA update mode");
+            
+            // Show blue pulsing to indicate OTA mode
+            display->fill(Display::StandardColors::BLUE, true);
+            delay(500);
+            
+            // Create and start OTA update server
+            Network::OTAUpdateServer otaServer(stacID);
+            
+            if (!otaServer.begin()) {
+                log_e("Failed to start OTA update server");
+                showError(8); // Show error code 8
+                ESP.restart(); // Restart on error
+                return;
+            }
+            
+            // Wait for firmware upload and update
+            // This will either restart the ESP32 (success) or return (failure)
+            Network::OTAUpdateResult result = otaServer.waitForUpdate();
+            
+            if (!result.success) {
+                log_e("OTA update failed: %s", result.statusMessage.c_str());
+                showError(9); // Show error code 9
+                delay(3000);
+            }
+            
+            // Restart either way
+            ESP.restart();
+        }
+
+        void STACApp::handleFactoryReset() {
+            log_i("Performing factory reset");
+            
+            // Show red flashing to indicate factory reset
+            for (int i = 0; i < 5; i++) {
+                display->fill(Display::StandardColors::RED, true);
+                delay(200);
+                display->clear(true);
+                delay(200);
+            }
+            
+            // Clear all NVS data
+            log_i("Clearing all NVS configuration data");
+            
+            // Clear each namespace
+            Preferences prefs;
+            
+            prefs.begin("stac", false);
+            prefs.clear();
+            prefs.end();
+            
+            prefs.begin("wifi", false);
+            prefs.clear();
+            prefs.end();
+            
+            prefs.begin("switch", false);
+            prefs.clear();
+            prefs.end();
+            
+            prefs.begin("operations", false);
+            prefs.clear();
+            prefs.end();
+            
+            log_i("Factory reset complete, restarting...");
+            
+            // Show green to confirm
+            display->fill(Display::StandardColors::GREEN, true);
+            delay(2000);
+            
+            // Restart
+            ESP.restart();
+        }
+
+        OperatingMode STACApp::checkBootButtonSequence() {
+            // If button not pressed at boot, return NORMAL (will check config later)
+            if (!button->isPressed()) {
+                return OperatingMode::NORMAL;
+            }
+            
+            log_i("Button held at boot - entering button sequence state machine");
+            
+            // Button state machine timing (in milliseconds)
+            static constexpr unsigned long STATE_HOLD_TIME = 2000;  // 2 seconds per state
+            
+            enum class BootButtonState {
+                PROVISIONING_PENDING,  // Short hold -> provisioning
+                FACTORY_RESET_PENDING, // Medium hold -> factory reset
+                OTA_UPDATE_PENDING     // Long hold -> OTA update
+            };
+            
+            BootButtonState state = BootButtonState::PROVISIONING_PENDING;
+            unsigned long stateArmTime = millis() + STATE_HOLD_TIME;
+            bool sequenceExit = false;
+            OperatingMode resultMode = OperatingMode::NORMAL;
+            
+            // Show initial state - yellow for provisioning
+            display->fill(Display::StandardColors::YELLOW, true);
+            delay(250);
+            
+            // Flash to confirm we're in button sequence mode
+            for (int i = 0; i < 4; i++) {
+                display->clear(true);
+                delay(125);
+                display->fill(Display::StandardColors::YELLOW, true);
+                delay(125);
+            }
+            
+            // Button state machine loop
+            while (!sequenceExit) {
+                button->update();
+                
+                switch (state) {
+                    case BootButtonState::PROVISIONING_PENDING:
+                        if (!button->isPressed()) {
+                            // Released - enter provisioning mode
+                            log_i("Boot button sequence: PROVISIONING selected");
+                            resultMode = OperatingMode::PROVISIONING;
+                            sequenceExit = true;
+                        } else if (millis() >= stateArmTime) {
+                            // Held long enough - advance to factory reset state
+                            log_v("Advancing to FACTORY_RESET_PENDING state");
+                            display->fill(Display::StandardColors::RED, true);
+                            delay(250);
+                            
+                            // Flash to show state change
+                            for (int i = 0; i < 4; i++) {
+                                display->clear(true);
+                                delay(125);
+                                display->fill(Display::StandardColors::RED, true);
+                                delay(125);
+                            }
+                            
+                            state = BootButtonState::FACTORY_RESET_PENDING;
+                            stateArmTime = millis() + STATE_HOLD_TIME;
+                        }
+                        break;
+                        
+                    case BootButtonState::FACTORY_RESET_PENDING:
+                        if (!button->isPressed()) {
+                            // Released - perform factory reset
+                            log_i("Boot button sequence: FACTORY RESET selected");
+                            handleFactoryReset();
+                            // Never returns - ESP32 restarts
+                        } else if (millis() >= stateArmTime) {
+                            // Held long enough - advance to OTA update state
+                            log_v("Advancing to OTA_UPDATE_PENDING state");
+                            display->fill(Display::StandardColors::BLUE, true);
+                            delay(250);
+                            
+                            // Flash to show state change
+                            for (int i = 0; i < 4; i++) {
+                                display->clear(true);
+                                delay(125);
+                                display->fill(Display::StandardColors::BLUE, true);
+                                delay(125);
+                            }
+                            
+                            state = BootButtonState::OTA_UPDATE_PENDING;
+                            // No timeout for this state - wait for release
+                        }
+                        break;
+                        
+                    case BootButtonState::OTA_UPDATE_PENDING:
+                        if (!button->isPressed()) {
+                            // Released - enter OTA update mode
+                            log_i("Boot button sequence: OTA UPDATE selected");
+                            handleOTAUpdateMode();
+                            // Never returns - ESP32 restarts after OTA
+                        }
+                        break;
+                }
+                
+                yield();
+            }
+            
+            return resultMode;
         }
 
     } // namespace Application

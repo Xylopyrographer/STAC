@@ -9,6 +9,8 @@
 #include "Hardware/Interface/PeripheralMode.h"
 #include "Network/WiFiManager.h"
 #include "Network/Protocol/IRolandClient.h"
+#include "Network/WebConfigServer.h"
+#include "Network/OTAUpdateServer.h"
 #include "Storage/ConfigManager.h"
 #include "State/SystemState.h"
 
@@ -139,6 +141,33 @@ namespace STAC {
              * @brief Handle provisioning mode
              */
             void handleProvisioningMode();
+
+            /**
+             * @brief Handle OTA update mode
+             * 
+             * Starts OTA update server, waits for firmware upload,
+             * and restarts device with new firmware.
+             */
+            void handleOTAUpdateMode();
+
+            /**
+             * @brief Handle factory reset
+             * 
+             * Clears all NVS configuration and restarts device.
+             */
+            void handleFactoryReset();
+
+            /**
+             * @brief Check for button hold at boot
+             * 
+             * Implements button state machine:
+             * - Short hold: Force provisioning mode
+             * - Medium hold: Factory reset
+             * - Long hold: OTA update mode
+             * 
+             * @return Operating mode to enter (NORMAL, PROVISIONING, or special)
+             */
+            OperatingMode checkBootButtonSequence();
 
             /**
              * @brief Handle glyph test mode
