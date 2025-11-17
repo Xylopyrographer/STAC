@@ -185,6 +185,14 @@ namespace STAC {
             }
             log_i( "✓ Button" );
 
+            // GlyphManager
+#ifdef GLYPH_SIZE_5X5
+            glyphManager = std::make_unique<Display::GlyphManager5x5>( Orientation::UP );
+#else
+            glyphManager = std::make_unique<Display::GlyphManager8x8>( Orientation::UP );
+#endif
+            log_i( "✓ GlyphManager" );
+
             // Peripheral mode detector
             // peripheralDetector = Hardware::InterfaceFactory::createPeripheralDetector();
             peripheralDetector = InterfaceFactory::createPeripheralDetector();
@@ -349,13 +357,56 @@ namespace STAC {
                     currentOrientation != Orientation::UNKNOWN ) {
 
                 lastOrientation = currentOrientation;
+                
+                // Update glyph manager orientation
+                if ( glyphManager ) {
+                    glyphManager->updateOrientation( currentOrientation );
+                }
+                
                 // Orientation tracking active (logging disabled for normal operation)
             }
         }
 
         void STACApp::updateDisplay() {
-            Display::color_t color = systemState->getTallyState().getStateColor();
-            display->fill( color, true );
+            TallyState currentState = systemState->getTallyState().getCurrentState();
+            StacOperations ops = systemState->getOperations();
+            
+            // Draw the tally state (without showing yet)
+            if ( currentState == TallyState::UNSELECTED ) {
+                if ( ops.cameraOperatorMode ) {
+                    // Camera Operator mode: Show dotted frame glyph
+#ifdef GLYPH_SIZE_5X5
+                    using namespace Display::Glyphs5x5::GlyphIndex;
+#else
+                    using namespace Display::Glyphs8x8::GlyphIndex;
+#endif
+                    const uint8_t* glyphData = glyphManager->getGlyph( GLF_DF );
+                    display->drawGlyph( glyphData, 
+                                       Display::StandardColors::PURPLE, 
+                                       Display::StandardColors::BLACK, 
+                                       false );  // Don't show yet
+                } else {
+                    // Talent mode: Show solid green
+                    display->fill( Display::StandardColors::GREEN, false );  // Don't show yet
+                }
+            } else {
+                // All other states: Fill with state color
+                Display::color_t color = systemState->getTallyState().getStateColor();
+                display->fill( color, false );  // Don't show yet
+            }
+            
+            // Overlay power-on indicator (center pixel for 5x5, center 4 pixels for 8x8)
+#ifdef GLYPH_SIZE_5X5
+            using namespace Display::Glyphs5x5::GlyphIndex;
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );  // Power-on center pixel
+#else
+            using namespace Display::Glyphs8x8::GlyphIndex;
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );  // Center 4 pixels for 8x8
+#endif
+            display->drawGlyphOverlay( powerGlyph, Display::StandardColors::ORANGE, false );
+            
+            // Now show the complete display
+            display->show();
         }
 
         // void STACApp::handleNormalMode() {

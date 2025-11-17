@@ -81,7 +81,7 @@ namespace STAC {
                 case TallyState::PREVIEW:
                     return STACColors::PREVIEW;      // Green
                 case TallyState::UNSELECTED:
-                    return STACColors::UNSELECTED;   // Blue
+                    return StandardColors::PURPLE;   // Purple (matches baseline)
                 case TallyState::NO_TALLY:
                     return StandardColors::PURPLE;   // Purple
                 case TallyState::ERROR:

@@ -82,6 +82,32 @@ namespace STAC {
             virtual void show() = 0;
 
             /**
+             * @brief Flash the display by pulsing brightness
+             * @param times Number of times to flash
+             * @param interval Duration in milliseconds for each on/off cycle
+             * @param brightness Brightness level during "on" phase (0-255)
+             * @note This is a blocking operation
+             */
+            virtual void flash( uint8_t times, uint16_t interval, uint8_t brightness ) = 0;
+
+            /**
+             * @brief Draw a glyph overlay on top of current display content
+             * @param glyph Pointer to glyph data (pixels with value 1 are drawn, 0 are skipped)
+             * @param color Color to use for overlay pixels
+             * @param show If true, immediately update the physical display
+             * @note Only pixels where glyph[i] == 1 are modified
+             */
+            virtual void drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show = true ) = 0;
+
+            /**
+             * @brief Toggle the four corner pixels (for autostart indication)
+             * @param state True to turn on corners, false to turn off
+             * @param color Color to use when state is true
+             * @note Corner pixels are: 0 (top-left), 4 (top-right), 20 (bottom-left), 24 (bottom-right)
+             */
+            virtual void pulseCorners( bool state, color_t color ) = 0;
+
+            /**
              * @brief Get display width
              * @return Width in pixels
              */

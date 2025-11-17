@@ -38,6 +38,9 @@ namespace STAC {
             void setBrightness( uint8_t brightness, bool show = true ) override;
             uint8_t getBrightness() const override;
             void show() override;
+            void flash( uint8_t times, uint16_t interval, uint8_t brightness ) override;
+            void drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show = true ) override;
+            void pulseCorners( bool state, color_t color ) override;
 
             uint8_t getWidth() const override {
                 return 5;
@@ -48,14 +51,6 @@ namespace STAC {
             uint8_t getPixelCount() const override {
                 return 25;
             }
-
-            /**
-             * @brief Flash the display (alternate between colors)
-             * @param times Number of times to flash
-             * @param interval Milliseconds between flashes
-             * @param brightness Brightness during flash
-             */
-            void flash( uint8_t times, uint16_t interval, uint8_t brightness );
 
           private:
             LiteLED display;            ///< Underlying LiteLED object

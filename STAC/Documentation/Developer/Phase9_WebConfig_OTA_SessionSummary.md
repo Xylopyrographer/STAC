@@ -15,11 +15,13 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 ### Phase 9 Part 3: Web Configuration Interface
 
 **New Files Created:**
+
 - `include/Network/WebConfigPages.h` - HTML page templates for provisioning
 - `include/Network/WebConfigServer.h` - Web server class header
 - `src/Network/WebConfigServer.cpp` - Web server implementation
 
 **Features:**
+
 - WiFi Access Point mode (SSID: `STAC_<MAC>`, Password: `1234567890`)
 - mDNS support: `http://setup.local` or `http://192.168.6.14`
 - Model selection page (V-60HD / V-160HD)
@@ -30,6 +32,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 - Pulsing teal display animation during provisioning (1-second intervals between TEAL and DARK_TEAL)
 
 **Integration:**
+
 - `STACApp::handleProvisioningMode()` - Blocking handler called from setup()
 - `STACApp::determineOperatingMode()` - Detects missing config and enters provisioning mode
 - Display callback mechanism for pulsing animation
@@ -37,11 +40,13 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 ### Phase 9 Part 4: OTA Update System
 
 **New Files Created:**
+
 - `include/Network/OTAUpdatePages.h` - HTML pages for OTA interface
 - `include/Network/OTAUpdateServer.h` - OTA server class header
 - `src/Network/OTAUpdateServer.cpp` - OTA server implementation with Update library integration
 
 **Features:**
+
 - WiFi Access Point mode (same credentials as provisioning)
 - mDNS support: `http://update.local` or `http://192.168.6.14`
 - Web-based firmware upload interface
@@ -51,12 +56,14 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 - Uses `UPDATE_SIZE_UNKNOWN` for automatic partition size detection
 
 **Integration:**
+
 - `STACApp::handleOTAUpdateMode()` - OTA handler with blue pulsing display
 - Boot button state machine for mode selection
 
 ### Boot Button State Machine
 
 **Functionality:**
+
 - Hold button during boot to enter special modes
 - Visual feedback with colored displays and flashing
 - Timing-based mode selection:
@@ -65,6 +72,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
   - **6 seconds (Blue)** → OTA update mode
 
 **Implementation:**
+
 - `STACApp::checkBootButtonSequence()` - State machine in determineOperatingMode()
 - `STACApp::handleFactoryReset()` - Clears all NVS namespaces
 - Color progression: Yellow → Red → Blue with flashing indicators
@@ -72,6 +80,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 ### Build System Enhancements
 
 **Modified Files:**
+
 - `scripts/custom_targets.py` - Enhanced with new `ota` target
 
 **New Build Targets:**
@@ -88,6 +97,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
    - Uses esptool merge-bin command
 
 **Deleted Files:**
+
 - `scripts/merge_bin.py` - Redundant, functionality moved to custom_targets.py
 
 ---
@@ -98,6 +108,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 ✅ All tests passed successfully
 
 **Provisioning Workflow:**
+
 - Boot without configuration → Automatically enters provisioning mode
 - Display shows pulsing teal (working correctly)
 - Connect to STAC_C553C4 AP
@@ -111,6 +122,7 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 - Display colors correct for each state
 
 **OTA Update Workflow:**
+
 - Hold button during boot → Yellow → Red → Blue → Release
 - Device enters OTA mode
 - Display shows blue pulsing
@@ -123,11 +135,13 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 - New firmware running correctly
 
 **Boot Button Sequences:**
+
 - Provisioning mode (Yellow at 2s) - ✅ Working
 - Factory reset (Red at 4s) - ✅ Working (clears all NVS)
 - OTA mode (Blue at 6s) - ✅ Working
 
 **Roland Protocol:**
+
 - V-60HD polling working at 300ms intervals
 - Tally state changes reflected on display
 - Switch simulator (sts_norm_8080.py) communication verified
@@ -137,26 +151,32 @@ Successfully implemented Phase 9 Parts 3 & 4 of the STAC refactoring project, ad
 ## Key Technical Decisions
 
 ### 1. Provisioning Handler in setup() vs loop()
+
 **Decision:** Call `handleProvisioningMode()` from `setup()`, not `loop()`  
 **Reason:** Provisioning is a one-time blocking operation. Calling from setup() prevents the device from entering normal operation loop until configured.
 
 ### 2. Display Animation Callback
+
 **Decision:** Use callback mechanism in WebConfigServer for display updates  
 **Reason:** Separates display logic from network code. Server doesn't need to know about display hardware.
 
 ### 3. OTA Binary Type
+
 **Decision:** Use `firmware.bin` (app only) for OTA, not merged binary  
 **Reason:** OTA updates only the application partition. Bootloader and partition table remain unchanged. Merged binary is for full device programming only.
 
 ### 4. Update.begin() Parameters
+
 **Decision:** Use `UPDATE_SIZE_UNKNOWN` constant  
 **Reason:** Allows Update library to auto-detect OTA partition size from partition table. More flexible than hardcoding size.
 
 ### 5. Partition Table Layout
+
 **Decision:** Keep partition table at 0x8000 (standard location)  
 **Clarification:** Comment about "0x9000 to accommodate larger bootloader" is misleading. 0x9000 is where NVS starts (after partition table), not a different partition table location.
 
 ### 6. Button Press Handling
+
 **Decision:** Removed manual tally state cycling on button press  
 **Reason:** Tally state should be controlled exclusively by Roland switch polling, not user input. Button is reserved for glyph test mode toggle.
 
@@ -195,6 +215,7 @@ STAC/
 ## Configuration Details
 
 ### WiFi Access Point
+
 - **SSID:** `STAC_<MAC_ADDRESS>` (e.g., STAC_C553C4)
 - **Password:** `1234567890`
 - **IP Address:** `192.168.6.14`
@@ -203,6 +224,7 @@ STAC/
 - **Max Connections:** 1
 
 ### NVS Storage Namespaces
+
 - `stac` - Device ID and system settings
 - `wifi` - WiFi credentials (SSID, password)
 - `switch` - Roland switch configuration (model, IP, port, credentials, channels)
@@ -226,16 +248,19 @@ Location    Size    Purpose
 ## Code Quality Notes
 
 ### Serial Monitor
+
 - Baud rate: 115200 (configured in platformio.ini and main.cpp)
 - IMU orientation logging disabled in normal operation (clutter reduction)
 - Key events logged: mode changes, WiFi connections, configuration saves, OTA progress
 
 ### Memory Usage (atom-matrix build)
+
 - **Flash:** 1,271,323 bytes (65.3% of 1,945,600 bytes)
 - **RAM:** 51,228 bytes (15.6% of 327,680 bytes)
 - **IRAM:** 93,019 bytes (70.97% of 131,072 bytes) ⚠️ High but acceptable
 
 ### Error Handling
+
 - Web server errors logged and displayed to user
 - OTA update failures: proper cleanup, error messages, no restart
 - Configuration parsing: validation and error feedback
@@ -288,6 +313,7 @@ Location    Size    Purpose
 ## Commands Reference
 
 ### Building & Flashing
+
 ```bash
 # Standard build and upload
 pio run -e atom-matrix -t upload
@@ -305,24 +331,28 @@ pio device monitor -e atom-matrix -b 115200
 ```
 
 ### Testing
+
 ```bash
 # Run Roland V-60HD simulator
 python '/Users/robl/Documents/STAC-SmartTallyAtomClient/STSEmulator/v60_python_scripts/sts_norm_8080.py'
 ```
 
 ### Provisioning Mode
+
 1. Power on device without WiFi configuration OR
 2. Hold button during boot until yellow (2 seconds), release
 3. Connect to WiFi: STAC_C553C4 (password: 1234567890)
 4. Visit: http://setup.local or http://192.168.6.14
 
 ### OTA Update Mode
+
 1. Hold button during boot until blue (6 seconds), release
 2. Connect to WiFi: STAC_C553C4 (password: 1234567890)
 3. Visit: http://update.local or http://192.168.6.14
 4. Upload: bin/firmware-atom-matrix-ota.bin
 
 ### Factory Reset
+
 1. Hold button during boot until red (4 seconds), release
 2. Device clears all configuration and restarts
 3. Will enter provisioning mode on next boot
@@ -332,6 +362,7 @@ python '/Users/robl/Documents/STAC-SmartTallyAtomClient/STSEmulator/v60_python_s
 ## Technical Insights Gained
 
 ### ESP32 Flash Memory Layout
+
 - Bootloader location: **0x1000** (fixed)
 - Partition table location: **0x8000** (fixed, always)
 - Partition table describes where partitions are, not where it lives
@@ -339,6 +370,7 @@ python '/Users/robl/Documents/STAC-SmartTallyAtomClient/STSEmulator/v60_python_s
 - Custom layouts can optimize space significantly
 
 ### OTA Update Process
+
 - Only updates application partition (app0 or app1)
 - Bootloader and partition table remain unchanged
 - `otadata` partition tracks which app partition to boot
@@ -346,6 +378,7 @@ python '/Users/robl/Documents/STAC-SmartTallyAtomClient/STSEmulator/v60_python_s
 - Update library handles partition selection automatically
 
 ### PlatformIO Custom Targets
+
 - Can create custom build targets with SCons
 - Access to build environment and board configuration
 - Can run arbitrary Python code during build

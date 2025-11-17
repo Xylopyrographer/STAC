@@ -17,7 +17,7 @@ namespace STAC {
             constexpr uint8_t GLYPH_WIDTH = 5;
             constexpr uint8_t GLYPH_HEIGHT = 5;
             constexpr uint8_t GLYPH_SIZE = 25;
-            constexpr uint8_t GLYPH_COUNT = 32;
+            constexpr uint8_t GLYPH_COUNT = 33;
 
             /**
              * @brief Glyph identifier enum
@@ -56,8 +56,50 @@ namespace STAC {
                 LETTER_A = 28,      ///< Letter A
                 LETTER_S = 29,      ///< Letter S
                 LETTER_P = 30,      ///< Letter P
-                FIRMWARE_UPDATE = 31 ///< Firmware update icon
+                FIRMWARE_UPDATE = 31, ///< Firmware update icon
+                CENTER_PIXEL = 32   ///< Center pixel only (for power indicator)
             };
+
+            /**
+             * @brief Mnemonic constants for glyph indices (baseline compatibility)
+             * 
+             * These match the baseline GLF_* defines for easier code reading.
+             */
+            namespace GlyphIndex {
+                constexpr uint8_t GLF_0   = 0;   ///< Number 0
+                constexpr uint8_t GLF_1   = 1;   ///< Number 1
+                constexpr uint8_t GLF_2   = 2;   ///< Number 2
+                constexpr uint8_t GLF_3   = 3;   ///< Number 3
+                constexpr uint8_t GLF_4   = 4;   ///< Number 4
+                constexpr uint8_t GLF_5   = 5;   ///< Number 5
+                constexpr uint8_t GLF_6   = 6;   ///< Number 6
+                constexpr uint8_t GLF_7   = 7;   ///< Number 7
+                constexpr uint8_t GLF_8   = 8;   ///< Number 8
+                constexpr uint8_t GLF_9   = 9;   ///< Number 9
+                constexpr uint8_t GLF_X   = 10;  ///< Letter X
+                constexpr uint8_t GLF_WIFI = 11; ///< WiFi icon
+                constexpr uint8_t GLF_ST  = 12;  ///< Smart Tally icon
+                constexpr uint8_t GLF_C   = 13;  ///< Letter C
+                constexpr uint8_t GLF_T   = 14;  ///< Letter T
+                constexpr uint8_t GLF_RA  = 15;  ///< Right arrow
+                constexpr uint8_t GLF_LA  = 16;  ///< Left arrow
+                constexpr uint8_t GLF_HF  = 17;  ///< Happy face
+                constexpr uint8_t GLF_BX  = 18;  ///< Big X
+                constexpr uint8_t GLF_FM  = 19;  ///< Frame (solid)
+                constexpr uint8_t GLF_DF  = 20;  ///< Dotted frame
+                constexpr uint8_t GLF_QM  = 21;  ///< Question mark
+                constexpr uint8_t GLF_CBD = 22;  ///< Checkerboard
+                constexpr uint8_t GLF_CK  = 23;  ///< Checkmark
+                constexpr uint8_t GLF_EN  = 24;  ///< En space
+                constexpr uint8_t GLF_EM  = 25;  ///< Em space
+                constexpr uint8_t GLF_DOT = 26;  ///< Dot
+                constexpr uint8_t GLF_CFG = 27;  ///< WiFi config icon
+                constexpr uint8_t GLF_A   = 28;  ///< Letter A
+                constexpr uint8_t GLF_S   = 29;  ///< Letter S
+                constexpr uint8_t GLF_P   = 30;  ///< Letter P
+                constexpr uint8_t GLF_UD  = 31;  ///< Firmware update icon
+                constexpr uint8_t GLF_PO  = 32;  ///< Power-on pixel (center)
+            }
 
             /**
              * @brief Base glyph data (unrotated)
@@ -129,7 +171,9 @@ namespace STAC {
                 // LETTER_P
                 {0,1,1,0,0, 0,1,0,1,0, 0,1,1,0,0, 0,1,0,0,0, 0,1,0,0,0},
                 // FIRMWARE_UPDATE
-                {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,1,1,0, 0,1,1,1,0}
+                {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,1,1,0, 0,1,1,1,0},
+                // CENTER_PIXEL (pixel 12 only - for power indicator overlay)
+                {0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0}
             };
 
         } // namespace Glyphs5x5

@@ -59,6 +59,42 @@ namespace STAC {
             };
 
             /**
+             * @brief Mnemonic constants for glyph indices (baseline compatibility)
+             * 
+             * These match the baseline GLF_* defines for easier code reading.
+             */
+            namespace GlyphIndex {
+                constexpr uint8_t GLF_0    = 0;   ///< Number 0
+                constexpr uint8_t GLF_1    = 1;   ///< Number 1
+                constexpr uint8_t GLF_2    = 2;   ///< Number 2
+                constexpr uint8_t GLF_3    = 3;   ///< Number 3
+                constexpr uint8_t GLF_4    = 4;   ///< Number 4
+                constexpr uint8_t GLF_5    = 5;   ///< Number 5
+                constexpr uint8_t GLF_6    = 6;   ///< Number 6
+                constexpr uint8_t GLF_7    = 7;   ///< Number 7
+                constexpr uint8_t GLF_8    = 8;   ///< Number 8
+                constexpr uint8_t GLF_9    = 9;   ///< Number 9
+                constexpr uint8_t GLF_A    = 10;  ///< Letter A
+                constexpr uint8_t GLF_C    = 11;  ///< Letter C
+                constexpr uint8_t GLF_P    = 12;  ///< Letter P
+                constexpr uint8_t GLF_S    = 13;  ///< Letter S
+                constexpr uint8_t GLF_T    = 14;  ///< Letter T
+                constexpr uint8_t GLF_QM   = 15;  ///< Question mark
+                constexpr uint8_t GLF_WIFI = 16;  ///< WiFi icon
+                constexpr uint8_t GLF_CFG  = 17;  ///< Config required icon
+                constexpr uint8_t GLF_BX   = 18;  ///< Big X
+                constexpr uint8_t GLF_CK   = 19;  ///< Checkmark
+                constexpr uint8_t GLF_CBD  = 20;  ///< Checkerboard
+                constexpr uint8_t GLF_FM   = 21;  ///< Frame (solid)
+                constexpr uint8_t GLF_DF   = 22;  ///< Dotted frame
+                constexpr uint8_t GLF_SF   = 23;  ///< Smiley face
+                constexpr uint8_t GLF_EN   = 24;  ///< En space
+                constexpr uint8_t GLF_MID  = 25;  ///< Center dot (4 pixels)
+                constexpr uint8_t GLF_UD   = 26;  ///< Firmware update
+                constexpr uint8_t GLF_IMUX = 27;  ///< IMU error icon
+            }
+
+            /**
              * @brief Base glyph data (unrotated) for 8×8 display
              *
              * Each glyph is 64 bytes representing an 8×8 matrix in row-major order.

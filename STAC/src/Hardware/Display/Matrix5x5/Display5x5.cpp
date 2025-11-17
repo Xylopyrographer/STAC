@@ -110,6 +110,39 @@ namespace STAC {
             setBrightness( savedBrightness, true );
         }
 
+        void Display5x5::drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show ) {
+            if ( glyph == nullptr ) {
+                log_e( "Null glyph pointer" );
+                return;
+            }
+
+            // Convert color to board-specific order
+            color_t boardSpecificColor = boardColor( color );
+
+            // Overlay glyph: only draw pixels where glyph[i] == 1
+            for ( uint8_t i = 0; i < numLeds; i++ ) {
+                if ( glyph[ i ] == 1 ) {
+                    display.setPixel( i, boardSpecificColor, false );
+                }
+            }
+
+            if ( show ) {
+                this->show();
+            }
+        }
+
+        void Display5x5::pulseCorners( bool state, color_t color ) {
+            // Corner pixels for 5x5 matrix: 0 (top-left), 4 (top-right), 20 (bottom-left), 24 (bottom-right)
+            color_t pixelColor = state ? boardColor( color ) : StandardColors::BLACK;
+
+            display.setPixel( 0, pixelColor, false );
+            display.setPixel( 4, pixelColor, false );
+            display.setPixel( 20, pixelColor, false );
+            display.setPixel( 24, pixelColor, false );
+
+            show();
+        }
+
         bool Display5x5::isValidPosition( uint8_t position ) const {
             return position < numLeds;
         }

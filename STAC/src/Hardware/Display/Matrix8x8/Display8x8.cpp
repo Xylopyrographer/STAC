@@ -111,6 +111,39 @@ namespace STAC {
             setBrightness( savedBrightness, true );
         }
 
+        void Display8x8::drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show ) {
+            if ( glyph == nullptr ) {
+                log_e( "Null glyph pointer" );
+                return;
+            }
+
+            // Convert color to board-specific order
+            color_t boardSpecificColor = boardColor( color );
+
+            // Overlay glyph: only draw pixels where glyph[i] == 1
+            for ( uint8_t i = 0; i < numLeds; i++ ) {
+                if ( glyph[ i ] == 1 ) {
+                    display.setPixel( i, boardSpecificColor, false );
+                }
+            }
+
+            if ( show ) {
+                this->show();
+            }
+        }
+
+        void Display8x8::pulseCorners( bool state, color_t color ) {
+            // Corner pixels for 8x8 matrix: 0 (top-left), 7 (top-right), 56 (bottom-left), 63 (bottom-right)
+            color_t pixelColor = state ? boardColor( color ) : StandardColors::BLACK;
+
+            display.setPixel( 0, pixelColor, false );
+            display.setPixel( 7, pixelColor, false );
+            display.setPixel( 56, pixelColor, false );
+            display.setPixel( 63, pixelColor, false );
+
+            show();
+        }
+
         bool Display8x8::isValidPosition( uint8_t position ) const {
             return position < numLeds;
         }

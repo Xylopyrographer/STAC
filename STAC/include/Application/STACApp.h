@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "Hardware/Display/IDisplay.h"
+#include "Hardware/Display/GlyphManager.h"
 #include "Hardware/Sensors/IIMU.h"
 #include "Hardware/Input/IButton.h"
 #include "Hardware/Interface/GrovePort.h"
@@ -58,6 +59,13 @@ namespace STAC {
             std::unique_ptr<Hardware::IButton> button;               // Hardware namespace
             std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
             std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
+
+            // Glyph management
+#ifdef GLYPH_SIZE_5X5
+            std::unique_ptr<Display::GlyphManager5x5> glyphManager;
+#else
+            std::unique_ptr<Display::GlyphManager8x8> glyphManager;
+#endif
 
             // Network & Storage
             std::unique_ptr<Network::WiFiManager> wifiManager;
