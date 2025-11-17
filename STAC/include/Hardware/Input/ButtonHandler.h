@@ -4,7 +4,7 @@
 #include "IButton.h"
 #include "Device_Config.h"
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -62,7 +62,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_BUTTON_HANDLER_H
 

@@ -5,8 +5,8 @@
 #include <IPAddress.h>
 #include "Config/Types.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         /**
          * @brief Tally status returned from Roland switch
@@ -140,8 +140,8 @@ namespace STAC {
             }
         }
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 #endif // STAC_IROLAND_CLIENT_H
 

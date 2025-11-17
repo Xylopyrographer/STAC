@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "../Device_Config.h"
 
-namespace STAC {
+
     namespace Config {
 
         // ============================================================================
@@ -70,7 +70,7 @@ namespace STAC {
         // NETWORK CONFIGURATION (from Device_Config.h)
         // ============================================================================
 
-        namespace Network {
+        namespace Net {
             constexpr uint8_t MAX_POLL_ERRORS = NETWORK_MAX_POLL_ERRORS;
             constexpr uint16_t DEFAULT_PORT = 80;
             constexpr uint32_t CONNECT_TIMEOUT_MS = 1000;
@@ -103,7 +103,7 @@ namespace STAC {
         }
 
     } // namespace Config
-} // namespace STAC
+
 
 #endif // STAC_CONSTANTS_H
 

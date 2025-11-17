@@ -15,8 +15,7 @@
 #include "Storage/ConfigManager.h"
 #include "State/SystemState.h"
 
-namespace STAC {
-    namespace Application {
+namespace Application {
 
         /**
          * @brief Main STAC application controller
@@ -68,8 +67,8 @@ namespace STAC {
 #endif
 
             // Network & Storage
-            std::unique_ptr<Network::WiFiManager> wifiManager;
-            std::unique_ptr<Network::IRolandClient> rolandClient;
+            std::unique_ptr<Net::WiFiManager> wifiManager;
+            std::unique_ptr<Net::IRolandClient> rolandClient;
             std::unique_ptr<Storage::ConfigManager> configManager;
 
             // State
@@ -133,7 +132,7 @@ namespace STAC {
              * @brief Display WiFi connection status with visual feedback
              * @param state Current WiFi state
              */
-            void displayWiFiStatus( Network::WiFiState state );
+            void displayWiFiStatus( Net::WiFiState state );
 
             /**
              * @brief Initialize Roland client based on stored configuration
@@ -200,8 +199,7 @@ namespace STAC {
             void showError( uint8_t errorCode );
         };
 
-    } // namespace Application
-} // namespace STAC
+} // namespace Application
 
 #endif // STAC_APP_H
 

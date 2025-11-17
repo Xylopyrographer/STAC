@@ -3,7 +3,7 @@
 #include "Hardware/Display/Glyphs8x8.h"
 #include <cstring>
 
-namespace STAC {
+
     namespace Display {
 
         // ========================================================================
@@ -217,7 +217,7 @@ namespace STAC {
         template class GlyphManager<8>;
 
     } // namespace Display
-} // namespace STAC
+
 
 
 //  --- EOF --- //

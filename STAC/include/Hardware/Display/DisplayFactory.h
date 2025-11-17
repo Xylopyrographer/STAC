@@ -15,7 +15,7 @@
     #error "No display size defined in board configuration!"
 #endif
 
-namespace STAC {
+
     namespace Display {
 
         /**
@@ -64,7 +64,7 @@ namespace STAC {
         };
 
     } // namespace Display
-} // namespace STAC
+
 
 #endif // STAC_DISPLAY_FACTORY_H
 

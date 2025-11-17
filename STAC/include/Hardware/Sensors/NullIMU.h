@@ -3,7 +3,7 @@
 
 #include "IIMU.h"
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -35,7 +35,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_NULL_IMU_H
 

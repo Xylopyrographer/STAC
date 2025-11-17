@@ -19,8 +19,8 @@
 #include <WiFi.h>
 #include "Config/Types.h"
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 
     /**
      * @brief Web server for provisioning mode configuration
@@ -185,8 +185,8 @@ namespace Network {
         void shutdownSequence();
     };
 
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 #endif // STAC_WEB_CONFIG_SERVER_H
 

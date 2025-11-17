@@ -5,7 +5,7 @@
 #include <IPAddress.h>
 #include <WString.h>
 
-namespace STAC {
+
 
     // ============================================================================
     // ENUMERATIONS
@@ -183,7 +183,7 @@ namespace STAC {
         {}
     };
 
-} // namespace STAC
+
 
 #endif // STAC_TYPES_H
 

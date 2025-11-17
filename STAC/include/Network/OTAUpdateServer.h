@@ -19,8 +19,8 @@
 #include <WiFi.h>
 #include <Update.h>
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 
     /**
      * @brief Result of an OTA update attempt
@@ -174,8 +174,8 @@ namespace Network {
         void shutdownSequence();
     };
 
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 #endif // STAC_OTA_UPDATE_SERVER_H
 

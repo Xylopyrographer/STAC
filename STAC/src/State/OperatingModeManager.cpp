@@ -1,7 +1,7 @@
 #include "State/OperatingModeManager.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace State {
 
         OperatingModeManager::OperatingModeManager()
@@ -60,7 +60,7 @@ namespace STAC {
         }
 
     } // namespace State
-} // namespace STAC
+
 
 
 //  --- EOF --- //

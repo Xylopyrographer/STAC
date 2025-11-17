@@ -2,7 +2,7 @@
 #include "Hardware/Display/Matrix8x8/Display8x8.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Display {
 
         Display8x8::Display8x8( uint8_t pin, uint8_t numLeds, uint8_t ledType )
@@ -165,7 +165,7 @@ namespace STAC {
         }
 
     } // namespace Display
-} // namespace STAC
+
 
 
 //  --- EOF --- //

@@ -11,15 +11,14 @@
 #include "Utils/TestConfig.h"
 
 // Add these using declarations
-using STAC::Display::DisplayFactory;
-using STAC::Hardware::IMUFactory;
-using STAC::Hardware::ButtonFactory;
-using STAC::Hardware::InterfaceFactory;
+using Display::DisplayFactory;
+using Hardware::IMUFactory;
+using Hardware::ButtonFactory;
+using Hardware::InterfaceFactory;
 
-namespace STAC {
-    namespace Application {
+namespace Application {
 
-        STACApp::STACApp()
+    STACApp::STACApp()
             : initialized( false )
             , stacID( "" )
             , lastOrientation( Orientation::UNKNOWN )
@@ -278,7 +277,7 @@ namespace STAC {
 #endif
 
             // WiFi Manager
-            wifiManager = std::make_unique<Network::WiFiManager>();
+            wifiManager = std::make_unique<Net::WiFiManager>();
             if ( !wifiManager->begin() ) {
                 log_e( "WiFi manager initialization failed" );
                 return false;
@@ -440,7 +439,7 @@ namespace STAC {
         //     }
         // }
 
-void STACApp::displayWiFiStatus( Network::WiFiState state ) {
+void STACApp::displayWiFiStatus( Net::WiFiState state ) {
     using namespace Config::Timing;
     using namespace Display;
 
@@ -453,14 +452,14 @@ void STACApp::displayWiFiStatus( Network::WiFiState state ) {
 #endif
 
     switch ( state ) {
-        case Network::WiFiState::CONNECTING: {
+        case Net::WiFiState::CONNECTING: {
             // Show orange WiFi glyph while attempting connection
             display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
             log_i( "WiFi: Attempting connection (orange glyph displayed)" );
             break;
         }
 
-        case Network::WiFiState::CONNECTED: {
+        case Net::WiFiState::CONNECTED: {
             // Show green WiFi glyph on successful connection
             display->drawGlyph( wifiGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
             log_i( "WiFi: Connected (green glyph displayed)" );
@@ -481,7 +480,7 @@ void STACApp::displayWiFiStatus( Network::WiFiState state ) {
             break;
         }
 
-        case Network::WiFiState::FAILED: {
+        case Net::WiFiState::FAILED: {
             // Flash red WiFi glyph on timeout
             display->drawGlyph( wifiGlyph, StandardColors::RED, StandardColors::BLACK, true );
             log_e( "WiFi: Connection timeout (flashing red glyph)" );
@@ -511,7 +510,7 @@ void STACApp::handleNormalMode() {
             
             // Set callback for visual feedback
             wifiManager->setStateCallback( 
-                [this]( Network::WiFiState state ) {
+                [this]( Net::WiFiState state ) {
                     displayWiFiStatus( state );
                 }
             );
@@ -553,7 +552,7 @@ void STACApp::handleNormalMode() {
             log_i("Entering provisioning mode");
             
             // Create and start web configuration server
-            Network::WebConfigServer configServer(stacID);
+            Net::WebConfigServer configServer(stacID);
             
             // Set up pulsing teal display callback
             bool pulseState = false;
@@ -733,14 +732,14 @@ void STACApp::handleNormalMode() {
             rolandPollInterval = ops.statusPollInterval;
 
             // Create Roland client based on switch model
-            rolandClient = Network::RolandClientFactory::createFromString( model );
+            rolandClient = Net::RolandClientFactory::createFromString( model );
             if ( !rolandClient ) {
                 log_e( "Failed to create Roland client for model: %s", model.c_str() );
                 return false;
             }
 
             // Build configuration
-            Network::RolandConfig rolandConfig;
+            Net::RolandConfig rolandConfig;
             rolandConfig.switchIP = switchIP;
             rolandConfig.switchPort = switchPort;
             rolandConfig.tallyChannel = ops.tallyChannel;
@@ -773,22 +772,22 @@ void STACApp::handleNormalMode() {
             lastRolandPoll = now;
 
             // Query tally status
-            Network::TallyQueryResult result;
+            Net::TallyQueryResult result;
             if ( !rolandClient->queryTallyStatus( result ) ) {
-                log_w( "Roland query failed: %s", Network::tallyStatusToString( result.status ).c_str() );
+                log_w( "Roland query failed: %s", Net::tallyStatusToString( result.status ).c_str() );
                 return;
             }
 
             // Map Roland status to TallyState
             TallyState newState = TallyState::UNSELECTED;
             switch ( result.status ) {
-                case Network::TallyStatus::ONAIR:
+                case Net::TallyStatus::ONAIR:
                     newState = TallyState::PROGRAM;
                     break;
-                case Network::TallyStatus::SELECTED:
+                case Net::TallyStatus::SELECTED:
                     newState = TallyState::PREVIEW;
                     break;
-                case Network::TallyStatus::UNSELECTED:
+                case Net::TallyStatus::UNSELECTED:
                     newState = TallyState::UNSELECTED;
                     break;
                 default:
@@ -812,7 +811,7 @@ void STACApp::handleNormalMode() {
             delay(500);
             
             // Create and start OTA update server
-            Network::OTAUpdateServer otaServer(stacID);
+            Net::OTAUpdateServer otaServer(stacID);
             
             if (!otaServer.begin()) {
                 log_e("Failed to start OTA update server");
@@ -823,7 +822,7 @@ void STACApp::handleNormalMode() {
             
             // Wait for firmware upload and update
             // This will either restart the ESP32 (success) or return (failure)
-            Network::OTAUpdateResult result = otaServer.waitForUpdate();
+            Net::OTAUpdateResult result = otaServer.waitForUpdate();
             
             if (!result.success) {
                 log_e("OTA update failed: %s", result.statusMessage.c_str());
@@ -983,8 +982,7 @@ void STACApp::handleNormalMode() {
             return resultMode;
         }
 
-    } // namespace Application
-} // namespace STAC
+} // namespace Application
 
 
 //  --- EOF --- //

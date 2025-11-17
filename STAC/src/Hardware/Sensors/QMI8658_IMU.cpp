@@ -2,7 +2,7 @@
 #include "Device_Config.h"  // Add this line to get IMU_ORIENTATION_OFFSET
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         QMI8658_IMU::QMI8658_IMU( uint8_t sclPin, uint8_t sdaPin, uint8_t address )
@@ -121,7 +121,7 @@ namespace STAC {
         }
 
     } // namespace Hardware
-} // namespace STAC
+
 
 
 //  --- EOF --- //

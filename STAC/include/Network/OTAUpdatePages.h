@@ -14,8 +14,8 @@
 #ifndef STAC_OTA_UPDATE_PAGES_H
 #define STAC_OTA_UPDATE_PAGES_H
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 namespace OTAPages {
 
     /**
@@ -155,8 +155,8 @@ to your regular WiFi network.</span></p>
 )=====";
 
 } // namespace OTAPages
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 #endif // STAC_OTA_UPDATE_PAGES_H
 

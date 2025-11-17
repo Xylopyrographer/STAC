@@ -6,8 +6,8 @@
 #include "V60HDClient.h"
 #include "V160HDClient.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         /**
          * @brief Switch model types
@@ -93,8 +93,8 @@ namespace STAC {
             RolandClientFactory() = delete;  // Static class, no instantiation
         };
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 #endif // STAC_ROLAND_CLIENT_FACTORY_H
 

@@ -1,7 +1,7 @@
 #include "Hardware/Interface/GrovePort.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         GrovePort::GrovePort( uint8_t pin0, uint8_t pin1 )
@@ -109,7 +109,7 @@ namespace STAC {
         }
 
     } // namespace Hardware
-} // namespace STAC
+
 
 
 //  --- EOF --- //

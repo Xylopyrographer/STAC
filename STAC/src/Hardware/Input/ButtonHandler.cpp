@@ -1,7 +1,7 @@
 #include "Hardware/Input/ButtonHandler.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         ButtonHandler::ButtonHandler( uint8_t pin, bool activeLow,
@@ -149,7 +149,7 @@ namespace STAC {
         }
 
     } // namespace Hardware
-} // namespace STAC
+
 
 
 //  --- EOF --- //

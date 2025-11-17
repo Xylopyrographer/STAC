@@ -5,7 +5,7 @@
 #include <functional>
 #include "Config/Types.h"
 
-namespace STAC {
+
     namespace State {
 
         /**
@@ -106,7 +106,7 @@ namespace STAC {
         };
 
     } // namespace State
-} // namespace STAC
+
 
 #endif // STAC_OPERATING_MODE_MANAGER_H
 

@@ -7,7 +7,7 @@
 #include "Config/Constants.h"
 #include <memory>
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -45,7 +45,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_INTERFACE_FACTORY_H
 

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Colors.h"
 
-namespace STAC {
+
     namespace Display {
 
         /**
@@ -127,7 +127,7 @@ namespace STAC {
         };
 
     } // namespace Display
-} // namespace STAC
+
 
 #endif // STAC_IDISPLAY_H
 

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Device_Config.h"
 
-namespace STAC {
+
     namespace Display {
 
         // Color type - 32-bit packed RGB (0x00RRGGBB)
@@ -86,7 +86,7 @@ namespace STAC {
         }
 
     } // namespace Display
-} // namespace STAC
+
 
 #endif // STAC_COLORS_H
 

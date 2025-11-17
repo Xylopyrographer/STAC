@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -59,7 +59,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_PERIPHERAL_MODE_H
 

@@ -10,8 +10,8 @@
 #include "Network/OTAUpdatePages.h"
 #include <esp_wifi.h>
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 
     OTAUpdateServer::OTAUpdateServer(const String& deviceID)
         : apIP(192, 168, 6, 14)
@@ -297,7 +297,7 @@ namespace Network {
         }
     }
 
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 //  --- EOF --- //

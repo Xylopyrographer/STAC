@@ -10,8 +10,8 @@
 #include "Network/WebConfigPages.h"
 #include <esp_wifi.h>
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 
     WebConfigServer::WebConfigServer(const String& deviceID)
         : apIP(192, 168, 6, 14)
@@ -298,7 +298,7 @@ namespace Network {
         }
     }
 
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 //  --- EOF --- //

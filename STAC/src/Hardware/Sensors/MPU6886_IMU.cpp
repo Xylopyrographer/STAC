@@ -1,7 +1,7 @@
 #include "Hardware/Sensors/MPU6886_IMU.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         MPU6886_IMU::MPU6886_IMU( uint8_t sclPin, uint8_t sdaPin, uint32_t clock )
@@ -98,7 +98,7 @@ namespace STAC {
         }
 
     } // namespace Hardware
-} // namespace STAC
+
 
 
 //  --- EOF --- //

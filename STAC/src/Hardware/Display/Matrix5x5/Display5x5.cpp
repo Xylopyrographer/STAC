@@ -1,7 +1,7 @@
 #include "Hardware/Display/Matrix5x5/Display5x5.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Display {
 
         Display5x5::Display5x5( uint8_t pin, uint8_t numLeds, uint8_t ledType )
@@ -165,7 +165,7 @@ namespace STAC {
         }
 
     } // namespace Display
-} // namespace STAC
+
 
 
 //  --- EOF --- //

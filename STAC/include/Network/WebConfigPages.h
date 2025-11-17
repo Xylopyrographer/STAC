@@ -14,8 +14,8 @@
 #ifndef STAC_WEB_CONFIG_PAGES_H
 #define STAC_WEB_CONFIG_PAGES_H
 
-namespace STAC {
-namespace Network {
+
+namespace Net {
 namespace WebConfig {
 
     /**
@@ -252,8 +252,8 @@ namespace WebConfig {
 )=====";
 
 } // namespace WebConfig
-} // namespace Network
-} // namespace STAC
+} // namespace Net
+
 
 #endif // STAC_WEB_CONFIG_PAGES_H
 

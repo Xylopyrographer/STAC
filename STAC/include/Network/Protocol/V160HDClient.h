@@ -4,8 +4,8 @@
 #include <HTTPClient.h>
 #include "IRolandClient.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         /**
          * @brief Roland V-160HD tally client implementation
@@ -61,8 +61,8 @@ namespace STAC {
             uint8_t getBankChannel() const;
         };
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 #endif // STAC_V160HD_CLIENT_H
 

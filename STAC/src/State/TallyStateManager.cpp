@@ -2,7 +2,7 @@
 #include "Hardware/Display/Colors.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace State {
 
         TallyStateManager::TallyStateManager()
@@ -92,6 +92,6 @@ namespace STAC {
         }
 
     } // namespace State
-} // namespace STAC
+
 
 //  --- EOF --- //

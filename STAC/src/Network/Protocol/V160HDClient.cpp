@@ -1,7 +1,7 @@
 #include "Network/Protocol/V160HDClient.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         V160HDClient::V160HDClient()
             : initialized( false ) {
@@ -144,8 +144,8 @@ namespace STAC {
             return "V-160HD";
         }
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 
 //  --- EOF --- //

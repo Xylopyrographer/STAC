@@ -6,7 +6,7 @@
 #include "Config/Types.h"
 #include "Hardware/Display/Colors.h"
 
-namespace STAC {
+
     namespace State {
 
         /**
@@ -127,7 +127,7 @@ namespace STAC {
         };
 
     } // namespace State
-} // namespace STAC
+
 
 #endif // STAC_TALLY_STATE_MANAGER_H
 

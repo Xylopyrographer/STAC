@@ -4,7 +4,7 @@
 #include "../IDisplay.h"
 #include <LiteLED.h>
 
-namespace STAC {
+
     namespace Display {
 
         /**
@@ -75,7 +75,7 @@ namespace STAC {
         };
 
     } // namespace Display
-} // namespace STAC
+
 
 #endif // STAC_DISPLAY8X8_H
 

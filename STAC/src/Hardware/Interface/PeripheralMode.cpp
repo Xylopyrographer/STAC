@@ -1,7 +1,7 @@
 #include "Hardware/Interface/PeripheralMode.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         PeripheralMode::PeripheralMode( uint8_t outPin, uint8_t inPin, uint8_t toggleCount )
@@ -77,7 +77,7 @@ namespace STAC {
         }
 
     } // namespace Hardware
-} // namespace STAC
+
 
 
 //  --- EOF --- //

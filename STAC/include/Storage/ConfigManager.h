@@ -6,7 +6,7 @@
 #include "Config/Types.h"
 #include "Config/Constants.h"
 
-namespace STAC {
+
     namespace Storage {
 
         /**
@@ -176,7 +176,7 @@ namespace STAC {
         };
 
     } // namespace Storage
-} // namespace STAC
+
 
 #endif // STAC_CONFIG_MANAGER_H
 

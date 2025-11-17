@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <esp_mac.h>
 
-namespace STAC {
+
     namespace Storage {
 
         ConfigManager::ConfigManager() {
@@ -251,7 +251,7 @@ namespace STAC {
         }
 
     } // namespace Storage
-} // namespace STAC
+
 
 
 //  --- EOF --- //

@@ -5,7 +5,7 @@
 #include <SensorQMI8658.hpp>
 #include <Wire.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -48,7 +48,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_QMI8658_IMU_H
 

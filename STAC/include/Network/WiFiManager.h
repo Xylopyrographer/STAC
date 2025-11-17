@@ -7,8 +7,7 @@
 #include <WString.h>
 #include "Config/Constants.h"
 
-namespace STAC {
-    namespace Network {
+namespace Net {
 
         /**
          * @brief WiFi connection state
@@ -149,8 +148,7 @@ namespace STAC {
             void attemptReconnect();
         };
 
-    } // namespace Network
-} // namespace STAC
+} // namespace Net
 
 #endif // STAC_WIFI_MANAGER_H
 

@@ -1,8 +1,7 @@
 #include "Network/WiFiManager.h"
 #include <Arduino.h>
 
-namespace STAC {
-    namespace Network {
+namespace Net {
 
         WiFiManager::WiFiManager()
             : state( WiFiState::DISCONNECTED )
@@ -219,8 +218,7 @@ namespace STAC {
             connect( currentSSID, currentPassword, 10000 ); // 10 second timeout for reconnect
         }
 
-    } // namespace Network
-} // namespace STAC
+} // namespace Net
 
 
 //  --- EOF --- //

@@ -1,7 +1,7 @@
 #include "State/SystemState.h"
 #include <Arduino.h>
 
-namespace STAC {
+
     namespace State {
 
         SystemState::SystemState()
@@ -62,7 +62,7 @@ namespace STAC {
         }
 
     } // namespace State
-} // namespace STAC
+
 
 
 //  --- EOF --- //

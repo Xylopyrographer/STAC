@@ -4,8 +4,8 @@
 #include <WiFi.h>
 #include "IRolandClient.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         /**
          * @brief Roland V-60HD tally client implementation
@@ -61,8 +61,8 @@ namespace STAC {
             bool readResponse( TallyQueryResult& result );
         };
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 #endif // STAC_V60HD_CLIENT_H
 

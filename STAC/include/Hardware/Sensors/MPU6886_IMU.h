@@ -6,7 +6,7 @@
 #include <I2C_MPU6886.h>
 #include <Wire.h>
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -49,7 +49,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_MPU6886_IMU_H
 

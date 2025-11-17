@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include "Application/STACApp.h"
 
-using namespace STAC;
-using namespace STAC::Application;
+using namespace Application;
 
 // The application
 std::unique_ptr<STACApp> app;

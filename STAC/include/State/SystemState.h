@@ -5,7 +5,7 @@
 #include "OperatingModeManager.h"
 #include "Config/Types.h"
 
-namespace STAC {
+
     namespace State {
 
         /**
@@ -87,7 +87,7 @@ namespace STAC {
         };
 
     } // namespace State
-} // namespace STAC
+
 
 #endif // STAC_SYSTEM_STATE_H
 

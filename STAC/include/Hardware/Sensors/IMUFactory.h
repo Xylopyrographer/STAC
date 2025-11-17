@@ -17,7 +17,7 @@
     #include "NullIMU.h"  // Default to NullIMU if nothing defined
 #endif
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -78,7 +78,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_IMU_FACTORY_H
 

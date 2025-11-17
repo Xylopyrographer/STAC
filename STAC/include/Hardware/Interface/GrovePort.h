@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "Config/Types.h"
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -65,7 +65,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_GROVE_PORT_H
 

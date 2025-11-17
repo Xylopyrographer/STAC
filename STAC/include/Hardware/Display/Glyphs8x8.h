@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-namespace STAC {
-    namespace Display {
+namespace Display {
 
         /**
          * @brief 8×8 glyph definitions for Waveshare ESP32-S3-Matrix display
@@ -217,9 +216,8 @@ namespace STAC {
             // Derive glyph count from array size at compile time
             constexpr uint8_t GLYPH_COUNT = sizeof(BASE_GLYPHS) / sizeof(BASE_GLYPHS[0]);
 
-        } // namespace Glyphs8x8
-    } // namespace Display
-} // namespace STAC
+    } // namespace Glyphs8x8
+} // namespace Display
 
 #endif // STAC_GLYPHS_8X8_H
 

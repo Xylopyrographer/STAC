@@ -8,8 +8,7 @@
 #include "Hardware/Display/Glyphs5x5.h"
 #include "Hardware/Display/Glyphs8x8.h"
 
-namespace STAC {
-    namespace Display {
+namespace Display {
 
         /**
          * @brief Manages glyph storage and rotation based on device orientation
@@ -100,8 +99,7 @@ namespace STAC {
         using GlyphManager5x5 = GlyphManager<5>;
         using GlyphManager8x8 = GlyphManager<8>;
 
-    } // namespace Display
-} // namespace STAC
+} // namespace Display
 
 #endif // STAC_GLYPH_MANAGER_H
 

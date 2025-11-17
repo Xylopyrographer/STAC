@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -73,7 +73,7 @@ namespace STAC {
         };
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_IBUTTON_H
 

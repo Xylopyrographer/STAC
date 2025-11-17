@@ -1,7 +1,7 @@
 #include "Network/Protocol/V60HDClient.h"
 
-namespace STAC {
-    namespace Network {
+
+    namespace Net {
 
         V60HDClient::V60HDClient()
             : initialized( false ) {
@@ -175,8 +175,8 @@ namespace STAC {
             return "V-60HD";
         }
 
-    } // namespace Network
-} // namespace STAC
+    } // namespace Net
+
 
 
 //  --- EOF --- //

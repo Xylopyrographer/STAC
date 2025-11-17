@@ -3,7 +3,7 @@
 
 #include "Config/Types.h"
 
-namespace STAC {
+
     namespace Hardware {
 
         /**
@@ -93,7 +93,7 @@ namespace STAC {
         };  // ← This is the closing brace of the class
 
     } // namespace Hardware
-} // namespace STAC
+
 
 #endif // STAC_IIMU_H
 
