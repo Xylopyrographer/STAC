@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "Application/STACApp.h"
 #include "Hardware/Display/DisplayFactory.h"
 #include "Hardware/Display/GlyphManager.h"
@@ -8,7 +9,6 @@
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/Protocol/RolandClientFactory.h"
 #include "Utils/TestConfig.h"
-#include <Arduino.h>
 
 // Add these using declarations
 using STAC::Display::DisplayFactory;
@@ -47,9 +47,6 @@ namespace STAC {
                 showError( 1 );
                 return false;
             }
-
-            // Show startup animation
-            showStartupAnimation();
 
             // Initialize network and storage
             if ( !initializeNetworkAndStorage() ) {
@@ -106,8 +103,7 @@ namespace STAC {
             // After provisioning completes, device will restart
         }
 
-        // Initial display update
-        updateDisplay();
+        // Note: Don't call updateDisplay() here - display shows only power pixel until WiFi connects
 
         return true;
     }        void STACApp::loop() {
@@ -163,6 +159,14 @@ namespace STAC {
             }
             log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
 
+            // Show power pixel immediately using BASE_GLYPHS (before orientation detection)
+            #ifdef GLYPH_SIZE_5X5
+            const uint8_t* earlyPowerGlyph = Display::Glyphs5x5::BASE_GLYPHS[static_cast<uint8_t>(Display::Glyphs5x5::GlyphId::CENTER_PIXEL)];
+            #else
+            const uint8_t* earlyPowerGlyph = Display::Glyphs8x8::BASE_GLYPHS[static_cast<uint8_t>(Display::Glyphs8x8::GlyphId::CENTER_DOT)];
+            #endif
+            display->drawGlyphOverlay(earlyPowerGlyph, Display::StandardColors::ORANGE, true);
+
             // IMU
             // imu = Hardware::IMUFactory::create();
             imu = IMUFactory::create();
@@ -185,12 +189,20 @@ namespace STAC {
             }
             log_i( "✓ Button" );
 
-            // GlyphManager
+            // GlyphManager - initialize with current orientation from IMU
+            Orientation initialOrientation = Orientation::UP;  // Default if IMU unavailable
+            if ( imu ) {
+                Orientation detectedOrientation = imu->getOrientation();
+                if ( detectedOrientation != Orientation::UNKNOWN ) {
+                    initialOrientation = detectedOrientation;
+                }
+            }
 #ifdef GLYPH_SIZE_5X5
-            glyphManager = std::make_unique<Display::GlyphManager5x5>( Orientation::UP );
+            glyphManager = std::make_unique<Display::GlyphManager5x5>( initialOrientation );
 #else
-            glyphManager = std::make_unique<Display::GlyphManager8x8>( Orientation::UP );
+            glyphManager = std::make_unique<Display::GlyphManager8x8>( initialOrientation );
 #endif
+            lastOrientation = initialOrientation;  // Track for future updates
             log_i( "✓ GlyphManager" );
 
             // Peripheral mode detector
@@ -396,6 +408,7 @@ namespace STAC {
             }
             
             // Overlay power-on indicator (center pixel for 5x5, center 4 pixels for 8x8)
+            // After orientation is determined, use rotated glyphs from GlyphManager
 #ifdef GLYPH_SIZE_5X5
             using namespace Display::Glyphs5x5::GlyphIndex;
             const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );  // Power-on center pixel
@@ -427,6 +440,64 @@ namespace STAC {
         //     }
         // }
 
+void STACApp::displayWiFiStatus( Network::WiFiState state ) {
+    using namespace Config::Timing;
+    using namespace Display;
+
+#ifdef GLYPH_SIZE_5X5
+    using namespace Glyphs5x5::GlyphIndex;
+    const uint8_t* wifiGlyph = glyphManager->getGlyph( GLF_WIFI );
+#else
+    using namespace Glyphs8x8::GlyphIndex;
+    const uint8_t* wifiGlyph = glyphManager->getGlyph( GLF_WIFI );
+#endif
+
+    switch ( state ) {
+        case Network::WiFiState::CONNECTING: {
+            // Show orange WiFi glyph while attempting connection
+            display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+            log_i( "WiFi: Attempting connection (orange glyph displayed)" );
+            break;
+        }
+
+        case Network::WiFiState::CONNECTED: {
+            // Show green WiFi glyph on successful connection
+            display->drawGlyph( wifiGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
+            log_i( "WiFi: Connected (green glyph displayed)" );
+            delay( GUI_PAUSE_MS );  // Pause to show success
+
+            // Clear display and show power pixel
+            // After orientation is determined, use rotated glyphs from GlyphManager
+            display->fill( StandardColors::BLACK, false );
+#ifdef GLYPH_SIZE_5X5
+            using namespace Display::Glyphs5x5::GlyphIndex;
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );  // Center pixel for 5x5
+#else
+            using namespace Display::Glyphs8x8::GlyphIndex;
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );  // Center 4 pixels for 8x8
+#endif
+            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, false );
+            display->show();
+            break;
+        }
+
+        case Network::WiFiState::FAILED: {
+            // Flash red WiFi glyph on timeout
+            display->drawGlyph( wifiGlyph, StandardColors::RED, StandardColors::BLACK, true );
+            log_e( "WiFi: Connection timeout (flashing red glyph)" );
+            display->flash( 8, 300, display->getBrightness() );  // Flash 8 times at 300ms intervals
+            delay( GUI_PAUSE_MS );
+
+            // Show orange glyph again for retry attempt
+            display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+
 void STACApp::handleNormalMode() {
     // Ensure WiFi is connected
     static bool wifiAttempted = false;
@@ -437,6 +508,14 @@ void STACApp::handleNormalMode() {
         String ssid, password;
         if ( configManager->loadWiFiCredentials( ssid, password ) ) {
             log_i( "Attempting to connect to WiFi: %s", ssid.c_str() );
+            
+            // Set callback for visual feedback
+            wifiManager->setStateCallback( 
+                [this]( Network::WiFiState state ) {
+                    displayWiFiStatus( state );
+                }
+            );
+            
             wifiManager->connect( ssid, password );
         }
     }
@@ -446,6 +525,8 @@ void STACApp::handleNormalMode() {
         if ( initializeRolandClient() ) {
             rolandClientInitialized = true;
             log_i( "Roland client initialized" );
+            // Show initial tally state after WiFi/Roland setup complete
+            updateDisplay();
         }
     }
 
@@ -574,23 +655,6 @@ void STACApp::handleNormalMode() {
             // Restart to apply new configuration
             log_i("Restarting to apply configuration");
             ESP.restart();
-        }
-
-        void STACApp::showStartupAnimation() {
-            // Quick color sweep
-            Display::color_t colors[] = {
-                Display::StandardColors::RED,
-                Display::StandardColors::GREEN,
-                Display::StandardColors::BLUE
-            };
-
-            for ( auto color : colors ) {
-                display->fill( color, true );
-                delay( 250 );
-            }
-
-            display->clear( true );
-            delay( 250 );
         }
 
         void STACApp::showError( uint8_t errorCode ) {

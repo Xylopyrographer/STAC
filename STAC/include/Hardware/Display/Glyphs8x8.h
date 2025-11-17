@@ -19,7 +19,6 @@ namespace STAC {
             constexpr uint8_t GLYPH_WIDTH = 8;
             constexpr uint8_t GLYPH_HEIGHT = 8;
             constexpr uint8_t GLYPH_SIZE = 64;
-            constexpr uint8_t GLYPH_COUNT = 28;
 
             /**
              * @brief Glyph identifier enum
@@ -53,7 +52,7 @@ namespace STAC {
                 FRAME_DOTTED = 22,  ///< Dotted frame
                 SMILEY_FACE = 23,   ///< Smiley face
                 SPACE_EN = 24,      ///< En space (4 columns)
-                CENTER_DOT = 25,    ///< Four center pixels
+                CENTER_DOT = 25,    ///< Four center pixels (power indicator overlay)
                 FIRMWARE_UPDATE = 26, ///< Firmware update icon
                 IMU_ERROR = 27      ///< IMU error icon
             };
@@ -101,7 +100,7 @@ namespace STAC {
              * Converted from packed bit format (original STAC code) to unpacked format.
              * MSB = leftmost pixel in each row.
              */
-            constexpr uint8_t BASE_GLYPHS[GLYPH_COUNT][GLYPH_SIZE] = {
+            constexpr uint8_t BASE_GLYPHS[][GLYPH_SIZE] = {
                 // DIGIT_0 - 0x1c, 0x36, 0x67, 0x63, 0x73, 0x36, 0x1c, 0x00
                 {0,0,0,1,1,1,0,0, 0,0,1,1,0,1,1,0, 0,1,1,0,0,1,1,1, 0,1,1,0,0,0,1,1,
                  0,1,1,1,0,0,1,1, 0,0,1,1,0,1,1,0, 0,0,0,1,1,1,0,0, 0,0,0,0,0,0,0,0},
@@ -214,6 +213,9 @@ namespace STAC {
                 {1,1,1,0,0,1,1,1, 1,0,0,0,0,0,0,1, 1,0,1,0,0,1,0,1, 0,0,0,1,1,0,0,0,
                  0,0,0,1,1,0,0,0, 1,0,1,0,0,1,0,1, 1,0,0,0,0,0,0,1, 1,1,1,0,0,1,1,1}
             };
+
+            // Derive glyph count from array size at compile time
+            constexpr uint8_t GLYPH_COUNT = sizeof(BASE_GLYPHS) / sizeof(BASE_GLYPHS[0]);
 
         } // namespace Glyphs8x8
     } // namespace Display

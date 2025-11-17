@@ -51,6 +51,9 @@ namespace STAC {
 
             // Start connection
             state = WiFiState::CONNECTING;
+            if ( stateCallback ) {
+                stateCallback( state );
+            }
             WiFi.begin( ssid.c_str(), password.c_str() );
 
             // Wait for connection with timeout
@@ -59,6 +62,9 @@ namespace STAC {
                 if ( millis() - startTime > timeoutMs ) {
                     log_e( "WiFi connection timeout" );
                     state = WiFiState::FAILED;
+                    if ( stateCallback ) {
+                        stateCallback( state );
+                    }
                     WiFi.disconnect();
                     return false;
                 }
@@ -66,6 +72,9 @@ namespace STAC {
             }
 
             state = WiFiState::CONNECTED;
+            if ( stateCallback ) {
+                stateCallback( state );
+            }
             lastConnectionAttempt = millis();
 
             log_i( "WiFi connected!" );
@@ -177,6 +186,10 @@ namespace STAC {
 
         String WiFiManager::getHostname() const {
             return hostname;
+        }
+
+        void WiFiManager::setStateCallback( WiFiStateCallback callback ) {
+            stateCallback = callback;
         }
 
         void WiFiManager::update() {

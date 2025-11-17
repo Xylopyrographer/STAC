@@ -3,6 +3,7 @@
 
 #include <WiFi.h>
 #include <cstdint>
+#include <functional>
 #include <WString.h>
 #include "Config/Constants.h"
 
@@ -19,6 +20,12 @@ namespace STAC {
             FAILED,             ///< Connection failed
             AP_MODE             ///< Running as access point
         };
+
+        /**
+         * @brief Callback function type for WiFi state changes
+         * @param state Current WiFi state
+         */
+        using WiFiStateCallback = std::function<void( WiFiState )>;
 
         /**
          * @brief WiFi connection manager
@@ -84,6 +91,12 @@ namespace STAC {
             WiFiState getState() const;
 
             /**
+             * @brief Set callback for WiFi state changes
+             * @param callback Function to call on state changes
+             */
+            void setStateCallback( WiFiStateCallback callback );
+
+            /**
              * @brief Get local IP address
              * @return IP address as string
              */
@@ -127,6 +140,7 @@ namespace STAC {
             String hostname;
             bool apMode;
             unsigned long lastConnectionAttempt;
+            WiFiStateCallback stateCallback;
             static constexpr unsigned long RECONNECT_INTERVAL_MS = 30000;  // 30 seconds
 
             /**

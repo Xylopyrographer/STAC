@@ -17,7 +17,6 @@ namespace STAC {
             constexpr uint8_t GLYPH_WIDTH = 5;
             constexpr uint8_t GLYPH_HEIGHT = 5;
             constexpr uint8_t GLYPH_SIZE = 25;
-            constexpr uint8_t GLYPH_COUNT = 33;
 
             /**
              * @brief Glyph identifier enum
@@ -107,7 +106,7 @@ namespace STAC {
              * Each glyph is 25 bytes representing a 5×5 matrix in row-major order.
              * 0 = background pixel, 1 = foreground pixel
              */
-            constexpr uint8_t BASE_GLYPHS[GLYPH_COUNT][GLYPH_SIZE] = {
+            constexpr uint8_t BASE_GLYPHS[][GLYPH_SIZE] = {
                 // DIGIT_0
                 {0,0,1,0,0, 0,1,0,1,0, 0,1,0,1,0, 0,1,0,1,0, 0,0,1,0,0},
                 // DIGIT_1
@@ -175,6 +174,9 @@ namespace STAC {
                 // CENTER_PIXEL (pixel 12 only - for power indicator overlay)
                 {0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0}
             };
+
+            // Derive glyph count from array size at compile time
+            constexpr uint8_t GLYPH_COUNT = sizeof(BASE_GLYPHS) / sizeof(BASE_GLYPHS[0]);
 
         } // namespace Glyphs5x5
     } // namespace Display

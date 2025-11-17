@@ -130,6 +130,12 @@ namespace STAC {
             void handleNormalMode();
 
             /**
+             * @brief Display WiFi connection status with visual feedback
+             * @param state Current WiFi state
+             */
+            void displayWiFiStatus( Network::WiFiState state );
+
+            /**
              * @brief Initialize Roland client based on stored configuration
              * @return true if initialization successful
              */
@@ -186,11 +192,6 @@ namespace STAC {
              * @brief Advance to next glyph in test mode
              */
             void advanceToNextGlyph();
-
-            /**
-             * @brief Show startup animation
-             */
-            void showStartupAnimation();
 
             /**
              * @brief Show error on display
