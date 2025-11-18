@@ -86,7 +86,7 @@
         StacOperations()
             : switchModel( "NO_MODEL" )
             , tallyChannel( 1 )
-            , maxChannelCount( 6 )
+            , maxChannelCount( 8 )
             , channelBank( "NO_BANK" )
             , maxHDMIChannel( 8 )
             , maxSDIChannel( 8 )

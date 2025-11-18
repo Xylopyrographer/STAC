@@ -50,6 +50,14 @@
             }
 
             /**
+             * @brief Set operations configuration
+             * @param ops New operations configuration
+             */
+            void setOperations( const StacOperations& ops ) {
+                operations = ops;
+            }
+
+            /**
              * @brief Get current WiFi info
              * @return Reference to WiFiInfo
              */

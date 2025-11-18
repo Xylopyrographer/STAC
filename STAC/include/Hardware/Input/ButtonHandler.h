@@ -33,6 +33,7 @@
             void update() override;
             bool isPressed() const override;
             bool wasClicked() override;
+            bool wasReleased() override;
             bool isLongPress() const override;
             unsigned long getPressedDuration() const override;
             void setEventCallback( std::function<void( ButtonEvent )> callback ) override;
@@ -47,6 +48,7 @@
             bool currentState;          ///< Current debounced state
             bool lastState;             ///< Previous state
             bool clickFlag;             ///< Click detected flag
+            bool releasedFlag;          ///< Release detected flag
             bool longPressFlag;         ///< Long press detected flag
             unsigned long pressStartTime; ///< When button was pressed
             unsigned long lastChangeTime; ///< Last state change time

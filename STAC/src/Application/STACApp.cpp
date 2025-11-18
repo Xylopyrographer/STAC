@@ -102,6 +102,18 @@ namespace Application {
             // After provisioning completes, device will restart
         }
 
+        // Create startup config handler
+#ifdef GLYPH_SIZE_5X5
+        startupConfig = std::make_unique<StartupConfig5x5>(
+#else
+        startupConfig = std::make_unique<StartupConfig8x8>(
+#endif
+            button,
+            display.get(),
+            glyphManager.get(),
+            configManager.get()
+        );
+
         // Note: Don't call updateDisplay() here - display shows only power pixel until WiFi connects
 
         return true;
@@ -110,8 +122,8 @@ namespace Application {
                 return;
             }
 
-            // Update hardware
-            button->update();
+            // Update hardware - read button state
+            button->read();
 
             // Handle button input
             handleButton();
@@ -179,13 +191,18 @@ namespace Application {
                 log_w( "⚠ IMU unavailable" );
             }
 
-            // Button
-            // button = Hardware::ButtonFactory::create();
-            button = ButtonFactory::create();
-            if ( !button->begin() ) {
-                log_e( "Button initialization failed" );
-                return false;
-            }
+            // Button - Create XP_Button directly
+            button = new Button(
+                Config::Pins::BUTTON,
+                Config::Button::DEBOUNCE_MS,
+                !Config::Button::ACTIVE_LOW,  // puEnable: true if NOT active low (needs pullup)
+                Config::Button::ACTIVE_LOW     // invert: true for active low
+            );
+            button->begin();
+            // Wait for button to stabilize
+            do {
+                button->read();
+            } while (!button->isStable());
             log_i( "✓ Button" );
 
             // GlyphManager - initialize with current orientation from IMU
@@ -324,23 +341,31 @@ namespace Application {
         }
 
         void STACApp::handleButton() {
-            // Long press: Toggle between tally mode and glyph test mode
+            // Long press during normal operation: Adjust brightness
             static bool longPressHandled = false;
 
-            if ( button->isLongPress() ) {
+            if ( button->pressedFor(Config::Timing::BUTTON_SELECT_MS) ) {
                 if ( !longPressHandled ) {
                     longPressHandled = true;
-                    glyphTestMode = !glyphTestMode;
-
-                    if ( glyphTestMode ) {
-                        log_i( "Entering GLYPH TEST mode" );
-                        currentGlyphIndex = 0;
-                        autoAdvanceGlyphs = true;
-                        lastGlyphChange = millis();
-                        advanceToNextGlyph();
-                    }
-                    else {
-                        log_i( "Returning to TALLY mode" );
+                    
+                    // Call brightness adjustment
+                    StacOperations ops = systemState->getOperations();
+                    uint8_t oldBrightness = ops.displayBrightnessLevel;
+                    
+                    // Run brightness change (will show checkerboard and allow selection)
+                    if (startupConfig) {
+                        // Use a temporary flag to indicate we're in runtime brightness adjust
+                        startupConfig->changeBrightness(ops);
+                        
+                        // Save if changed
+                        if (ops.displayBrightnessLevel != oldBrightness) {
+                            systemState->setOperations(ops);
+                            if (!configManager->saveOperations(ops)) {
+                                log_e("Failed to save brightness level");
+                            }
+                        }
+                        
+                        // Restore the display
                         updateDisplay();
                     }
                 }
@@ -348,12 +373,12 @@ namespace Application {
             }
 
             // Reset long press flag when button is released
-            if ( !button->isPressed() && longPressHandled ) {
+            if ( button->isReleased() && longPressHandled ) {
                 longPressHandled = false;
             }
 
         // Short press behavior depends on mode
-        if ( button->wasClicked() ) {
+        if ( button->wasReleased() ) {
             if ( glyphTestMode ) {
                 // In glyph test mode: advance to next glyph
                 advanceToNextGlyph();
@@ -500,6 +525,132 @@ void STACApp::displayWiFiStatus( Net::WiFiState state ) {
 void STACApp::handleNormalMode() {
     // Ensure WiFi is connected
     static bool wifiAttempted = false;
+    static bool startupConfigDone = false;
+
+    // Run startup configuration sequence (once)
+    if ( !startupConfigDone ) {
+        startupConfigDone = true;
+
+        // Load operations from NVS
+        StacOperations ops;
+        if ( !configManager->loadOperations( ops ) ) {
+            log_w( "Failed to load operations from NVS, using defaults" );
+            ops = systemState->getOperations();
+        }
+        
+        // Sync switchModel from switch config if it's not set
+        if (ops.switchModel == "NO_MODEL") {
+            String switchModel;
+            IPAddress switchIP;
+            uint16_t switchPort;
+            String username, password;
+            if (configManager->loadSwitchConfig(switchModel, switchIP, switchPort, username, password)) {
+                ops.switchModel = switchModel;
+                // Set appropriate maxChannelCount based on model
+                if (switchModel == "V-60HD") {
+                    if (ops.maxChannelCount == 0 || ops.maxChannelCount > 8) {
+                        ops.maxChannelCount = 8;
+                    }
+                } else if (switchModel == "V-160HD") {
+                    ops.maxChannelCount = 0; // V-160HD uses maxHDMIChannel/maxSDIChannel
+                }
+                configManager->saveOperations(ops); // Save the synced model
+                log_i("Synced switchModel to operations: %s", switchModel.c_str());
+            }
+        }
+        
+        // Update system state with loaded operations
+        systemState->setOperations( ops );
+        
+        // Apply the stored brightness level to the display hardware
+        {
+            uint8_t absoluteBrightness;
+            #ifdef GLYPH_SIZE_5X5
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[ops.displayBrightnessLevel];
+            #else
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[ops.displayBrightnessLevel];
+            #endif
+            display->setBrightness(absoluteBrightness, true);
+            log_i("Applied brightness level %d", ops.displayBrightnessLevel);
+        }
+        
+        // Check if autostart is enabled
+        bool autoStartBypass = false;
+        
+        if ( ops.autoStartEnabled ) {
+            // Autostart mode: Show channel with blinking corners, wait for timeout or button press
+            log_i( "Autostart mode active - waiting for timeout or button press" );
+            
+            using namespace Config::Timing;
+            using namespace Display;
+            
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Glyphs8x8::GlyphIndex;
+            #endif
+            
+            // Show tally channel
+            const uint8_t* channelGlyph = glyphManager->getGlyph( ops.tallyChannel );
+            display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
+            
+            // Turn on corner pixels (green)
+            display->setPixel( 0, StandardColors::GREEN, false );
+            display->setPixel( 4, StandardColors::GREEN, false );
+            display->setPixel( 20, StandardColors::GREEN, false );
+            display->setPixel( 24, StandardColors::GREEN, false );
+            display->show();
+            
+            unsigned long autostartTimeout = millis() + AUTOSTART_TIMEOUT_MS;
+            unsigned long nextFlash = millis() + AUTOSTART_PULSE_MS;
+            bool cornersOn = true;
+            
+            while ( millis() < autostartTimeout ) {
+                button->read();
+                
+                // Button pressed: Cancel autostart
+                if ( button->isPressed() ) {
+                    log_i( "Button pressed - cancelling autostart" );
+                    autoStartBypass = false;
+                    break;
+                }
+                
+                // Flash corner pixels
+                if ( millis() >= nextFlash ) {
+                    cornersOn = !cornersOn;
+                    nextFlash = millis() + AUTOSTART_PULSE_MS;
+                    
+                    display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
+                    if ( cornersOn ) {
+                        display->setPixel( 0, StandardColors::GREEN, false );
+                        display->setPixel( 4, StandardColors::GREEN, false );
+                        display->setPixel( 20, StandardColors::GREEN, false );
+                        display->setPixel( 24, StandardColors::GREEN, false );
+                    }
+                    display->show();
+                }
+                
+                yield();
+            }
+            
+            // If we timed out (no button press), bypass startup config
+            if ( millis() >= autostartTimeout ) {
+                autoStartBypass = true;
+                log_i( "Autostart timeout - bypassing startup config" );
+            }
+        }
+        
+        // Run startup configuration (unless autostart bypassed)
+        if ( startupConfig->runStartupSequence( ops, autoStartBypass ) ) {
+            // Update operations in system state
+            systemState->setOperations( ops );
+            
+            // Save operations to NVS
+            if ( !configManager->saveOperations( ops ) ) {
+                log_e( "Failed to save operations configuration after startup" );
+            }
+        }
+    }
 
     if ( !wifiAttempted && !wifiManager->isConnected() && configManager->hasWiFiCredentials() ) {
         wifiAttempted = true;
@@ -913,7 +1064,7 @@ void STACApp::handleNormalMode() {
             
             // Button state machine loop
             while (!sequenceExit) {
-                button->update();
+                button->read();
                 
                 switch (state) {
                     case BootButtonState::PROVISIONING_PENDING:

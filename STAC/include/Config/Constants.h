@@ -38,6 +38,12 @@
             constexpr uint8_t BRIGHTNESS_MIN = DISPLAY_BRIGHTNESS_MIN;
             constexpr uint8_t BRIGHTNESS_MAX = DISPLAY_BRIGHTNESS_MAX;
             constexpr uint8_t BRIGHTNESS_DEFAULT = DISPLAY_BRIGHTNESS_DEFAULT;
+            
+            // Brightness level maps (index 0 is unused, levels 1-6 for 5x5, 1-8 for 8x8)
+            constexpr uint8_t BRIGHTNESS_MAP_5X5[] = { 0, 10, 20, 30, 40, 50, 60 };
+            constexpr uint8_t BRIGHTNESS_MAP_8X8[] = { 0, 5, 10, 15, 20, 25, 30, 35, 40 };
+            constexpr uint8_t BRIGHTNESS_LEVELS_5X5 = 6;
+            constexpr uint8_t BRIGHTNESS_LEVELS_8X8 = 8;
         }
 
         // ============================================================================

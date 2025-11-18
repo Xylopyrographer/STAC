@@ -54,6 +54,12 @@
             virtual bool wasClicked() = 0;
 
             /**
+             * @brief Check if button was released since last check
+             * @return true if release detected (resets on read)
+             */
+            virtual bool wasReleased() = 0;
+
+            /**
              * @brief Check if button is being held
              * @return true if button held longer than long press threshold
              */

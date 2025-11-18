@@ -14,6 +14,7 @@
 #include "Network/OTAUpdateServer.h"
 #include "Storage/ConfigManager.h"
 #include "State/SystemState.h"
+#include "Application/StartupConfig.h"
 
 namespace Application {
 
@@ -30,7 +31,12 @@ namespace Application {
              */
             STACApp();
 
-            ~STACApp() = default;
+            /**
+             * @brief Destructor - cleanup button
+             */
+            ~STACApp() {
+                delete button;
+            }
 
             /**
              * @brief Initialize the application
@@ -55,7 +61,7 @@ namespace Application {
             // Hardware - use correct namespaces!
             std::unique_ptr<Display::IDisplay> display;              // Display namespace
             std::unique_ptr<Hardware::IIMU> imu;                     // Hardware namespace
-            std::unique_ptr<Hardware::IButton> button;               // Hardware namespace
+            Button* button;                                          // XP_Button library
             std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
             std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
 
@@ -73,6 +79,13 @@ namespace Application {
 
             // State
             std::unique_ptr<State::SystemState> systemState;
+
+            // Startup configuration
+#ifdef GLYPH_SIZE_5X5
+            std::unique_ptr<StartupConfig5x5> startupConfig;
+#else
+            std::unique_ptr<StartupConfig8x8> startupConfig;
+#endif
 
             // Application state
             bool initialized;

@@ -14,6 +14,7 @@
             , currentState( false )
             , lastState( false )
             , clickFlag( false )
+            , releasedFlag( false )
             , longPressFlag( false )
             , pressStartTime( 0 )
             , lastChangeTime( 0 )
@@ -69,6 +70,7 @@
                     }
                     else {
                         // Button released
+                        releasedFlag = true;  // Set release flag for any release
                         unsigned long pressDuration = now - pressStartTime;
 
                         // Check for long press
@@ -113,6 +115,12 @@
         bool ButtonHandler::wasClicked() {
             bool result = clickFlag;
             clickFlag = false;  // Clear flag on read
+            return result;
+        }
+
+        bool ButtonHandler::wasReleased() {
+            bool result = releasedFlag;
+            releasedFlag = false;  // Clear flag on read
             return result;
         }
 

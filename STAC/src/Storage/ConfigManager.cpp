@@ -139,12 +139,24 @@
                 return false;
             }
 
-            ops.switchModel = prefs.getString( "switchModel", "NO_MODEL" );
+            ops.switchModel = prefs.getString( "switchModel", "V-60HD" );
             ops.tallyChannel = prefs.getUChar( "tallyChannel", 1 );
-            ops.maxChannelCount = prefs.getUChar( "maxChannelCount", 6 );
-            ops.channelBank = prefs.getString( "channelBank", "NO_BANK" );
+            ops.maxChannelCount = prefs.getUChar( "maxChannelCount", 8 );
+            ops.channelBank = prefs.getString( "channelBank", "hdmi_" );
             ops.maxHDMIChannel = prefs.getUChar( "maxHDMI", 8 );
             ops.maxSDIChannel = prefs.getUChar( "maxSDI", 8 );
+            
+            // Validate maxChannelCount based on switch model
+            if (ops.switchModel == "V-60HD") {
+                if (ops.maxChannelCount == 0 || ops.maxChannelCount > 8) {
+                    ops.maxChannelCount = 8;
+                    log_w("Invalid maxChannelCount for V-60HD, set to 8");
+                }
+            } else if (ops.switchModel == "V-160HD") {
+                // V-160HD uses maxHDMIChannel and maxSDIChannel instead
+                ops.maxChannelCount = 0;
+            }
+            
             ops.autoStartEnabled = prefs.getBool( "autoStart", false );
             ops.cameraOperatorMode = prefs.getBool( "camOpMode", true );
             ops.displayBrightnessLevel = prefs.getUChar( "brightness", 1 );
