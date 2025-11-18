@@ -262,6 +262,45 @@
             return true;
         }
 
+        bool ConfigManager::savePeripheralSettings( bool cameraMode, uint8_t brightnessLevel ) {
+            if ( !prefs.begin( "PModePrefs", false ) ) {
+                log_e( "Failed to open PModePrefs namespace" );
+                return false;
+            }
+
+            prefs.putUShort( "pmPrefVer", Config::NVS::PM_PREFS_VERSION );
+            prefs.putBool( "pmct", cameraMode );
+            prefs.putUChar( "pmbrightness", brightnessLevel );
+            prefs.end();
+
+            log_i( "Peripheral settings saved: mode=%s, brightness=%d",
+                   cameraMode ? "Camera" : "Talent", brightnessLevel );
+            return true;
+        }
+
+        bool ConfigManager::loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel ) {
+            if ( !prefs.begin( "PModePrefs", true ) ) {
+                log_w( "PModePrefs namespace not found" );
+                return false;
+            }
+
+            // Check version
+            if ( !prefs.isKey( "pmPrefVer" ) ||
+                 prefs.getUShort( "pmPrefVer" ) != Config::NVS::PM_PREFS_VERSION ) {
+                prefs.end();
+                log_w( "Peripheral prefs version mismatch or missing" );
+                return false;
+            }
+
+            cameraMode = prefs.getBool( "pmct", false );
+            brightnessLevel = prefs.getUChar( "pmbrightness", 1 );
+            prefs.end();
+
+            log_v( "Peripheral settings loaded: mode=%s, brightness=%d",
+                   cameraMode ? "Camera" : "Talent", brightnessLevel );
+            return true;
+        }
+
     } // namespace Storage
 
 

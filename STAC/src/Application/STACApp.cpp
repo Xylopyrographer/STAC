@@ -686,16 +686,232 @@ void STACApp::handleNormalMode() {
     }
 }
         void STACApp::handlePeripheralMode() {
-            // Read tally state from GROVE port
-            static unsigned long lastRead = 0;
-            if ( millis() - lastRead > Config::Timing::PM_POLL_INTERVAL_MS ) {
-                lastRead = millis();
+            using namespace Display;
+            using namespace Config::Timing;
 
-                TallyState receivedState = grovePort->readTallyState();
+            // Get glyph indices based on display size
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Glyphs8x8::GlyphIndex;
+            #endif
 
-                if ( receivedState != systemState->getTallyState().getCurrentState() ) {
-                    systemState->getTallyState().setState( receivedState );
+            log_i( "Entering Peripheral Mode" );
+
+            // ===== Load or initialize peripheral mode settings =====
+            bool cameraMode = false;  // Default: talent mode
+            uint8_t brightnessLevel = 1;  // Default: lowest brightness
+
+            if ( !configManager->loadPeripheralSettings( cameraMode, brightnessLevel ) ) {
+                // First time in peripheral mode - save defaults
+                log_i( "First time in peripheral mode - using defaults" );
+                configManager->savePeripheralSettings( cameraMode, brightnessLevel );
+            }
+
+            // Apply brightness
+            uint8_t absoluteBrightness;
+            #ifdef GLYPH_SIZE_5X5
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[brightnessLevel];
+            #else
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[brightnessLevel];
+            #endif
+            display->setBrightness( absoluteBrightness, false );
+
+            // ===== Startup animation =====
+            // Show "P" glyph in pink
+            const uint8_t* pGlyph = glyphManager->getGlyph( GLF_P );
+            display->drawGlyph( pGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+
+            // Flash display 4 times
+            for ( int i = 0; i < 4; i++ ) {
+                delay( 250 );
+                display->clear( true );
+                delay( 250 );
+                display->drawGlyph( pGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+            }
+
+            delay( GUI_PAUSE_MS );
+
+            // Show checkmark confirmation
+            const uint8_t* checkGlyph = glyphManager->getGlyph( GLF_CK );
+            display->drawGlyph( checkGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+            delay( GUI_PAUSE_MS );
+
+            // Clear and show power pixel
+            display->clear( false );
+            display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+
+            // Wait for button release
+            while ( button->read() );
+
+            log_i( "Peripheral mode initialized: camera=%s, brightness=%d",
+                   cameraMode ? "true" : "false", brightnessLevel );
+
+            // ===== Main peripheral mode loop =====
+            uint8_t lastTallyState = 0xff;  // Invalid state to force initial update
+            unsigned long nextCheck = 0;
+            unsigned long buttonHoldStart = 0;
+            bool buttonHoldHandled = false;
+
+            while ( true ) {
+                // Read tally state from Grove port
+                if ( millis() >= nextCheck ) {
+                    nextCheck = millis() + PM_POLL_INTERVAL_MS;
+
+                    TallyState receivedState = grovePort->readTallyState();
+
+                    // Convert to numeric state for comparison
+                    uint8_t currentState;
+                    switch ( receivedState ) {
+                        case TallyState::PROGRAM:    currentState = 3; break;
+                        case TallyState::PREVIEW:    currentState = 2; break;
+                        case TallyState::UNSELECTED: currentState = 1; break;
+                        default:                     currentState = 0; break;
+                    }
+
+                    // Update display if state changed
+                    if ( currentState != lastTallyState ) {
+                        lastTallyState = currentState;
+
+                        switch ( receivedState ) {
+                            case TallyState::PROGRAM:
+                                // Red (program)
+                                display->fill( StandardColors::RED, false );
+                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                break;
+
+                            case TallyState::PREVIEW:
+                                // Green (preview)
+                                display->fill( StandardColors::GREEN, false );
+                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                break;
+
+                            case TallyState::UNSELECTED:
+                                if ( cameraMode ) {
+                                    // Camera mode: Show dark frame glyph
+                                    const uint8_t* dfGlyph = glyphManager->getGlyph( GLF_DF );
+                                    display->drawGlyph( dfGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
+                                } else {
+                                    // Talent mode: Show green
+                                    display->fill( StandardColors::GREEN, false );
+                                }
+                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                break;
+
+                            default:
+                                // Error/unknown state
+                                if ( cameraMode ) {
+                                    // Camera mode: Show orange X
+                                    const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
+                                    display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                                } else {
+                                    // Talent mode: Show green with power pixel
+                                    display->fill( StandardColors::GREEN, false );
+                                    display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                }
+                                break;
+                        }
+                    }
                 }
+
+                // Handle button for settings adjustment
+                button->read();
+
+                if ( button->pressedFor( BUTTON_SELECT_MS ) ) {
+                    if ( !buttonHoldHandled ) {
+                        buttonHoldHandled = true;
+                        buttonHoldStart = millis();
+
+                        // Show brightness selection screen
+                        display->fill( StandardColors::WHITE, false );
+                        
+                        // Blank center columns
+                        #ifdef GLYPH_SIZE_5X5
+                        const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
+                        #else
+                        const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
+                        #endif
+                        display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
+
+                        // Show brightness level
+                        const uint8_t* levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
+                        display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
+
+                        // Wait for release or long hold
+                        unsigned long stateTimeout = millis() + BUTTON_SELECT_MS;
+                        bool exitSettings = false;
+
+                        while ( !exitSettings ) {
+                            button->read();
+
+                            // Released before timeout: change brightness
+                            if ( button->wasReleased() && millis() < stateTimeout ) {
+                                // Increment brightness
+                                #ifdef GLYPH_SIZE_5X5
+                                uint8_t maxLevel = Config::Display::BRIGHTNESS_LEVELS_5X5;
+                                #else
+                                uint8_t maxLevel = Config::Display::BRIGHTNESS_LEVELS_8X8;
+                                #endif
+
+                                if ( brightnessLevel >= maxLevel ) {
+                                    brightnessLevel = 1;
+                                } else {
+                                    brightnessLevel++;
+                                }
+
+                                // Apply new brightness
+                                #ifdef GLYPH_SIZE_5X5
+                                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[brightnessLevel];
+                                #else
+                                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[brightnessLevel];
+                                #endif
+                                display->setBrightness( absoluteBrightness, false );
+
+                                // Update display
+                                display->fill( StandardColors::WHITE, false );
+                                display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
+                                levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
+                                display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
+
+                                // Reset timeout
+                                stateTimeout = millis() + BUTTON_SELECT_MS;
+                            }
+                            // Held past timeout: change mode
+                            else if ( button->pressedFor( BUTTON_SELECT_MS ) && millis() >= stateTimeout ) {
+                                // Toggle camera/talent mode
+                                cameraMode = !cameraMode;
+
+                                // Show mode indicator
+                                const uint8_t* modeGlyph = cameraMode ?
+                                    glyphManager->getGlyph( GLF_C ) :
+                                    glyphManager->getGlyph( GLF_T );
+                                display->drawGlyph( modeGlyph, StandardColors::ORANGE, 0x380070, true );  // Purple background
+
+                                // Wait for release
+                                while ( button->read() );
+
+                                exitSettings = true;
+                            }
+                        }
+
+                        // Save settings
+                        configManager->savePeripheralSettings( cameraMode, brightnessLevel );
+
+                        // Clear display and restore power pixel
+                        display->clear( false );
+                        display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+
+                        // Force tally state refresh
+                        lastTallyState = 0xff;
+                        nextCheck = millis();
+                    }
+                }
+                // Reset button hold flag on release
+                else if ( button->isReleased() ) {
+                    buttonHoldHandled = false;
+                }
+
+                yield();  // Let other tasks run
             }
         }
 
@@ -913,44 +1129,172 @@ void STACApp::handleNormalMode() {
         }
 
         void STACApp::pollRolandSwitch() {
+            using namespace Display;
+            using namespace Config::Timing;
+            using namespace Config::Net;
+
+            // Get glyph indices based on display size
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Glyphs8x8::GlyphIndex;
+            #endif
+
             // Check if it's time to poll
             unsigned long now = millis();
-
             if ( now - lastRolandPoll < rolandPollInterval ) {
                 return;
             }
 
             lastRolandPoll = now;
 
+            // Get references to state
+            SwitchState& switchState = systemState->getSwitchState();
+            StacOperations& ops = systemState->getOperations();
+
             // Query tally status
             Net::TallyQueryResult result;
-            if ( !rolandClient->queryTallyStatus( result ) ) {
-                log_w( "Roland query failed: %s", Net::tallyStatusToString( result.status ).c_str() );
-                return;
-            }
+            rolandClient->queryTallyStatus( result );
 
-            // Map Roland status to TallyState
-            TallyState newState = TallyState::UNSELECTED;
-            switch ( result.status ) {
-                case Net::TallyStatus::ONAIR:
-                    newState = TallyState::PROGRAM;
-                    break;
-                case Net::TallyStatus::SELECTED:
-                    newState = TallyState::PREVIEW;
-                    break;
-                case Net::TallyStatus::UNSELECTED:
-                    newState = TallyState::UNSELECTED;
-                    break;
-                default:
-                    log_w( "Unexpected tally status: %s", result.rawResponse.c_str() );
-                    return;
-            }
+            // Update switch state from query result
+            switchState.connected = result.connected;
+            switchState.timeout = result.timedOut;
+            switchState.noReply = !result.gotReply;
+            switchState.currentTallyState = result.rawResponse;
 
-            // Update tally state if changed
-            if ( newState != systemState->getTallyState().getCurrentState() ) {
-                systemState->getTallyState().setState( newState );
-                log_i( "Tally updated from Roland: %s",
-                       State::TallyStateManager::stateToString( newState ) );
+            // ===== NORMAL OPERATION: Valid tally response =====
+            if ( result.connected && result.gotReply ) {
+                // Check if response is a valid tally state
+                bool validResponse = false;
+                TallyState newState = TallyState::UNSELECTED;
+
+                switch ( result.status ) {
+                    case Net::TallyStatus::ONAIR:
+                        newState = TallyState::PROGRAM;
+                        validResponse = true;
+                        break;
+                    case Net::TallyStatus::SELECTED:
+                        newState = TallyState::PREVIEW;
+                        validResponse = true;
+                        break;
+                    case Net::TallyStatus::UNSELECTED:
+                        newState = TallyState::UNSELECTED;
+                        validResponse = true;
+                        break;
+                    default:
+                        // Junk/invalid reply
+                        validResponse = false;
+                        break;
+                }
+
+                if ( validResponse ) {
+                    // ===== Valid response - update tally state =====
+                    rolandPollInterval = ops.statusPollInterval;  // Use normal poll interval
+                    switchState.junkReply = false;
+                    switchState.junkReplyCount = 0;  // Clear error counters
+                    switchState.noReplyCount = 0;
+                    switchState.lastTallyState = switchState.currentTallyState;
+
+                    // Update tally state if changed
+                    if ( newState != systemState->getTallyState().getCurrentState() ) {
+                        systemState->getTallyState().setState( newState );
+                        log_i( "Tally: %s", State::TallyStateManager::stateToString( newState ) );
+                    }
+
+                    // Grove port will be updated by tally state change callback
+                }
+                else {
+                    // ===== Junk reply received =====
+                    rolandPollInterval = ERROR_REPOLL_MS;  // Use faster error polling
+                    switchState.junkReply = true;
+                    switchState.junkReplyCount++;
+                    switchState.lastTallyState = "JUNK";
+                    switchState.currentTallyState = "NO_TALLY";
+
+                    if ( switchState.junkReplyCount >= MAX_POLL_ERRORS ) {
+                        // Hit error threshold - display error
+                        switchState.junkReplyCount = 0;  // Reset counter
+                        
+                        // Set Grove to unknown state
+                        if ( grovePort ) {
+                            grovePort->setTallyState( TallyState::ERROR );
+                        }
+
+                        if ( ops.cameraOperatorMode ) {
+                            // Camera operator mode: Show purple question mark
+                            const uint8_t* qmGlyph = glyphManager->getGlyph( GLF_QM );
+                            display->drawGlyph( qmGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
+                            log_e( "Junk reply error - showing purple '?'" );
+                        }
+                        else {
+                            // Talent mode: Show preview with power pixel
+                            systemState->getTallyState().setState( TallyState::PREVIEW );
+                        }
+                    }
+                }
+            }
+            // ===== ERROR CONDITIONS =====
+            else {
+                switchState.currentTallyState = "NO_INIT";
+                switchState.lastTallyState = "NO_TALLY";
+                switchState.junkReplyCount = 0;  // Clear junk counter (not a junk reply error)
+                rolandPollInterval = ERROR_REPOLL_MS;  // Use faster error polling
+
+                // Set Grove to unknown state
+                if ( grovePort ) {
+                    grovePort->setTallyState( TallyState::ERROR );
+                }
+
+                if ( !result.connected && result.timedOut ) {
+                    // ===== Connection failed and timed out =====
+                    switchState.noReplyCount = 0;  // Clear no-reply counter
+                    
+                    if ( ops.cameraOperatorMode ) {
+                        // Camera operator mode: Show orange X
+                        const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
+                        display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                        log_e( "Connection timeout - showing orange 'X'" );
+                    }
+                    else {
+                        // Talent mode: Show preview with power pixel
+                        systemState->getTallyState().setState( TallyState::PREVIEW );
+                    }
+                }
+                else if ( result.connected && ( result.timedOut || !result.gotReply ) ) {
+                    // ===== Connected but no reply or timed out =====
+                    switchState.noReplyCount++;
+
+                    if ( switchState.noReplyCount >= MAX_POLL_ERRORS ) {
+                        // Hit error threshold
+                        switchState.noReplyCount = 0;  // Reset counter
+                        
+                        if ( ops.cameraOperatorMode ) {
+                            // Camera operator mode: Show purple X (big purple X)
+                            const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
+                            display->drawGlyph( xGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
+                            log_e( "No reply error - showing purple 'X'" );
+                        }
+                        else {
+                            // Talent mode: Show preview with power pixel
+                            systemState->getTallyState().setState( TallyState::PREVIEW );
+                        }
+                    }
+                }
+                else {
+                    // ===== Some other error condition =====
+                    switchState.noReplyCount = 0;  // Clear counter
+                    
+                    if ( ops.cameraOperatorMode ) {
+                        // Camera operator mode: Show red X
+                        const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
+                        display->drawGlyph( xGlyph, StandardColors::RED, StandardColors::BLACK, true );
+                        log_e( "Unknown error - showing red 'X'" );
+                    }
+                    else {
+                        // Talent mode: Show preview with power pixel
+                        systemState->getTallyState().setState( TallyState::PREVIEW );
+                    }
+                }
             }
         }
 

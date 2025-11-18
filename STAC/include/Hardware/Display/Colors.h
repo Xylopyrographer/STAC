@@ -37,6 +37,7 @@
             constexpr color_t DARK_PURPLE = makeRGB( 112, 56, 0 );
             constexpr color_t TEAL        = makeRGB( 98, 224, 230 );
             constexpr color_t DARK_TEAL   = makeRGB( 33, 58, 58 );
+            constexpr color_t PINK        = makeRGB( 255, 20, 147 );  // For peripheral mode
         }
 
         // STAC-specific semantic colors

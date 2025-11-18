@@ -139,9 +139,25 @@
 
             /**
              * @brief Clear all stored configuration
-             * @return true if cleared successfully
+             * @return true if successful
              */
             bool clearAll();
+
+            /**
+             * @brief Save peripheral mode settings
+             * @param cameraMode Camera operator mode (true) or talent mode (false)
+             * @param brightnessLevel Brightness level (1-6 for 5x5, 1-8 for 8x8)
+             * @return true if successful
+             */
+            bool savePeripheralSettings( bool cameraMode, uint8_t brightnessLevel );
+
+            /**
+             * @brief Load peripheral mode settings
+             * @param cameraMode Output: camera operator mode
+             * @param brightnessLevel Output: brightness level
+             * @return true if settings exist
+             */
+            bool loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel );
 
             /**
              * @brief Get configuration version
