@@ -685,6 +685,7 @@ void STACApp::handleNormalMode() {
         pollRolandSwitch();
     }
 }
+
         void STACApp::handlePeripheralMode() {
             using namespace Display;
             using namespace Config::Timing;
@@ -718,28 +719,29 @@ void STACApp::handleNormalMode() {
             display->setBrightness( absoluteBrightness, false );
 
             // ===== Startup animation =====
-            // Show "P" glyph in pink
+            // Show "P" glyph in green (perifmodecolor)
             const uint8_t* pGlyph = glyphManager->getGlyph( GLF_P );
-            display->drawGlyph( pGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+            display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
 
             // Flash display 4 times
             for ( int i = 0; i < 4; i++ ) {
                 delay( 250 );
                 display->clear( true );
                 delay( 250 );
-                display->drawGlyph( pGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+                display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
             }
 
             delay( GUI_PAUSE_MS );
 
             // Show checkmark confirmation
             const uint8_t* checkGlyph = glyphManager->getGlyph( GLF_CK );
-            display->drawGlyph( checkGlyph, StandardColors::PINK, StandardColors::BLACK, true );
+            display->drawGlyph( checkGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
             delay( GUI_PAUSE_MS );
 
-            // Clear and show power pixel
+            // Clear and show power-on glyph
             display->clear( false );
-            display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+            display->drawGlyph( powerGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
 
             // Wait for button release
             while ( button->read() );
@@ -750,8 +752,6 @@ void STACApp::handleNormalMode() {
             // ===== Main peripheral mode loop =====
             uint8_t lastTallyState = 0xff;  // Invalid state to force initial update
             unsigned long nextCheck = 0;
-            unsigned long buttonHoldStart = 0;
-            bool buttonHoldHandled = false;
 
             while ( true ) {
                 // Read tally state from Grove port
@@ -774,42 +774,52 @@ void STACApp::handleNormalMode() {
                         lastTallyState = currentState;
 
                         switch ( receivedState ) {
-                            case TallyState::PROGRAM:
+                            case TallyState::PROGRAM: {
                                 // Red (program)
                                 display->fill( StandardColors::RED, false );
-                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
+                            }
 
-                            case TallyState::PREVIEW:
+                            case TallyState::PREVIEW: {
                                 // Green (preview)
                                 display->fill( StandardColors::GREEN, false );
-                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
+                            }
 
-                            case TallyState::UNSELECTED:
+                            case TallyState::UNSELECTED: {
                                 if ( cameraMode ) {
-                                    // Camera mode: Show dark frame glyph
+                                    // Camera mode: Show dark frame glyph in purple
                                     const uint8_t* dfGlyph = glyphManager->getGlyph( GLF_DF );
-                                    display->drawGlyph( dfGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
+                                    display->drawGlyph( dfGlyph, StandardColors::PURPLE, StandardColors::BLACK, false );
                                 } else {
                                     // Talent mode: Show green
                                     display->fill( StandardColors::GREEN, false );
                                 }
-                                display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
+                            }
 
-                            default:
+                            default: {
                                 // Error/unknown state
                                 if ( cameraMode ) {
                                     // Camera mode: Show orange X
                                     const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
-                                    display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                                    display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, false );
+                                    const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                    display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 } else {
-                                    // Talent mode: Show green with power pixel
+                                    // Talent mode: Show green with power glyph
                                     display->fill( StandardColors::GREEN, false );
-                                    display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
+                                    const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                    display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 }
                                 break;
+                            }
                         }
                     }
                 }
@@ -818,97 +828,69 @@ void STACApp::handleNormalMode() {
                 button->read();
 
                 if ( button->pressedFor( BUTTON_SELECT_MS ) ) {
-                    if ( !buttonHoldHandled ) {
-                        buttonHoldHandled = true;
-                        buttonHoldStart = millis();
+                    // User wants to change peripheral mode settings
+                    
+                    // Show brightness selection screen
+                    display->fill( StandardColors::WHITE, false );
+                    
+                    // Blank center columns
+                    #ifdef GLYPH_SIZE_5X5
+                    const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
+                    #else
+                    const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
+                    #endif
+                    display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
 
-                        // Show brightness selection screen
-                        display->fill( StandardColors::WHITE, false );
-                        
-                        // Blank center columns
-                        #ifdef GLYPH_SIZE_5X5
-                        const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
-                        #else
-                        const uint8_t* centerBlank = glyphManager->getGlyph( GLF_EN );
-                        #endif
-                        display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
+                    // Show current brightness level
+                    const uint8_t* levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
+                    display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
 
-                        // Show brightness level
-                        const uint8_t* levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
-                        display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
+                    // State machine: brightness adjustment or mode change
+                    // Wait for release (brightness) or keep holding (mode change)
+                    bool exitSettings = false;
+                    unsigned long modeChangeTimeout = millis() + BUTTON_SELECT_MS;
 
-                        // Wait for release or long hold
-                        unsigned long stateTimeout = millis() + BUTTON_SELECT_MS;
-                        bool exitSettings = false;
+                    do {
+                        button->read();
 
-                        while ( !exitSettings ) {
-                            button->read();
-
-                            // Released before timeout: change brightness
-                            if ( button->wasReleased() && millis() < stateTimeout ) {
-                                // Increment brightness
-                                #ifdef GLYPH_SIZE_5X5
-                                uint8_t maxLevel = Config::Display::BRIGHTNESS_LEVELS_5X5;
-                                #else
-                                uint8_t maxLevel = Config::Display::BRIGHTNESS_LEVELS_8X8;
-                                #endif
-
-                                if ( brightnessLevel >= maxLevel ) {
-                                    brightnessLevel = 1;
-                                } else {
-                                    brightnessLevel++;
-                                }
-
-                                // Apply new brightness
-                                #ifdef GLYPH_SIZE_5X5
-                                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[brightnessLevel];
-                                #else
-                                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[brightnessLevel];
-                                #endif
-                                display->setBrightness( absoluteBrightness, false );
-
-                                // Update display
-                                display->fill( StandardColors::WHITE, false );
-                                display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
-                                levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
-                                display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
-
-                                // Reset timeout
-                                stateTimeout = millis() + BUTTON_SELECT_MS;
-                            }
-                            // Held past timeout: change mode
-                            else if ( button->pressedFor( BUTTON_SELECT_MS ) && millis() >= stateTimeout ) {
-                                // Toggle camera/talent mode
-                                cameraMode = !cameraMode;
-
-                                // Show mode indicator
-                                const uint8_t* modeGlyph = cameraMode ?
-                                    glyphManager->getGlyph( GLF_C ) :
-                                    glyphManager->getGlyph( GLF_T );
-                                display->drawGlyph( modeGlyph, StandardColors::ORANGE, 0x380070, true );  // Purple background
-
-                                // Wait for release
-                                while ( button->read() );
-
-                                exitSettings = true;
-                            }
+                        // Released before timeout: Enter brightness adjustment
+                        if ( button->isReleased() && ( modeChangeTimeout >= millis() ) ) {
+                            // Use shared changeBrightness with peripheral save callback
+                            #ifdef GLYPH_SIZE_5X5
+                            brightnessLevel = startupConfig->changeBrightness( brightnessLevel,
+                                [this, &cameraMode]( uint8_t newBrightness ) {
+                                    configManager->savePeripheralSettings( cameraMode, newBrightness );
+                                } );
+                            #else
+                            brightnessLevel = startupConfig->changeBrightness( brightnessLevel,
+                                [this, &cameraMode]( uint8_t newBrightness ) {
+                                    configManager->savePeripheralSettings( cameraMode, newBrightness );
+                                } );
+                            #endif
+                            exitSettings = true;
+                        }
+                        // Still pressed after timeout: Enter mode change
+                        else if ( button->isPressed() && ( modeChangeTimeout < millis() ) ) {
+                            // Use shared changeCameraTalentMode with peripheral save callback
+                            #ifdef GLYPH_SIZE_5X5
+                            cameraMode = startupConfig->changeCameraTalentMode( cameraMode,
+                                [this, &brightnessLevel]( bool newMode ) {
+                                    configManager->savePeripheralSettings( newMode, brightnessLevel );
+                                } );
+                            #else
+                            cameraMode = startupConfig->changeCameraTalentMode( cameraMode,
+                                [this, &brightnessLevel]( bool newMode ) {
+                                    configManager->savePeripheralSettings( newMode, brightnessLevel );
+                                } );
+                            #endif
+                            exitSettings = true;
                         }
 
-                        // Save settings
-                        configManager->savePeripheralSettings( cameraMode, brightnessLevel );
+                    } while ( !exitSettings );
 
-                        // Clear display and restore power pixel
-                        display->clear( false );
-                        display->setPixel( Config::Display::POWER_LED_PIXEL, StandardColors::WHITE, true );
-
-                        // Force tally state refresh
-                        lastTallyState = 0xff;
-                        nextCheck = millis();
-                    }
-                }
-                // Reset button hold flag on release
-                else if ( button->isReleased() ) {
-                    buttonHoldHandled = false;
+                    // Force immediate tally state refresh by setting impossible value
+                    lastTallyState = 0xff;  // Set to impossible value
+                    nextCheck = 0;          // Force immediate check on next loop iteration
                 }
 
                 yield();  // Let other tasks run

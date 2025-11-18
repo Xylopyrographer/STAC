@@ -2,6 +2,7 @@
 #define STAC_STARTUP_CONFIG_H
 
 #include <memory>
+#include <functional>
 #include <XP_Button.h>
 #include "../Hardware/Display/IDisplay.h"
 #include "../Storage/ConfigManager.h"
@@ -63,6 +64,28 @@ namespace Application {
          */
         void changeBrightness(StacOperations& ops);
 
+        /**
+         * @brief Allow runtime brightness adjustment with custom save callback (for peripheral mode)
+         * @param currentBrightness Current brightness level (1-6 for 5x5, 1-8 for 8x8)
+         * @param saveCallback Function to save brightness to NVS
+         * @return New brightness level (or original if timeout/cancelled)
+         */
+        uint8_t changeBrightness(uint8_t currentBrightness, std::function<void(uint8_t)> saveCallback);
+
+        /**
+         * @brief Change Camera/Talent mode setting
+         * @param ops Operations configuration (cameraOperatorMode will be modified)
+         */
+        void changeCameraTalentMode(StacOperations& ops);
+
+        /**
+         * @brief Change Camera/Talent mode with custom save callback (for peripheral mode)
+         * @param currentMode Current mode (true=camera, false=talent)
+         * @param saveCallback Function to save mode to NVS
+         * @return New mode (or original if timeout/cancelled)
+         */
+        bool changeCameraTalentMode(bool currentMode, std::function<void(bool)> saveCallback);
+
     private:
         Button* button;
         Display::IDisplay* display;
@@ -74,7 +97,6 @@ namespace Application {
         void changeTallyChannel(StacOperations& ops);
         
         void displayTallyMode(const StacOperations& ops);
-        void changeTallyMode(StacOperations& ops);
         
         void displayStartupMode(const StacOperations& ops);
         void changeStartupMode(StacOperations& ops);

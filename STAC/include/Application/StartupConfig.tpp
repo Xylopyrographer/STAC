@@ -69,7 +69,7 @@ namespace Application {
             }
             if (button->pressedFor(Config::Timing::BUTTON_SELECT_MS)) {
                 bool oldMode = ops.cameraOperatorMode;
-                changeTallyMode(ops);
+                changeCameraTalentMode(ops);
                 if (ops.cameraOperatorMode != oldMode) {
                     configChanged = true;
                 }
@@ -297,7 +297,7 @@ namespace Application {
     }
 
     template<uint8_t GLYPH_SIZE>
-    void StartupConfig<GLYPH_SIZE>::changeTallyMode(StacOperations& ops) {
+    void StartupConfig<GLYPH_SIZE>::changeCameraTalentMode(StacOperations& ops) {
         using namespace Display;
         using namespace Config::Timing;
 
@@ -614,6 +614,173 @@ namespace Application {
         while (button->read()) {
             yield();
         }
+    }
+
+    // ===== Overloads for Peripheral Mode (custom save callbacks) =====
+
+    template<uint8_t GLYPH_SIZE>
+    uint8_t StartupConfig<GLYPH_SIZE>::changeBrightness(uint8_t currentBrightness, std::function<void(uint8_t)> saveCallback) {
+        using namespace Display;
+        using namespace Config::Timing;
+
+        // Get glyph index based on display size
+        uint8_t GLF_EN_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_EN_IDX = Glyphs5x5::GlyphIndex::GLF_EN;
+        } else {
+            GLF_EN_IDX = Glyphs8x8::GlyphIndex::GLF_EN;
+        }
+
+        const uint8_t* centerBlank = glyphManager->getGlyph(GLF_EN_IDX);
+
+        // Get max brightness level based on display size
+        uint8_t maxBrightnessLevel;
+        if constexpr (GLYPH_SIZE == 5) {
+            maxBrightnessLevel = Config::Display::BRIGHTNESS_LEVELS_5X5;
+        } else {
+            maxBrightnessLevel = Config::Display::BRIGHTNESS_LEVELS_8X8;
+        }
+
+        // Validate and clamp brightness to valid range (1 to max)
+        if (currentBrightness < 1 || currentBrightness > maxBrightnessLevel) {
+            currentBrightness = 1;
+        }
+
+        uint8_t originalBrightness = currentBrightness;
+        unsigned long timeout = millis() + OP_MODE_TIMEOUT_MS;
+
+        // Apply current brightness and show SELECT state BEFORE waiting for button release
+        {
+            uint8_t absoluteBrightness;
+            if constexpr (GLYPH_SIZE == 5) {
+                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[currentBrightness];
+            } else {
+                absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[currentBrightness];
+            }
+            display->setBrightness(absoluteBrightness, false);
+        }
+
+        // Show SELECT state - white background with orange number
+        display->fill(StandardColors::WHITE, false);
+        display->drawGlyphOverlay(centerBlank, StandardColors::BLACK, false);
+        const uint8_t* brightnessGlyph = glyphManager->getDigitGlyph(currentBrightness);
+        display->drawGlyphOverlay(brightnessGlyph, StandardColors::ORANGE, true);
+
+        while (button->read());  // Wait for button release
+
+        while (millis() < timeout) {
+            button->read();
+            
+            // Click: Cycle brightness
+            if (button->wasReleased()) {
+                timeout = millis() + OP_MODE_TIMEOUT_MS;
+                
+                // Check if at max, wrap to 1, else increment
+                if (currentBrightness >= maxBrightnessLevel) {
+                    currentBrightness = 1;
+                } else {
+                    currentBrightness++;
+                }
+                
+                // Map level to absolute brightness using appropriate brightMap
+                uint8_t absoluteBrightness;
+                if constexpr (GLYPH_SIZE == 5) {
+                    absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[currentBrightness];
+                } else {
+                    absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[currentBrightness];
+                }
+                
+                // Update display with new brightness level number
+                display->fill(StandardColors::WHITE, false);
+                display->drawGlyphOverlay(centerBlank, StandardColors::BLACK, false);
+                brightnessGlyph = glyphManager->getDigitGlyph(currentBrightness);
+                display->drawGlyphOverlay(brightnessGlyph, StandardColors::ORANGE, false);
+                
+                // Apply new brightness value immediately for visual feedback
+                display->setBrightness(absoluteBrightness, true);
+            }
+
+            // Long press: Confirm and exit
+            if (button->pressedFor(Config::Timing::BUTTON_SELECT_MS)) {
+                showConfirmation();
+                
+                // Save if changed using custom callback
+                if (originalBrightness != currentBrightness && saveCallback) {
+                    saveCallback(currentBrightness);
+                }
+                
+                waitForButtonRelease();
+                delay(GUI_PAUSE_SHORT_MS);
+                return currentBrightness;
+            }
+        }
+
+        // Timeout: Revert to original brightness
+        uint8_t absoluteBrightness;
+        if constexpr (GLYPH_SIZE == 5) {
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_5X5[originalBrightness];
+        } else {
+            absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[originalBrightness];
+        }
+        display->setBrightness(absoluteBrightness, false);
+        return originalBrightness;
+    }
+
+    template<uint8_t GLYPH_SIZE>
+    bool StartupConfig<GLYPH_SIZE>::changeCameraTalentMode(bool currentMode, std::function<void(bool)> saveCallback) {
+        using namespace Display;
+        using namespace Config::Timing;
+
+        // Get glyph indices based on display size
+        uint8_t GLF_C_IDX, GLF_T_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_C_IDX = Glyphs5x5::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs5x5::GlyphIndex::GLF_T;
+        } else {
+            GLF_C_IDX = Glyphs8x8::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs8x8::GlyphIndex::GLF_T;
+        }
+
+        bool originalMode = currentMode;
+        unsigned long timeout = millis() + OP_MODE_TIMEOUT_MS;
+
+        // Show SELECT state - purple background
+        const uint8_t* modeGlyph = currentMode ? 
+            glyphManager->getGlyph(GLF_C_IDX) : glyphManager->getGlyph(GLF_T_IDX);
+        
+        display->drawGlyph(modeGlyph, StandardColors::PURPLE, StandardColors::BLACK, true);
+        while (button->read());  // Wait for button release
+
+        while (millis() < timeout) {
+            button->read();
+            
+            // Click: Toggle mode
+            if (button->wasReleased()) {
+                timeout = millis() + OP_MODE_TIMEOUT_MS;
+                currentMode = !currentMode;
+                
+                modeGlyph = currentMode ? 
+                    glyphManager->getGlyph(GLF_C_IDX) : glyphManager->getGlyph(GLF_T_IDX);
+                display->drawGlyph(modeGlyph, StandardColors::PURPLE, StandardColors::BLACK, true);
+            }
+
+            // Long press: Confirm and exit
+            if (button->pressedFor(Config::Timing::BUTTON_SELECT_MS)) {
+                showConfirmation();
+                
+                // Save if changed using custom callback
+                if (originalMode != currentMode && saveCallback) {
+                    saveCallback(currentMode);
+                }
+                
+                waitForButtonRelease();
+                delay(GUI_PAUSE_SHORT_MS);
+                return currentMode;
+            }
+        }
+
+        // Timeout: Revert to original mode
+        return originalMode;
     }
 
 } // namespace Application
