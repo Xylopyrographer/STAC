@@ -45,6 +45,12 @@
         #error "No board selected in Device_Config.h! Please uncomment one BOARD_* define."
     #endif
 
+    // ============================================================================
+    // SOFTWARE VERSION
+    // ============================================================================
+
+    #define STAC_SOFTWARE_VERSION "2.3.0"  // Software version string
+
 #endif // DEVICE_CONFIG_H
 
 

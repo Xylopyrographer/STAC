@@ -9,6 +9,7 @@
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/Protocol/RolandClientFactory.h"
 #include "Utils/TestConfig.h"
+#include "Utils/InfoPrinter.h"
 
 // Add these using declarations
 using Display::DisplayFactory;
@@ -33,13 +34,6 @@ namespace Application {
         }
 
         bool STACApp::setup() {
-            Serial.println();
-            Serial.println( "╔════════════════════════════════════════════╗" );
-            Serial.println( "║          STAC Application Starting         ║" );
-            Serial.println( "╚════════════════════════════════════════════╝" );
-            Serial.printf( "\nBoard: %s\n", Config::Strings::BOARD_NAME );
-            Serial.printf( "Software: v2.3.0\n" );
-
             // Initialize hardware
             if ( !initializeHardware() ) {
                 log_e( "Hardware initialization failed" );
@@ -90,11 +84,6 @@ namespace Application {
             );
 
         initialized = true;
-
-        Serial.println();
-        Serial.println( "╔════════════════════════════════════════════╗" );
-        Serial.println( "║               STAC Ready!                  ║" );
-        Serial.println( "╚════════════════════════════════════════════╝\n" );
 
         // Handle provisioning mode if needed (blocking call)
         if ( systemState->getOperatingMode().getCurrentMode() == OperatingMode::PROVISIONING ) {
@@ -160,8 +149,6 @@ namespace Application {
         }
 
         bool STACApp::initializeHardware() {
-            Serial.println( "\n--- Hardware Initialization ---" );
-
             // Display
             display = DisplayFactory::create();
             if ( !display->begin() ) {
@@ -230,8 +217,6 @@ namespace Application {
         }
 
         bool STACApp::initializeNetworkAndStorage() {
-            Serial.println( "\n--- Network & Storage ---" );
-
             // Config Manager
             configManager = std::make_unique<Storage::ConfigManager>();
             if ( !configManager->begin() ) {
@@ -248,6 +233,9 @@ namespace Application {
             else {
                 log_i( "  STAC ID: %s", stacID.c_str() );
             }
+
+            // Print startup header to serial
+            Utils::InfoPrinter::printHeader(stacID);
 
 #ifdef ENABLE_TEST_CONFIG
             // TEST MODE: Apply hardcoded test configuration
@@ -488,6 +476,10 @@ void STACApp::displayWiFiStatus( Net::WiFiState state ) {
             // Show green WiFi glyph on successful connection
             display->drawGlyph( wifiGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
             log_i( "WiFi: Connected (green glyph displayed)" );
+            
+            // Print WiFi connected status to serial
+            Utils::InfoPrinter::printWiFiConnected();
+            
             delay( GUI_PAUSE_MS );  // Pause to show success
 
             // Clear display and show power pixel
@@ -650,6 +642,16 @@ void STACApp::handleNormalMode() {
                 log_e( "Failed to save operations configuration after startup" );
             }
         }
+
+        // Print configuration summary to serial
+        String ssid, password;
+        IPAddress switchIP;
+        uint16_t switchPort;
+        String username, passwordSwitch;
+        if (configManager->loadWiFiCredentials(ssid, password) &&
+            configManager->loadSwitchConfig(ops.switchModel, switchIP, switchPort, username, passwordSwitch)) {
+            Utils::InfoPrinter::printFooter(ops, switchIP, switchPort, ssid);
+        }
     }
 
     if ( !wifiAttempted && !wifiManager->isConnected() && configManager->hasWiFiCredentials() ) {
@@ -717,6 +719,9 @@ void STACApp::handleNormalMode() {
             absoluteBrightness = Config::Display::BRIGHTNESS_MAP_8X8[brightnessLevel];
             #endif
             display->setBrightness( absoluteBrightness, false );
+
+            // Print peripheral mode status to serial
+            Utils::InfoPrinter::printPeripheral(cameraMode, brightnessLevel);
 
             // ===== Startup animation =====
             // Show "P" glyph in green (perifmodecolor)
@@ -995,6 +1000,9 @@ void STACApp::handleNormalMode() {
             }
             
             log_i("Configuration saved successfully");
+            
+            // Print configuration complete message to serial
+            Utils::InfoPrinter::printConfigDone();
             
             // Show success animation
             display->fill(Display::StandardColors::GREEN, true);
@@ -1283,6 +1291,9 @@ void STACApp::handleNormalMode() {
         void STACApp::handleOTAUpdateMode() {
             log_i("Entering OTA update mode");
             
+            // Print OTA mode notification to serial
+            Utils::InfoPrinter::printOTA();
+            
             // Show blue pulsing to indicate OTA mode
             display->fill(Display::StandardColors::BLUE, true);
             delay(500);
@@ -1301,6 +1312,10 @@ void STACApp::handleNormalMode() {
             // This will either restart the ESP32 (success) or return (failure)
             Net::OTAUpdateResult result = otaServer.waitForUpdate();
             
+            // Print OTA update result to serial
+            Utils::InfoPrinter::printOTAResult(result.success, result.filename, 
+                                              result.bytesWritten, result.statusMessage);
+            
             if (!result.success) {
                 log_e("OTA update failed: %s", result.statusMessage.c_str());
                 showError(9); // Show error code 9
@@ -1313,6 +1328,9 @@ void STACApp::handleNormalMode() {
 
         void STACApp::handleFactoryReset() {
             log_i("Performing factory reset");
+            
+            // Print factory reset notification to serial
+            Utils::InfoPrinter::printReset();
             
             // Show red flashing to indicate factory reset
             for (int i = 0; i < 5; i++) {

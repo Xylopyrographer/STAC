@@ -106,6 +106,7 @@
         namespace Strings {
             constexpr const char *BOARD_NAME = STAC_BOARD_NAME;
             constexpr const char *ID_PREFIX = STAC_ID_PREFIX;
+            constexpr const char *SOFTWARE_VERSION = STAC_SOFTWARE_VERSION;
         }
 
     } // namespace Config
