@@ -975,8 +975,14 @@ void STACApp::handleNormalMode() {
         void STACApp::handleProvisioningMode() {
             log_i("Entering provisioning mode");
             
-            // Create and start web configuration server
+            // Create and start web configuration server immediately
             Net::WebConfigServer configServer(stacID);
+            
+            if (!configServer.begin()) {
+                log_e("Failed to start configuration server");
+                showError(2); // Show error code 2
+                return;
+            }
             
             // Get glyph indices
             #ifdef GLYPH_SIZE_5X5
@@ -1006,12 +1012,6 @@ void STACApp::handleNormalMode() {
                 display->pulseDisplay(cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
                                      pulseState, normalBrightness, dimBrightness);
             });
-            
-            if (!configServer.begin()) {
-                log_e("Failed to start configuration server");
-                showError(2); // Show error code 2
-                return;
-            }
             
             // Initial config glyph display at normal brightness
             display->setBrightness(normalBrightness, false);
@@ -1566,7 +1566,7 @@ void STACApp::handleNormalMode() {
                             handleFactoryReset();
                             // Never returns - ESP32 restarts
                         } else if (millis() >= stateArmTime) {
-                            // Held long enough - advance to OTA update state
+                            // Held long enough - advance to OTA update state and start server immediately
                             log_v("Advancing to OTA_UPDATE_PENDING state");
                             
                             // GLF_UD (firmware update icon) in red
@@ -1584,40 +1584,16 @@ void STACApp::handleNormalMode() {
                             // Show static OTA glyph after flash sequence
                             display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
                             
-                            state = BootButtonState::OTA_UPDATE_PENDING;
-                            // No timeout for this state - wait for release
-                        }
-                        break;
-                        
-                    case BootButtonState::OTA_UPDATE_PENDING: {
-                        // Pulse the OTA glyph while waiting for button release
-                        static unsigned long lastPulseTime = 0;
-                        static bool pulseState = false;
-                        static bool brightnessInitialized = false;
-                        static uint8_t normalBrightness = 0;
-                        static uint8_t dimBrightness = 0;
-                        
-                        // Capture brightness values once on first entry to this state
-                        if (!brightnessInitialized) {
-                            normalBrightness = display->getBrightness();
-                            dimBrightness = normalBrightness / 2;
-                            brightnessInitialized = true;
-                        }
-                        
-                        if (millis() - lastPulseTime >= 1000) {
-                            display->pulseDisplay(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
-                                                 pulseState, normalBrightness, dimBrightness);
-                            lastPulseTime = millis();
-                        }
-                        
-                        if (!button->isPressed()) {
-                            // Released - enter OTA update mode (pulsing will continue there)
-                            log_i("Boot button sequence: OTA UPDATE selected");
+                            // Start OTA server immediately (don't wait for button release)
+                            log_i("Boot button sequence: OTA UPDATE selected - starting server");
                             handleOTAUpdateMode();
                             // Never returns - ESP32 restarts after OTA
                         }
                         break;
-                    }
+                        
+                    case BootButtonState::OTA_UPDATE_PENDING:
+                        // This state is no longer reachable - OTA mode starts immediately above
+                        break;
                 }
                 
                 yield();
