@@ -108,6 +108,15 @@
             pin1State = digitalRead( pin1 );
         }
 
+        void GrovePort::configurePinsAsInputs() {
+            // Configure pins as inputs with pulldowns for peripheral mode
+            // This matches baseline behavior in STACPeripheral.h lines 54-55
+            pinMode( pin0, INPUT_PULLDOWN );
+            pinMode( pin1, INPUT_PULLDOWN );
+            isOutputMode = false;
+            log_i( "GROVE port configured as INPUT_PULLDOWN (TS_0=%d, TS_1=%d)", pin0, pin1 );
+        }
+
     } // namespace Hardware
 
 

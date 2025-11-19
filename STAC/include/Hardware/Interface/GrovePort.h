@@ -58,6 +58,11 @@
              */
             void readPins( bool& pin0State, bool& pin1State );
 
+            /**
+             * @brief Configure pins as inputs with pulldowns (for peripheral mode)
+             */
+            void configurePinsAsInputs();
+
           private:
             uint8_t pin0;           ///< TS_0 pin
             uint8_t pin1;           ///< TS_1 pin

@@ -91,6 +91,14 @@ namespace Application {
             // After provisioning completes, device will restart
         }
 
+        // Initialize GROVE port GPIO pins (only in normal mode - peripheral mode is already handled)
+        // This prevents floating pins from causing artifacts on peripheral mode devices
+        if ( systemState->getOperatingMode().isNormalMode() ) {
+            // GROVE port is already configured above, but we need to set initial state
+            grovePort->setTallyState( TallyState::ERROR );  // Set to ERROR (both pins LOW)
+            log_i( "GROVE port initialized to UNKNOWN state" );
+        }
+
         // Create startup config handler
 #ifdef GLYPH_SIZE_5X5
         startupConfig = std::make_unique<StartupConfig5x5>(
@@ -156,6 +164,14 @@ namespace Application {
                 return false;
             }
             log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
+
+            // Clear display buffer and set initial brightness to remove power-up artifacts
+            display->clear( false );  // Clear buffer without showing
+            #ifdef GLYPH_SIZE_5X5
+            display->setBrightness( Config::Display::BRIGHTNESS_MAP_5X5[1], false );  // Set to level 1, no show
+            #else
+            display->setBrightness( Config::Display::BRIGHTNESS_MAP_8X8[1], false );  // Set to level 1, no show
+            #endif
 
             // Show power pixel immediately using BASE_GLYPHS (before orientation detection)
             #ifdef GLYPH_SIZE_5X5
@@ -335,6 +351,10 @@ namespace Application {
             if ( button->pressedFor(Config::Timing::BUTTON_SELECT_MS) ) {
                 if ( !longPressHandled ) {
                     longPressHandled = true;
+                    
+                    // Set GROVE port to UNKNOWN state while adjusting settings
+                    // This prevents peripheral devices from showing false tally information
+                    grovePort->setTallyState( TallyState::ERROR );
                     
                     // Call brightness adjustment
                     StacOperations ops = systemState->getOperations();
@@ -700,6 +720,10 @@ void STACApp::handleNormalMode() {
             #endif
 
             log_i( "Entering Peripheral Mode" );
+
+            // Configure GROVE GPIO pins as inputs for reading tally state
+            grovePort->configurePinsAsInputs();
+            log_i( "GROVE port configured as inputs for peripheral mode" );
 
             // ===== Load or initialize peripheral mode settings =====
             bool cameraMode = false;  // Default: talent mode
