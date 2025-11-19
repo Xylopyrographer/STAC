@@ -4,6 +4,7 @@ A comprehensive guide for developers working on STAC or building similar embedde
 
 ## Table of Contents
 
+- [What's New in v3.0](#whats-new-in-v30)
 - [Architecture Overview](#architecture-overview)
 - [Project Structure](#project-structure)
 - [Design Patterns](#design-patterns)
@@ -12,6 +13,125 @@ A comprehensive guide for developers working on STAC or building similar embedde
 - [Code Style](#code-style)
 - [Debugging](#debugging)
 - [Common Tasks](#common-tasks)
+
+---
+
+## What's New in v3.0
+
+Version 3.0 represents a major refactoring of the STAC codebase with significant improvements:
+
+### Architecture Changes
+
+**Complete Modular Restructure:**
+- Clear separation into Hardware, Network, State, Storage, and Application layers
+- Factory pattern for all hardware component creation
+- Interface-based design enables easy testing and hardware swapping
+- Centralized state management with SystemState
+
+**New Components:**
+
+1. **GlyphManager** - Centralized glyph handling with automatic rotation
+   - Orientation-aware glyph rotation based on IMU
+   - Separate managers for 5×5 and 8×8 displays
+   - Power-on indicator glyph management
+
+2. **Roland Protocol Support** - V-60HD and V-160HD video switcher integration
+   - `RolandClient` base class with factory pattern
+   - `V60HDClient` - Full implementation for V-60HD
+   - `V160HDClient` - Full implementation for V-160HD (HDMI/SDI channel banks)
+   - Automatic error detection and recovery
+   - Configurable poll intervals
+
+3. **Web Configuration** - Browser-based setup via WiFi AP
+   - `WebConfigServer` - Captive portal for initial setup
+   - Configure WiFi, switch IP, channels, poll rates
+   - Mobile-friendly responsive interface
+   - Automatic restart after configuration
+
+4. **OTA Updates** - Over-the-air firmware updates
+   - `OTAUpdateServer` - mDNS-based update server
+   - Upload `.bin` files via web browser
+   - Progress indication on display
+   - Automatic verification and rollback on failure
+
+5. **StartupConfig** - Interactive startup configuration
+   - Channel selection with number glyphs
+   - Brightness adjustment with visual feedback
+   - Camera/Talent mode selection
+   - Autostart bypass option
+   - Shared implementation for normal and peripheral modes
+
+### User-Visible Improvements
+
+**Boot Button Sequence:**
+- Hold 0-2 sec: Provisioning mode (orange config glyph)
+- Hold 2-4 sec: Factory reset (red frame + green check)
+- Hold 4-6 sec: OTA update mode (red update glyph)
+- Visual feedback with glyph flashing at each stage
+- **Performance:** Servers start immediately (no wait for button release)
+
+**Enhanced Display Features:**
+- Power-on indicator (orange center pixel) overlays tally state
+- Glyph rotation follows device orientation
+- Pulsing glyphs during provisioning/OTA (brightness modulation)
+- Visual parity with v2.x baseline
+
+**Peripheral Mode Enhancements:**
+- Settings persistence (camera mode, brightness)
+- Long-press button to adjust settings
+- Faster polling (2ms) for minimal latency
+- Visual feedback for all state changes
+
+**Error Handling:**
+- Connection errors: Orange X (talent shows preview)
+- No reply errors: Purple X (talent shows preview)
+- Junk reply errors: Purple ? (talent shows preview)
+- Configurable error thresholds and fast re-polling
+
+### Performance Optimizations
+
+**Network Service Startup:**
+- Provisioning server starts before flash sequence (-4 seconds)
+- OTA server starts immediately after threshold (-6 seconds)
+- User can release button anytime during sequences
+- Reduces wait time for service availability
+
+**Poll Rate Management:**
+- Normal operation: User-configured interval (default 300ms)
+- Error conditions: Fast re-poll at 50ms
+- Automatic recovery to normal rate on success
+
+**Code Efficiency:**
+- Compile-time hardware selection (zero runtime overhead)
+- Smart pointer usage (automatic memory management)
+- Reduced NVS access (cached values)
+
+### Developer Experience
+
+**Better Code Organization:**
+```
+include/                     # All headers
+  ├── Application/          # App logic
+  ├── Hardware/             # HAL interfaces
+  ├── Network/              # Network components
+  ├── State/                # State managers
+  ├── Storage/              # NVS/config
+  └── Utils/                # Utilities
+
+src/                        # All implementations
+  └── [mirrors include structure]
+```
+
+**Improved Testing:**
+- Hardware abstraction enables mocking
+- State managers are unit-testable
+- Clear interfaces for integration tests
+
+**Documentation:**
+- This guide updated for v3.0
+- Hardware config guide updated
+- Detailed change log maintained
+- Code comments throughout
 
 ---
 
@@ -306,6 +426,200 @@ See [HARDWARE_CONFIG.md](HARDWARE_CONFIG.md) for detailed steps.
 3. Add to `Device_Config.h`
 4. Test thoroughly
 5. Submit PR with documentation
+
+### Adding Support for a New Roland Video Switcher
+
+**Example: Adding Roland V-600UHD support**
+
+STAC uses a factory pattern to support multiple Roland video switcher models. Each model has its own client implementation that handles model-specific protocol details.
+
+**Step 1:** Create the client class
+
+```cpp
+// include/Network/Protocol/V600UHDClient.h
+#ifndef STAC_V600UHD_CLIENT_H
+#define STAC_V600UHD_CLIENT_H
+
+#include "RolandClient.h"
+
+namespace Net {
+
+class V600UHDClient : public RolandClient {
+public:
+    V600UHDClient() = default;
+    ~V600UHDClient() override = default;
+
+    bool begin(const RolandConfig& config) override;
+    void queryTallyStatus(TallyQueryResult& result) override;
+    
+    const char* getModelName() const override { return "V-600UHD"; }
+
+private:
+    // Model-specific helper methods
+    bool connectToSwitch();
+    String buildTallyQuery();
+    TallyStatus parseTallyResponse(const String& response);
+};
+
+} // namespace Net
+
+#endif
+```
+
+**Step 2:** Implement the protocol
+
+```cpp
+// src/Network/Protocol/V600UHDClient.cpp
+#include "Network/Protocol/V600UHDClient.h"
+#include <Arduino.h>
+
+namespace Net {
+
+bool V600UHDClient::begin(const RolandConfig& config) {
+    this->config = config;
+    initialized = true;
+    
+    log_i("V600UHDClient initialized for %s:%d, channel %d",
+          config.switchIP.toString().c_str(),
+          config.switchPort,
+          config.tallyChannel);
+    
+    return true;
+}
+
+void V600UHDClient::queryTallyStatus(TallyQueryResult& result) {
+    // Reset result
+    result.connected = false;
+    result.gotReply = false;
+    result.timedOut = false;
+    result.status = TallyStatus::UNKNOWN;
+    result.rawResponse = "";
+
+    // Connect to switch
+    if (!connectToSwitch()) {
+        result.timedOut = true;
+        return;
+    }
+    
+    result.connected = true;
+
+    // Build and send query (model-specific format)
+    String query = buildTallyQuery();
+    client.print(query);
+    
+    // Wait for response with timeout
+    unsigned long startTime = millis();
+    while (!client.available() && (millis() - startTime) < 1000) {
+        yield();
+    }
+    
+    if (!client.available()) {
+        result.timedOut = true;
+        client.stop();
+        return;
+    }
+    
+    // Read response
+    String response = client.readStringUntil('\n');
+    result.rawResponse = response;
+    result.gotReply = true;
+    
+    // Parse tally status (model-specific parsing)
+    result.status = parseTallyResponse(response);
+    
+    client.stop();
+}
+
+bool V600UHDClient::connectToSwitch() {
+    if (client.connected()) {
+        return true;
+    }
+    
+    return client.connect(config.switchIP, config.switchPort);
+}
+
+String V600UHDClient::buildTallyQuery() {
+    // V-600UHD specific query format
+    // Example: "QST:pgm ch1\r\n" for program bus query
+    char query[64];
+    snprintf(query, sizeof(query), "QST:pgm ch%d\r\n", config.tallyChannel);
+    return String(query);
+}
+
+TallyStatus V600UHDClient::parseTallyResponse(const String& response) {
+    // V-600UHD specific response parsing
+    // Example responses:
+    // "ON\r\n" = channel is on program
+    // "OFF\r\n" = channel is not on program
+    
+    String trimmed = response;
+    trimmed.trim();
+    
+    if (trimmed == "ON") {
+        return TallyStatus::ONAIR;
+    } else if (trimmed == "OFF") {
+        // Need to check preview bus too
+        // ... additional queries for preview ...
+        return TallyStatus::UNSELECTED;
+    }
+    
+    return TallyStatus::UNKNOWN;
+}
+
+} // namespace Net
+```
+
+**Step 3:** Add to factory
+
+```cpp
+// include/Network/Protocol/RolandClientFactory.h
+static std::unique_ptr<RolandClient> createFromString(const String& model) {
+    if (model == "V-60HD") {
+        return std::make_unique<V60HDClient>();
+    } else if (model == "V-160HD") {
+        return std::make_unique<V160HDClient>();
+    } else if (model == "V-600UHD") {  // NEW
+        return std::make_unique<V600UHDClient>();
+    }
+    
+    log_e("Unknown Roland model: %s", model.c_str());
+    return nullptr;
+}
+```
+
+**Step 4:** Update web configuration
+
+```cpp
+// src/Network/Web/WebConfigServer.cpp
+// Add to switch model dropdown options
+const char HTML_SWITCH_OPTIONS[] PROGMEM = R"rawliteral(
+<option value="V-60HD">Roland V-60HD</option>
+<option value="V-160HD">Roland V-160HD</option>
+<option value="V-600UHD">Roland V-600UHD</option>
+)rawliteral";
+```
+
+**Step 5:** Test with real hardware
+
+```cpp
+// Test checklist:
+// [ ] Connection to switch succeeds
+// [ ] Tally queries return correct status
+// [ ] Program state shows red
+// [ ] Preview state shows green  
+// [ ] Unselected state correct (camera/talent modes)
+// [ ] Error handling (disconnect, junk replies)
+// [ ] Poll interval respected
+// [ ] Fast re-poll on errors
+```
+
+**Protocol Documentation Tips:**
+
+- Consult switcher's technical manual for protocol details
+- Use terminal emulator (like CoolTerm) to test queries manually
+- Log all raw responses during development
+- Test edge cases (disconnection, invalid channels, etc.)
+- Consider multiple query model (program + preview + aux buses)
 
 ### Adding a New Display Type
 
@@ -802,6 +1116,44 @@ Shows exactly where the crash occurred!
 
 ## Common Tasks
 
+### Using InfoPrinter for Serial Output
+
+STAC v3.0 includes `InfoPrinter` utility class for consistent, formatted serial output:
+
+```cpp
+#include "Utils/InfoPrinter.h"
+
+// Print startup header (called in setup)
+Utils::InfoPrinter::printHeader(stacID);
+
+// Print WiFi connected status
+Utils::InfoPrinter::printWiFiConnected();
+
+// Print configuration summary
+Utils::InfoPrinter::printFooter(ops, switchIP, switchPort, ssid);
+
+// Print peripheral mode status
+Utils::InfoPrinter::printPeripheral(cameraMode, brightnessLevel);
+
+// Print OTA mode notification
+Utils::InfoPrinter::printOTA();
+
+// Print OTA result
+Utils::InfoPrinter::printOTAResult(success, filename, bytesWritten, message);
+
+// Print factory reset notification
+Utils::InfoPrinter::printReset();
+
+// Print configuration complete
+Utils::InfoPrinter::printConfigDone();
+```
+
+**Benefits:**
+- Consistent formatting across all serial output
+- ASCII art headers for visual separation
+- Easy to read status information
+- Centralized changes (update once, applies everywhere)
+
 ### Changing Default Settings
 
 **Brightness:**
@@ -1000,8 +1352,8 @@ Before submitting PR:
 
 **Happy coding!** 🚀
 
-**Last Updated:** 2025-11-10 
-**Version:** 2.3.0
+**Last Updated:** 2025-11-19 
+**Version:** 3.0.0-RC
 
 
 <!-- //  --- EOF --- // -->

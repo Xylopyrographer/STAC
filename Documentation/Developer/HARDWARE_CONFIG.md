@@ -560,8 +560,8 @@ Common issues and fixes:
 
 ---
 
-**Last Updated:** December 2024  
-**Version:** 2.3.0
+**Last Updated:** 2025-11-19  
+**Version:** 3.0.0-RC
 
 
 <!-- //  --- EOF --- // -->
