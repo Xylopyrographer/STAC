@@ -247,7 +247,15 @@ namespace Application {
                 log_i( "  Generated STAC ID: %s", stacID.c_str() );
             }
             else {
-                log_i( "  STAC ID: %s", stacID.c_str() );
+                // Validate loaded ID format (should contain hyphen)
+                if ( stacID.indexOf('-') == -1 ) {
+                    log_w( "  Invalid STAC ID format detected: %s", stacID.c_str() );
+                    log_w( "  Regenerating STAC ID..." );
+                    stacID = configManager->generateAndSaveStacID();
+                    log_i( "  Generated STAC ID: %s", stacID.c_str() );
+                } else {
+                    log_i( "  STAC ID: %s", stacID.c_str() );
+                }
             }
 
             // Print startup header to serial
@@ -970,15 +978,33 @@ void STACApp::handleNormalMode() {
             // Create and start web configuration server
             Net::WebConfigServer configServer(stacID);
             
-            // Set up pulsing teal display callback
+            // Get glyph indices
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Display::Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Display::Glyphs8x8::GlyphIndex;
+            #endif
+            
+            // Show GLF_CFG in red (matching baseline alertcolor for provisioning)
+            const uint8_t* cfgGlyph = glyphManager->getGlyph(GLF_CFG);
+            const uint8_t normalBrightness = display->getBrightness();
+            const uint8_t dimBrightness = normalBrightness / 2;
+            
+            display->drawGlyph(cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
+            
+            // Flash 4 times at 500ms (matching baseline)
+            for (int i = 0; i < 4; i++) {
+                delay(500);
+                display->clear(true);
+                delay(500);
+                display->drawGlyph(cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
+            }
+            
+            // Set up pulsing config glyph display callback using brightness modulation
             bool pulseState = false;
-            configServer.setDisplayUpdateCallback([this, &pulseState]() {
-                pulseState = !pulseState;
-                if (pulseState) {
-                    display->fill(Display::StandardColors::TEAL, true);
-                } else {
-                    display->fill(Display::StandardColors::DARK_TEAL, true); // Dimmer teal
-                }
+            configServer.setDisplayUpdateCallback([this, cfgGlyph, normalBrightness, dimBrightness, &pulseState]() {
+                display->pulseDisplay(cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
+                                     pulseState, normalBrightness, dimBrightness);
             });
             
             if (!configServer.begin()) {
@@ -987,8 +1013,9 @@ void STACApp::handleNormalMode() {
                 return;
             }
             
-            // Initial teal display
-            display->fill(Display::StandardColors::TEAL, true);
+            // Initial config glyph display at normal brightness
+            display->setBrightness(normalBrightness, false);
+            display->drawGlyph(cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
             
             // Wait for configuration
             ProvisioningData provData = configServer.waitForConfiguration();
@@ -1356,9 +1383,19 @@ void STACApp::handleNormalMode() {
             // Print OTA mode notification to serial
             Utils::InfoPrinter::printOTA();
             
-            // Show blue pulsing to indicate OTA mode
-            display->fill(Display::StandardColors::BLUE, true);
-            delay(500);
+            // OTA glyph is already showing from boot button sequence - leave it
+            // (matching baseline behavior which doesn't change display on OTA entry)
+            
+            // Get glyph for pulsing display
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Display::Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Display::Glyphs8x8::GlyphIndex;
+            #endif
+            
+            const uint8_t* udGlyph = glyphManager->getGlyph(GLF_UD);
+            const uint8_t normalBrightness = display->getBrightness();
+            const uint8_t dimBrightness = normalBrightness / 2;
             
             // Create and start OTA update server
             Net::OTAUpdateServer otaServer(stacID);
@@ -1369,6 +1406,13 @@ void STACApp::handleNormalMode() {
                 ESP.restart(); // Restart on error
                 return;
             }
+            
+            // Set up pulsing OTA glyph display callback using brightness modulation
+            bool pulseState = false;
+            otaServer.setDisplayUpdateCallback([this, udGlyph, normalBrightness, dimBrightness, &pulseState]() {
+                display->pulseDisplay(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
+                                     pulseState, normalBrightness, dimBrightness);
+            });
             
             // Wait for firmware upload and update
             // This will either restart the ESP32 (success) or return (failure)
@@ -1456,15 +1500,26 @@ void STACApp::handleNormalMode() {
             bool sequenceExit = false;
             OperatingMode resultMode = OperatingMode::NORMAL;
             
-            // Show initial state - yellow for provisioning
-            display->fill(Display::StandardColors::YELLOW, true);
+            // Get glyph indices
+            #ifdef GLYPH_SIZE_5X5
+            using namespace Display::Glyphs5x5::GlyphIndex;
+            #else
+            using namespace Display::Glyphs8x8::GlyphIndex;
+            #endif
+            
+            // Get all glyphs we'll need
+            const uint8_t* cfgGlyph = glyphManager->getGlyph(GLF_CFG);
+            const uint8_t* udGlyph = glyphManager->getGlyph(GLF_UD);
+            
+            // Show initial state - GLF_CFG in orange for provisioning
+            display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
             delay(250);
             
             // Flash to confirm we're in button sequence mode
             for (int i = 0; i < 4; i++) {
                 display->clear(true);
                 delay(125);
-                display->fill(Display::StandardColors::YELLOW, true);
+                display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
                 delay(125);
             }
             
@@ -1482,14 +1537,20 @@ void STACApp::handleNormalMode() {
                         } else if (millis() >= stateArmTime) {
                             // Held long enough - advance to factory reset state
                             log_v("Advancing to FACTORY_RESET_PENDING state");
-                            display->fill(Display::StandardColors::RED, true);
+                            
+                            // GLF_FM (solid frame) in red with GLF_CK (checkmark) in green overlay
+                            const uint8_t* fmGlyph = glyphManager->getGlyph(GLF_FM);
+                            const uint8_t* ckGlyph = glyphManager->getGlyph(GLF_CK);
+                            display->drawGlyph(fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, false);
+                            display->drawGlyphOverlay(ckGlyph, Display::StandardColors::GREEN, true);
                             delay(250);
                             
                             // Flash to show state change
                             for (int i = 0; i < 4; i++) {
                                 display->clear(true);
                                 delay(125);
-                                display->fill(Display::StandardColors::RED, true);
+                                display->drawGlyph(fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, false);
+                                display->drawGlyphOverlay(ckGlyph, Display::StandardColors::GREEN, true);
                                 delay(125);
                             }
                             
@@ -1507,30 +1568,56 @@ void STACApp::handleNormalMode() {
                         } else if (millis() >= stateArmTime) {
                             // Held long enough - advance to OTA update state
                             log_v("Advancing to OTA_UPDATE_PENDING state");
-                            display->fill(Display::StandardColors::BLUE, true);
+                            
+                            // GLF_UD (firmware update icon) in red
+                            display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
                             delay(250);
                             
                             // Flash to show state change
                             for (int i = 0; i < 4; i++) {
                                 display->clear(true);
                                 delay(125);
-                                display->fill(Display::StandardColors::BLUE, true);
+                                display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
                                 delay(125);
                             }
+                            
+                            // Show static OTA glyph after flash sequence
+                            display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
                             
                             state = BootButtonState::OTA_UPDATE_PENDING;
                             // No timeout for this state - wait for release
                         }
                         break;
                         
-                    case BootButtonState::OTA_UPDATE_PENDING:
+                    case BootButtonState::OTA_UPDATE_PENDING: {
+                        // Pulse the OTA glyph while waiting for button release
+                        static unsigned long lastPulseTime = 0;
+                        static bool pulseState = false;
+                        static bool brightnessInitialized = false;
+                        static uint8_t normalBrightness = 0;
+                        static uint8_t dimBrightness = 0;
+                        
+                        // Capture brightness values once on first entry to this state
+                        if (!brightnessInitialized) {
+                            normalBrightness = display->getBrightness();
+                            dimBrightness = normalBrightness / 2;
+                            brightnessInitialized = true;
+                        }
+                        
+                        if (millis() - lastPulseTime >= 1000) {
+                            display->pulseDisplay(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
+                                                 pulseState, normalBrightness, dimBrightness);
+                            lastPulseTime = millis();
+                        }
+                        
                         if (!button->isPressed()) {
-                            // Released - enter OTA update mode
+                            // Released - enter OTA update mode (pulsing will continue there)
                             log_i("Boot button sequence: OTA UPDATE selected");
                             handleOTAUpdateMode();
                             // Never returns - ESP32 restarts after OTA
                         }
                         break;
+                    }
                 }
                 
                 yield();

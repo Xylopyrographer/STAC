@@ -9,6 +9,7 @@
 #include "Network/WebConfigServer.h"
 #include "Network/WebConfigPages.h"
 #include <esp_wifi.h>
+#include <esp_mac.h>
 
 
 namespace Net {
@@ -23,6 +24,13 @@ namespace Net {
         , serverRunning(false)
         , displayCallback(nullptr)
     {
+        // Get MAC address and format it for display
+        uint8_t mac[6];
+        esp_efuse_mac_get_default(mac);
+        char macStr[18];
+        snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        macAddress = String(macStr);
     }
 
     WebConfigServer::~WebConfigServer() {
@@ -255,9 +263,6 @@ namespace Net {
     }
 
     String WebConfigServer::buildIndexPage() const {
-        // Get MAC address for display
-        String macAddress = WiFi.macAddress();
-
         // Get firmware version info
         // TODO: Replace with actual version strings from build system
         String fwVersion = "3.0.0-dev";

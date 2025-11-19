@@ -201,7 +201,12 @@
             snprintf( macSuffix, sizeof( macSuffix ), "%02X%02X%02X", 
                      mac[ 5 ], mac[ 4 ], mac[ 3 ] );
 
+            log_d( "MAC bytes: %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] );
+            log_d( "MAC suffix (reversed last 3): %s", macSuffix );
+
             String stacID = String( Config::Strings::ID_PREFIX ) + "-" + String( macSuffix );
+
+            log_d( "Generated STAC ID: %s", stacID.c_str() );
 
             saveStacID( stacID );
 

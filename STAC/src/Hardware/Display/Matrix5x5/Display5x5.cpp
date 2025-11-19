@@ -164,6 +164,13 @@
             #endif
         }
 
+        void Display5x5::pulseDisplay(const uint8_t* glyph, color_t foreground, color_t background,
+                                      bool& pulseState, uint8_t normalBrightness, uint8_t dimBrightness) {
+            pulseState = !pulseState;
+            setBrightness(pulseState ? normalBrightness : dimBrightness, false);
+            drawGlyph(glyph, foreground, background, true);
+        }
+
     } // namespace Display
 
 

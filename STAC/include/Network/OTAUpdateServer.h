@@ -18,6 +18,7 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 #include <Update.h>
+#include <functional>
 
 
 namespace Net {
@@ -106,6 +107,12 @@ namespace Net {
          */
         void end();
 
+        /**
+         * @brief Set callback for periodic display updates
+         * @param callback Function to call periodically during waitForUpdate()
+         */
+        void setDisplayUpdateCallback(std::function<void()> callback);
+
     private:
         // WiFi Access Point configuration
         static constexpr const char* AP_HOSTNAME = "update";
@@ -125,6 +132,11 @@ namespace Net {
         OTAUpdateResult updateResult;
         bool updateComplete;
         bool serverRunning;
+
+        // Display update callback
+        std::function<void()> displayUpdateCallback;
+        static constexpr unsigned long DISPLAY_UPDATE_INTERVAL = 1000; // ms (matches provisioning pulse rate)
+        unsigned long lastDisplayUpdate;
 
         /**
          * @brief Register all HTTP endpoint handlers

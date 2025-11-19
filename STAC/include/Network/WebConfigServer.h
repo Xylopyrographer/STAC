@@ -124,6 +124,7 @@ namespace Net {
         // Server and state
         WebServer* server;
         String deviceID;
+        String macAddress;
         ProvisioningData configData;
         bool configReceived;
         bool serverRunning;

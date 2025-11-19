@@ -41,6 +41,8 @@
             void flash( uint8_t times, uint16_t interval, uint8_t brightness ) override;
             void drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show = true ) override;
             void pulseCorners( bool state, color_t color ) override;
+            void pulseDisplay(const uint8_t* glyph, color_t foreground, color_t background, 
+                             bool& pulseState, uint8_t normalBrightness, uint8_t dimBrightness) override;
 
             uint8_t getWidth() const override {
                 return 5;

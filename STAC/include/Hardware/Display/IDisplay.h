@@ -108,6 +108,19 @@
             virtual void pulseCorners( bool state, color_t color ) = 0;
 
             /**
+             * @brief Pulse display brightness between normal and dim levels
+             * @param glyph Pointer to glyph data to redraw during pulse
+             * @param foreground Foreground color
+             * @param background Background color
+             * @param pulseState Reference to boolean that toggles between normal and dim brightness
+             * @param normalBrightness Normal (bright) brightness level
+             * @param dimBrightness Dimmed brightness level
+             * @note This method toggles pulseState and updates the display brightness
+             */
+            virtual void pulseDisplay(const uint8_t* glyph, color_t foreground, color_t background, 
+                                     bool& pulseState, uint8_t normalBrightness, uint8_t dimBrightness) = 0;
+
+            /**
              * @brief Get display width
              * @return Width in pixels
              */

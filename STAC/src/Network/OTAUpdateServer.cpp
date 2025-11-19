@@ -21,6 +21,8 @@ namespace Net {
         , deviceID(deviceID)
         , updateComplete(false)
         , serverRunning(false)
+        , displayUpdateCallback(nullptr)
+        , lastDisplayUpdate(0)
     {
     }
 
@@ -93,6 +95,13 @@ namespace Net {
         // Handle client requests until update completes
         while (!updateComplete) {
             server->handleClient();
+            
+            // Call display update callback if set and interval elapsed
+            if (displayUpdateCallback && (millis() - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL)) {
+                displayUpdateCallback();
+                lastDisplayUpdate = millis();
+            }
+            
             yield();
         }
 
@@ -136,6 +145,10 @@ namespace Net {
 
         serverRunning = false;
         log_i("OTA update server stopped");
+    }
+
+    void OTAUpdateServer::setDisplayUpdateCallback(std::function<void()> callback) {
+        displayUpdateCallback = callback;
     }
 
     void OTAUpdateServer::registerEndpoints() {
