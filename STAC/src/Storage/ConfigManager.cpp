@@ -192,13 +192,16 @@
         }
 
         String ConfigManager::generateAndSaveStacID() {
-            // Generate STAC ID from MAC address
+            // Generate STAC ID from MAC address (last 3 bytes, reversed)
             uint8_t mac[ 6 ];
-            esp_read_mac( mac, ESP_MAC_WIFI_STA );
+            esp_efuse_mac_get_default( mac );
 
-            String stacID = String( Config::Strings::ID_PREFIX ) + "_" +
-                            String( mac[ 3 ], HEX ) + String( mac[ 4 ], HEX ) + String( mac[ 5 ], HEX );
-            stacID.toUpperCase();
+            // Use snprintf to ensure zero-padding for single-digit hex values
+            char macSuffix[ 7 ];  // 6 hex chars + null terminator
+            snprintf( macSuffix, sizeof( macSuffix ), "%02X%02X%02X", 
+                     mac[ 5 ], mac[ 4 ], mac[ 3 ] );
+
+            String stacID = String( Config::Strings::ID_PREFIX ) + "-" + String( macSuffix );
 
             saveStacID( stacID );
 

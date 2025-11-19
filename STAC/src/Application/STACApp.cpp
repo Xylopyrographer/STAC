@@ -198,7 +198,7 @@ namespace Application {
             button = new Button(
                 Config::Pins::BUTTON,
                 Config::Button::DEBOUNCE_MS,
-                !Config::Button::ACTIVE_LOW,  // puEnable: true if NOT active low (needs pullup)
+                Config::Button::ACTIVE_LOW,    // puEnable: true for active low (needs pullup)
                 Config::Button::ACTIVE_LOW     // invert: true for active low
             );
             button->begin();
@@ -607,10 +607,17 @@ void STACApp::handleNormalMode() {
             display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
             
             // Turn on corner pixels (green)
+            #ifdef GLYPH_SIZE_5X5
             display->setPixel( 0, StandardColors::GREEN, false );
             display->setPixel( 4, StandardColors::GREEN, false );
             display->setPixel( 20, StandardColors::GREEN, false );
             display->setPixel( 24, StandardColors::GREEN, false );
+            #else
+            display->setPixel( 0, StandardColors::GREEN, false );
+            display->setPixel( 7, StandardColors::GREEN, false );
+            display->setPixel( 56, StandardColors::GREEN, false );
+            display->setPixel( 63, StandardColors::GREEN, false );
+            #endif
             display->show();
             
             unsigned long autostartTimeout = millis() + AUTOSTART_TIMEOUT_MS;
@@ -634,10 +641,17 @@ void STACApp::handleNormalMode() {
                     
                     display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
                     if ( cornersOn ) {
+                        #ifdef GLYPH_SIZE_5X5
                         display->setPixel( 0, StandardColors::GREEN, false );
                         display->setPixel( 4, StandardColors::GREEN, false );
                         display->setPixel( 20, StandardColors::GREEN, false );
                         display->setPixel( 24, StandardColors::GREEN, false );
+                        #else
+                        display->setPixel( 0, StandardColors::GREEN, false );
+                        display->setPixel( 7, StandardColors::GREEN, false );
+                        display->setPixel( 56, StandardColors::GREEN, false );
+                        display->setPixel( 63, StandardColors::GREEN, false );
+                        #endif
                     }
                     display->show();
                 }
@@ -769,7 +783,11 @@ void STACApp::handleNormalMode() {
 
             // Clear and show power-on glyph
             display->clear( false );
+            #ifdef GLYPH_SIZE_5X5
             const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+            #else
+            const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+            #endif
             display->drawGlyph( powerGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
 
             // Wait for button release
@@ -806,7 +824,11 @@ void STACApp::handleNormalMode() {
                             case TallyState::PROGRAM: {
                                 // Red (program)
                                 display->fill( StandardColors::RED, false );
+                                #ifdef GLYPH_SIZE_5X5
                                 const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                #else
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+                                #endif
                                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
                             }
@@ -814,7 +836,11 @@ void STACApp::handleNormalMode() {
                             case TallyState::PREVIEW: {
                                 // Green (preview)
                                 display->fill( StandardColors::GREEN, false );
+                                #ifdef GLYPH_SIZE_5X5
                                 const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                #else
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+                                #endif
                                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
                             }
@@ -828,7 +854,11 @@ void STACApp::handleNormalMode() {
                                     // Talent mode: Show green
                                     display->fill( StandardColors::GREEN, false );
                                 }
+                                #ifdef GLYPH_SIZE_5X5
                                 const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                #else
+                                const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+                                #endif
                                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 break;
                             }
@@ -839,12 +869,20 @@ void STACApp::handleNormalMode() {
                                     // Camera mode: Show orange X
                                     const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
                                     display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, false );
+                                    #ifdef GLYPH_SIZE_5X5
                                     const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                    #else
+                                    const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+                                    #endif
                                     display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 } else {
                                     // Talent mode: Show green with power glyph
                                     display->fill( StandardColors::GREEN, false );
+                                    #ifdef GLYPH_SIZE_5X5
                                     const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_PO );
+                                    #else
+                                    const uint8_t* powerGlyph = glyphManager->getGlyph( GLF_MID );
+                                    #endif
                                     display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                                 }
                                 break;

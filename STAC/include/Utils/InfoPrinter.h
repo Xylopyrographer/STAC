@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_arduino_version.h>
+#include <esp_mac.h>
 #include "../Config/Types.h"
 #include "../Config/Constants.h"
 
@@ -47,7 +48,15 @@ public:
         Serial.println("    Setup URL: http://setup.local");
         Serial.println("    Setup IP: 192.168.6.14");
         Serial.print("    MAC: ");
-        Serial.println(WiFi.macAddress());
+        
+        // Get MAC address directly from eFuse (WiFi not initialized yet)
+        uint8_t mac[6];
+        esp_efuse_mac_get_default(mac);
+        char macStr[18];
+        snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        Serial.println(macStr);
+        
         Serial.println("  --------------------------------------");
         Serial.flush();
     }
