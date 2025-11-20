@@ -24,6 +24,10 @@ import select
 import termios
 import tty
 
+# Force unbuffered I/O for all output (needed when run via subprocess)
+sys.stdout.reconfigure(line_buffering=False)
+sys.stderr.reconfigure(line_buffering=False)
+
 
 class TallyState(Enum):
     """Tally states matching Roland protocol"""
@@ -125,9 +129,9 @@ class STSEmulator:
         """Print timestamped log message"""
         ts = self.timestamp()
         if prefix:
-            print(f"{ts} {prefix} {message}")
+            print(f"{ts} {prefix} {message}", flush=True)
         else:
-            print(f"{ts} {message}")
+            print(f"{ts} {message}", flush=True)
     
     def get_local_ip(self) -> str:
         """Get the local IP address"""
@@ -395,6 +399,12 @@ class STSEmulator:
         print("="*70 + "\n")
 
 
+def flush_input(prompt: str) -> str:
+    """Helper function for input() that flushes stdout first"""
+    sys.stdout.flush()
+    return input(prompt)
+
+
 def show_menu(config: EmulatorConfig):
     """Display interactive menu"""
     print("\n" + "="*70)
@@ -405,9 +415,9 @@ def show_menu(config: EmulatorConfig):
     print(f" 3. Error Injection")
     print(f" 4. Start Server")
     print(f" 5. View Statistics")
-    print(f" 6. Exit")
-    print("="*70)
-    choice = input("Select option (1-6): ").strip()
+    print(f" 0. Exit")
+    print("="*70, flush=True)
+    choice = flush_input("Select option (1-5, 0=Exit): ").strip()
     return choice
 
 
@@ -430,13 +440,13 @@ def config_menu(config: EmulatorConfig):
         if config.model == SwitcherModel.V160HD:
             print(f" 3. Change V-160HD Username/Password")
         print(f" 0. Back to Main Menu")
-        print("-"*70)
+        print("-"*70, flush=True)
         
-        choice = input("Select option: ").strip()
+        choice = flush_input("Select option: ").strip()
         
         if choice == '1':
             try:
-                port = int(input(f"Enter port number (current: {config.port}): ").strip())
+                port = int(flush_input(f"Enter port number (current: {config.port}): ").strip())
                 if 1 <= port <= 65535:
                     config.port = port
                     print(f"✓ Port set to {port}")
@@ -449,7 +459,7 @@ def config_menu(config: EmulatorConfig):
             print("\nSelect model:")
             print("  1. V-60HD")
             print("  2. V-160HD")
-            model_choice = input("Choice: ").strip()
+            model_choice = flush_input("Choice: ").strip()
             if model_choice == '1':
                 config.model = SwitcherModel.V60HD
                 print("✓ Model set to V-60HD")
@@ -460,8 +470,8 @@ def config_menu(config: EmulatorConfig):
                 print("✗ Invalid choice")
         
         elif choice == '3' and config.model == SwitcherModel.V160HD:
-            username = input(f"Enter username (current: {config.username}): ").strip()
-            password = input("Enter password: ").strip()
+            username = flush_input(f"Enter username (current: {config.username}): ").strip()
+            password = flush_input("Enter password: ").strip()
             if username:
                 config.username = username
             if password:
@@ -492,17 +502,17 @@ def tally_control_menu(config: EmulatorConfig):
         print(f" 3. Set Channel State Manually")
         print(f" 4. Reset All Channels to UNSELECTED")
         print(f" 0. Back to Main Menu")
-        print("-"*70)
+        print("-"*70, flush=True)
         
-        choice = input("Select option: ").strip()
+        choice = flush_input("Select option: ").strip()
         
         if choice == '1':
-            config.auto_cycle_enabled = not config.auto_cycle_enabled
-            print(f"✓ Auto-cycle {'ENABLED' if config.auto_cycle_enabled else 'DISABLED'}")
+            config.auto_cycle = not config.auto_cycle
+            print(f"✓ Auto-cycle {'enabled' if config.auto_cycle else 'disabled'}")
         
         elif choice == '2':
             try:
-                interval = float(input(f"Enter cycle interval in seconds (current: {config.cycle_interval_sec}): ").strip())
+                interval = float(flush_input(f"Enter cycle interval in seconds (current: {config.cycle_interval_sec}): ").strip())
                 if interval > 0:
                     config.cycle_interval_sec = interval
                     print(f"✓ Cycle interval set to {interval}s")
@@ -513,7 +523,7 @@ def tally_control_menu(config: EmulatorConfig):
         
         elif choice == '3':
             try:
-                ch = int(input("Enter channel number: ").strip())
+                ch = int(flush_input("Enter channel number: ").strip())
                 if ch not in config.channel_states:
                     print(f"✗ Invalid channel (range: 1-{len(config.channel_states)})")
                     continue
@@ -522,7 +532,7 @@ def tally_control_menu(config: EmulatorConfig):
                 print("  1. UNSELECTED")
                 print("  2. SELECTED")
                 print("  3. ONAIR")
-                state_choice = input("Choice: ").strip()
+                state_choice = flush_input("Choice: ").strip()
                 
                 state_map = {'1': TallyState.UNSELECTED, '2': TallyState.SELECTED, '3': TallyState.ONAIR}
                 if state_choice in state_map:
@@ -560,13 +570,13 @@ def error_injection_menu(config: EmulatorConfig):
         print(f" 4. Arm Ignore Trigger (press key during test to start)")
         print(f" 5. Reset All Error Injection")
         print(f" 0. Back to Main Menu")
-        print("-"*70)
+        print("-"*70, flush=True)
         
-        choice = input("Select option: ").strip()
+        choice = flush_input("Select option: ").strip()
         
         if choice == '1':
             try:
-                delay = int(input(f"Enter response delay in milliseconds (0-30000, current: {config.response_delay_ms}): ").strip())
+                delay = int(flush_input(f"Enter response delay in milliseconds (0-30000, current: {config.response_delay_ms}): ").strip())
                 if 0 <= delay <= 30000:
                     config.response_delay_ms = delay
                     print(f"✓ Response delay set to {delay} ms")
@@ -577,7 +587,7 @@ def error_injection_menu(config: EmulatorConfig):
         
         elif choice == '2':
             try:
-                prob = float(input(f"Enter junk probability (0-100%, current: {config.junk_probability * 100:.1f}): ").strip())
+                prob = float(flush_input(f"Enter junk probability (0-100%, current: {config.junk_probability * 100:.1f}): ").strip())
                 if 0 <= prob <= 100:
                     config.junk_probability = prob / 100.0
                     print(f"✓ Junk probability set to {prob}%")
@@ -588,7 +598,7 @@ def error_injection_menu(config: EmulatorConfig):
         
         elif choice == '3':
             try:
-                count = int(input(f"Enter number of requests to ignore (0=disabled, current: {config.ignore_count}): ").strip())
+                count = int(flush_input(f"Enter number of requests to ignore (0=disabled, current: {config.ignore_count}): ").strip())
                 if count >= 0:
                     config.ignore_count = count
                     config.ignore_triggered = False
@@ -728,7 +738,7 @@ def main():
             else:
                 print("\n✗ No server running - statistics unavailable")
         
-        elif choice == '6':
+        elif choice == '0':
             print("\nExiting...")
             if emulator:
                 emulator.stop()

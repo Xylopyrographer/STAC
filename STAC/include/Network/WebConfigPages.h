@@ -39,6 +39,8 @@ namespace WebConfig {
   p.c4 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   span.c3 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   body {background-color:#CDD6FA;}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
+  select {padding: 12px 24px; font-size: 16px;}
   </style>
 </head>
 <body>
@@ -87,6 +89,7 @@ namespace WebConfig {
   p.c4 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   span.c3 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   body {background-color:#CDD6FA;}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
   </style>
 </head>
 <body>
@@ -108,7 +111,8 @@ namespace WebConfig {
     <br>
     <label for="pollTime">Polling interval (ms):</label> <input id="pollTime" name="pollTime" size="6" min="175" max="2000" required="" type="number" value="300" inputmode="numeric"><br>
     <br>
-    <button onclick="document.location='/'">Back</button>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<input value="Submit" type="submit"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <input type="reset">
+    <br>
+    <button onclick="document.location='/'">Back</button> &nbsp; <input value="Submit" type="submit"> &nbsp; <input type="reset">
   </form><br>
   <script>
   stIP.addEventListener("input", ev => {
@@ -118,6 +122,8 @@ namespace WebConfig {
   stIP.selectionEnd = selEnd;
   });
   </script>
+</body>
+</html>
 )=====";
 
     /**
@@ -146,6 +152,7 @@ namespace WebConfig {
   p.c4 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   span.c3 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   body {background-color:#CDD6FA;}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
   </style>
 </head>
 <body>
@@ -174,7 +181,7 @@ namespace WebConfig {
     <label for="pollTime">Polling interval (ms):</label> <input id="pollTime" name="pollTime" size="6" min="175" max="5000" required="" type="number" value="300" maxlength="8"><br>
     <br>
     <br>
-    <button onclick="document.location='/'">Back</button>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<input value="&nbsp Submit &nbsp" type="submit">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<input type="reset">
+    <button onclick="document.location='/'">Back</button> &nbsp; <input value="Submit" type="submit"> &nbsp; <input type="reset">
   </form>
   <script>
   stIP.addEventListener("input", ev => {
@@ -184,6 +191,8 @@ namespace WebConfig {
   stIP.selectionEnd = selEnd;
   });
   </script>
+</body>
+</html>
 )=====";
 
     /**
@@ -234,6 +243,7 @@ namespace WebConfig {
   span.c4 {color: #00BFFF; font-size: 18px}
   span.c5 {font-family: arial,helvetica,sans-serif; font-size: 16px}
   span.c7 {color: #DCDCDC; font-family: arial,helvetica,sans-serif; font-size: 18px; text-align: center}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
   </style>
 </head>
 <body>

@@ -84,13 +84,13 @@ The STS (Smart Tally Server) Emulator is a comprehensive testing tool for STAC d
  3. Error Injection
  4. Start Server
  5. View Statistics
- 6. Exit
+ 0. Exit
 ======================================================================
 ```
 
 Navigation:
 - Enter the number of your choice and press **ENTER**
-- Enter **0** to go back to main menu from any submenu
+- **0** returns to main menu from submenus, or exits from main menu
 
 ---
 
@@ -675,8 +675,8 @@ For issues, questions, or suggestions about the STS Emulator:
 ## Appendix B: Keyboard Reference
 
 ### Main Menu
-- `1-6` + ENTER: Select menu option
-- `0` + ENTER: Back to main menu (submenus)
+- `1-5` + ENTER: Select menu option
+- `0` + ENTER: Exit from main menu, or back to main menu from submenus
 
 ### Server Running
 - `SPACEBAR`: Trigger ignore mode (no echo)

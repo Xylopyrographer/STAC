@@ -37,6 +37,7 @@ namespace OTAPages {
   h1.c1 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   span.c3 {font-family: Helvetica, Arial, sans-serif; text-align: center}
   body {background-color:#E9F6DC;}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
   </style>
   <title>STACUpdater</title>
 </head>
@@ -137,6 +138,7 @@ to your regular WiFi network.</span></p>
   span.c4 {color: #00BFFF; font-size: 18px}
   span.c5 {font-family: arial,helvetica,sans-serif; font-size: 16px}
   span.c7 {color: #DCDCDC; font-family: arial,helvetica,sans-serif; font-size: 18px; text-align: center}
+  button, input[type="submit"], input[type="reset"] {padding: 12px 24px; font-size: 16px;}
   </style>
 </head>
 <body>

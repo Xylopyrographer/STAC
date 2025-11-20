@@ -1020,8 +1020,9 @@ void STACApp::handleNormalMode() {
             // Wait for configuration
             ProvisioningData provData = configServer.waitForConfiguration();
             
-            // Show green to confirm receipt
-            display->fill(Display::StandardColors::GREEN, true);
+            // Show green checkmark to confirm receipt (matching baseline)
+            const uint8_t* checkmarkGlyph = glyphManager->getGlyph(GLF_CK);
+            display->drawGlyph(checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, true);
             delay(1000);
             
             // Stop the web server
@@ -1093,9 +1094,8 @@ void STACApp::handleNormalMode() {
             // Print configuration complete message to serial
             Utils::InfoPrinter::printConfigDone();
             
-            // Show success animation
-            display->fill(Display::StandardColors::GREEN, true);
-            delay(2000);
+            // Checkmark already shown above - just delay before restart
+            delay(1000);
             
             // Restart to apply new configuration
             log_i("Restarting to apply configuration");
@@ -1278,6 +1278,13 @@ void STACApp::handleNormalMode() {
                     if ( newState != systemState->getTallyState().getCurrentState() ) {
                         systemState->getTallyState().setState( newState );
                         log_i( "Tally: %s", State::TallyStateManager::stateToString( newState ) );
+                    }
+                    else {
+                        // State unchanged, but we need to update display and GROVE in case we're recovering from error
+                        updateDisplay();
+                        if ( systemState->getOperatingMode().isNormalMode() && grovePort ) {
+                            grovePort->setTallyState( newState );
+                        }
                     }
 
                     // Grove port will be updated by tally state change callback

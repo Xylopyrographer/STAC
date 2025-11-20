@@ -49,7 +49,7 @@
     // SOFTWARE VERSION
     // ============================================================================
 
-    #define STAC_SOFTWARE_VERSION "2.3.0"  // Software version string
+    #define STAC_SOFTWARE_VERSION "3.0.0-RC.1"  // Software version string
 
 #endif // DEVICE_CONFIG_H
 
