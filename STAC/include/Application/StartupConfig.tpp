@@ -138,8 +138,12 @@ namespace Application {
         }
 
         // Get the glyph for the channel number
-        uint8_t glyphIndex = ops.tallyChannel;
-        const uint8_t* channelGlyph = glyphManager->getGlyph(glyphIndex);
+        // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+        uint8_t displayChannel = ops.tallyChannel;
+        if (ops.switchModel != "V-60HD" && ops.tallyChannel > 8) {
+            displayChannel = ops.tallyChannel - 8;  // SDI 9 displays as 1, SDI 10 as 2, etc.
+        }
+        const uint8_t* channelGlyph = glyphManager->getDigitGlyph(displayChannel);
 
         // Color depends on switch model and bank
         color_t foreground, background;
@@ -192,7 +196,12 @@ namespace Application {
         unsigned long timeout = millis() + OP_MODE_TIMEOUT_MS;
 
         // Show SELECT state with different colors
-        const uint8_t* channelGlyph = glyphManager->getGlyph(ops.tallyChannel);
+        // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+        uint8_t displayChannel = ops.tallyChannel;
+        if (ops.switchModel != "V-60HD" && ops.tallyChannel > 8) {
+            displayChannel = ops.tallyChannel - 8;
+        }
+        const uint8_t* channelGlyph = glyphManager->getDigitGlyph(displayChannel);
         
         color_t selectForeground = StandardColors::ORANGE;
         color_t selectBackground;
@@ -241,7 +250,12 @@ namespace Application {
                 }
 
                 // Update display with new channel
-                channelGlyph = glyphManager->getGlyph(ops.tallyChannel);
+                // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+                displayChannel = ops.tallyChannel;
+                if (ops.switchModel != "V-60HD" && ops.tallyChannel > 8) {
+                    displayChannel = ops.tallyChannel - 8;
+                }
+                channelGlyph = glyphManager->getDigitGlyph(displayChannel);
                 
                 if (ops.switchModel == "V-60HD") {
                     selectBackground = 0x00007f;

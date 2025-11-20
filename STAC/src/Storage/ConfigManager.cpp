@@ -146,6 +146,15 @@
             ops.maxHDMIChannel = prefs.getUChar( "maxHDMI", 8 );
             ops.maxSDIChannel = prefs.getUChar( "maxSDI", 8 );
             
+            // Validate and correct channelBank based on tallyChannel for V-160HD
+            if (ops.switchModel == "V-160HD") {
+                if (ops.tallyChannel > 8) {
+                    ops.channelBank = "sdi_";
+                } else {
+                    ops.channelBank = "hdmi_";
+                }
+            }
+            
             // Validate maxChannelCount based on switch model
             if (ops.switchModel == "V-60HD") {
                 if (ops.maxChannelCount == 0 || ops.maxChannelCount > 8) {

@@ -23,10 +23,6 @@ namespace Application {
             : initialized( false )
             , stacID( "" )
             , lastOrientation( Orientation::UNKNOWN )
-            , glyphTestMode( false )
-            , currentGlyphIndex( 0 )
-            , lastGlyphChange( 0 )
-            , autoAdvanceGlyphs( true )
             , lastRolandPoll( 0 )
             , rolandPollInterval( 300 )
             , rolandClientInitialized( false ) {
@@ -133,12 +129,6 @@ namespace Application {
             // Update managers
             wifiManager->update();
             systemState->update();
-
-            // Check for glyph test mode
-            if ( glyphTestMode ) {
-                handleGlyphTestMode();
-                return;
-            }
 
             // Mode-specific handling
             switch ( systemState->getOperatingMode().getCurrentMode() ) {
@@ -261,50 +251,6 @@ namespace Application {
             // Print startup header to serial
             Utils::InfoPrinter::printHeader(stacID);
 
-#ifdef ENABLE_TEST_CONFIG
-            // TEST MODE: Apply hardcoded test configuration
-            log_w( "═══════════════════════════════════════════" );
-            log_w( "   TEST MODE: Using hardcoded config" );
-            log_w( "═══════════════════════════════════════════" );
-            
-            // Save test WiFi credentials
-            configManager->saveWiFiCredentials( 
-                Test::TEST_WIFI_SSID, 
-                Test::TEST_WIFI_PASSWORD 
-            );
-            log_i( "  WiFi: %s", Test::TEST_WIFI_SSID );
-
-            // Save test switch configuration
-            IPAddress testSwitchIP;
-            testSwitchIP.fromString( Test::TEST_SWITCH_IP );
-            configManager->saveSwitchConfig(
-                Test::TEST_SWITCH_MODEL,
-                testSwitchIP,
-                Test::TEST_SWITCH_PORT,
-                Test::TEST_SWITCH_USERNAME,
-                Test::TEST_SWITCH_PASSWORD
-            );
-            log_i( "  Switch: %s @ %s:%d", 
-                   Test::TEST_SWITCH_MODEL, 
-                   Test::TEST_SWITCH_IP, 
-                   Test::TEST_SWITCH_PORT );
-
-            // Save test operations
-            StacOperations testOps;
-            testOps.switchModel = Test::TEST_SWITCH_MODEL;
-            testOps.tallyChannel = Test::TEST_TALLY_CHANNEL;
-            testOps.channelBank = Test::TEST_CHANNEL_BANK;
-            testOps.statusPollInterval = Test::TEST_POLL_INTERVAL_MS;
-            testOps.cameraOperatorMode = Test::TEST_CAMERA_OPERATOR_MODE;
-            testOps.displayBrightnessLevel = Test::TEST_BRIGHTNESS_LEVEL;
-            configManager->saveOperations( testOps );
-            log_i( "  Channel: %d, Poll: %dms", 
-                   Test::TEST_TALLY_CHANNEL, 
-                   Test::TEST_POLL_INTERVAL_MS );
-            
-            log_w( "═══════════════════════════════════════════" );
-#endif
-
             // WiFi Manager
             wifiManager = std::make_unique<Net::WiFiManager>();
             if ( !wifiManager->begin() ) {
@@ -393,15 +339,8 @@ namespace Application {
                 longPressHandled = false;
             }
 
-        // Short press behavior depends on mode
-        if ( button->wasReleased() ) {
-            if ( glyphTestMode ) {
-                // In glyph test mode: advance to next glyph
-                advanceToNextGlyph();
-                autoAdvanceGlyphs = false;  // Stop auto-advance when user manually advances
-            }
-            // Note: Tally state is controlled by Roland switch polling, not button presses
-        }
+        // Note: Short press not used in normal operation
+        // Tally state is controlled by Roland switch polling, not button presses
     }        void STACApp::handleOrientation() {
             Orientation currentOrientation = imu->getOrientation();
 
@@ -594,37 +533,66 @@ void STACApp::handleNormalMode() {
             log_i("Applied brightness level %d", ops.displayBrightnessLevel);
         }
         
+        // Print configuration summary to serial (always, before autostart check)
+        String ssid, password;
+        IPAddress switchIP;
+        uint16_t switchPort;
+        String username, passwordSwitch;
+        if (configManager->loadWiFiCredentials(ssid, password) &&
+            configManager->loadSwitchConfig(ops.switchModel, switchIP, switchPort, username, passwordSwitch)) {
+            Utils::InfoPrinter::printFooter(ops, switchIP, switchPort, ssid);
+        }
+        
+        // Display the active tally channel (always, regardless of autostart setting)
+        // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+        uint8_t displayChannel = ops.tallyChannel;
+        if (ops.switchModel != "V-60HD" && ops.tallyChannel > 8) {
+            displayChannel = ops.tallyChannel - 8;  // SDI 9→1, 10→2, etc.
+        }
+        const uint8_t* channelGlyph = glyphManager->getDigitGlyph( displayChannel );
+        
+        // Channel and autostart colors depend on switch model and channel bank
+        Display::color_t channelColor;
+        Display::color_t autostartColor;
+        
+        if (ops.switchModel != "V-60HD" && ops.tallyChannel > 8) {
+            // V-160HD second bank (SDI channels 9-20)
+            channelColor = 0x1a800d;  // Light green for channel display
+            autostartColor = Display::StandardColors::BLUE;  // Blue for autostart corners
+        } else {
+            // V-60HD or V-160HD first bank (HDMI channels 1-8)
+            channelColor = Display::StandardColors::BLUE;  // Blue for channel display
+            autostartColor = 0x00ee00;  // Green (0x00ee00) for autostart corners
+        }
+        
+        display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, true );
+        
+        // Wait for button release before proceeding
+        while ( button->read() ) {
+            yield();
+        }
+        
         // Check if autostart is enabled
         bool autoStartBypass = false;
         
         if ( ops.autoStartEnabled ) {
-            // Autostart mode: Show channel with blinking corners, wait for timeout or button press
+            // Autostart mode: Add blinking corners and wait for timeout or button press
             log_i( "Autostart mode active - waiting for timeout or button press" );
             
             using namespace Config::Timing;
             using namespace Display;
             
+            // Turn on corner pixels (color based on channel bank) - channel already displayed above
             #ifdef GLYPH_SIZE_5X5
-            using namespace Glyphs5x5::GlyphIndex;
+            display->setPixel( 0, autostartColor, false );
+            display->setPixel( 4, autostartColor, false );
+            display->setPixel( 20, autostartColor, false );
+            display->setPixel( 24, autostartColor, false );
             #else
-            using namespace Glyphs8x8::GlyphIndex;
-            #endif
-            
-            // Show tally channel
-            const uint8_t* channelGlyph = glyphManager->getGlyph( ops.tallyChannel );
-            display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
-            
-            // Turn on corner pixels (green)
-            #ifdef GLYPH_SIZE_5X5
-            display->setPixel( 0, StandardColors::GREEN, false );
-            display->setPixel( 4, StandardColors::GREEN, false );
-            display->setPixel( 20, StandardColors::GREEN, false );
-            display->setPixel( 24, StandardColors::GREEN, false );
-            #else
-            display->setPixel( 0, StandardColors::GREEN, false );
-            display->setPixel( 7, StandardColors::GREEN, false );
-            display->setPixel( 56, StandardColors::GREEN, false );
-            display->setPixel( 63, StandardColors::GREEN, false );
+            display->setPixel( 0, autostartColor, false );
+            display->setPixel( 7, autostartColor, false );
+            display->setPixel( 56, autostartColor, false );
+            display->setPixel( 63, autostartColor, false );
             #endif
             display->show();
             
@@ -647,18 +615,19 @@ void STACApp::handleNormalMode() {
                     cornersOn = !cornersOn;
                     nextFlash = millis() + AUTOSTART_PULSE_MS;
                     
-                    display->drawGlyph( channelGlyph, StandardColors::BLUE, StandardColors::BLACK, false );
+                    // Redraw channel glyph with correct color (already calculated above)
+                    display->drawGlyph( channelGlyph, channelColor, StandardColors::BLACK, false );
                     if ( cornersOn ) {
                         #ifdef GLYPH_SIZE_5X5
-                        display->setPixel( 0, StandardColors::GREEN, false );
-                        display->setPixel( 4, StandardColors::GREEN, false );
-                        display->setPixel( 20, StandardColors::GREEN, false );
-                        display->setPixel( 24, StandardColors::GREEN, false );
+                        display->setPixel( 0, autostartColor, false );
+                        display->setPixel( 4, autostartColor, false );
+                        display->setPixel( 20, autostartColor, false );
+                        display->setPixel( 24, autostartColor, false );
                         #else
-                        display->setPixel( 0, StandardColors::GREEN, false );
-                        display->setPixel( 7, StandardColors::GREEN, false );
-                        display->setPixel( 56, StandardColors::GREEN, false );
-                        display->setPixel( 63, StandardColors::GREEN, false );
+                        display->setPixel( 0, autostartColor, false );
+                        display->setPixel( 7, autostartColor, false );
+                        display->setPixel( 56, autostartColor, false );
+                        display->setPixel( 63, autostartColor, false );
                         #endif
                     }
                     display->show();
@@ -683,16 +652,6 @@ void STACApp::handleNormalMode() {
             if ( !configManager->saveOperations( ops ) ) {
                 log_e( "Failed to save operations configuration after startup" );
             }
-        }
-
-        // Print configuration summary to serial
-        String ssid, password;
-        IPAddress switchIP;
-        uint16_t switchPort;
-        String username, passwordSwitch;
-        if (configManager->loadWiFiCredentials(ssid, password) &&
-            configManager->loadSwitchConfig(ops.switchModel, switchIP, switchPort, username, passwordSwitch)) {
-            Utils::InfoPrinter::printFooter(ops, switchIP, switchPort, ssid);
         }
     }
 
@@ -1109,49 +1068,6 @@ void STACApp::handleNormalMode() {
                 delay( 300 );
                 display->clear( true );
                 delay( 300 );
-            }
-        }
-
-        void STACApp::handleGlyphTestMode() {
-            // Auto-advance glyphs every 500ms if enabled
-            if ( autoAdvanceGlyphs && ( millis() - lastGlyphChange >= 500 ) ) {
-                advanceToNextGlyph();
-            }
-        }
-
-        void STACApp::advanceToNextGlyph() {
-            // Get the appropriate glyph manager for this display size
-            uint8_t displaySize = display->getWidth();
-            uint8_t maxGlyphs = ( displaySize == 5 ) ? 32 : 28;
-
-            // Advance to next glyph
-            currentGlyphIndex++;
-            if ( currentGlyphIndex >= maxGlyphs ) {
-                currentGlyphIndex = 0;
-            }
-
-            lastGlyphChange = millis();
-
-            // Get the glyph data and draw it
-            const uint8_t *glyphData = nullptr;
-
-            if ( displaySize == 5 ) {
-                Display::GlyphManager5x5 glyphMgr;
-                glyphMgr.updateOrientation( lastOrientation );
-                glyphData = glyphMgr.getGlyph( currentGlyphIndex );
-            }
-            else {
-                Display::GlyphManager8x8 glyphMgr;
-                glyphMgr.updateOrientation( lastOrientation );
-                glyphData = glyphMgr.getGlyph( currentGlyphIndex );
-            }
-
-            if ( glyphData != nullptr ) {
-                display->drawGlyph( glyphData,
-                                    Display::StandardColors::GREEN,
-                                    Display::StandardColors::BLACK,
-                                    true );
-                log_d( "Displaying glyph %d", currentGlyphIndex );
             }
         }
 

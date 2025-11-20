@@ -1,10 +1,10 @@
-# STAC v3.0.0-RC.1 Project Context
+# STAC v3.0.0-RC.8 Project Context
 
 **Date:** November 20, 2025  
 **Branch:** `v3_RC`  
-**Version:** v3.0.0-RC.1  
-**Status:** Ready for testing - critical bug fixes applied  
-**Last Session:** Error recovery fix, STS Emulator, web UI enhancements
+**Version:** v3.0.0-RC.8  
+**Status:** Ready for testing - V-160HD startup sequence bugs fixed  
+**Last Session:** V-160HD channel display and color fixes
 
 ---
 
@@ -17,16 +17,16 @@
 - **Documentation**: DEVELOPER_GUIDE.md and HARDWARE_CONFIG.md updated for v3.0
 - **Code Quality**: MAC address fix, STAC ID validation, visual parity with baseline
 - **v3.0.0-RC.1**: Critical error recovery fix, STS Emulator, web UI enhancements
+- **v3.0.0-RC.2 to RC.8**: V-160HD startup sequence bug fixes (channel display, colors, serial output)
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
-- **v3.0.0-RC.1** uploaded to both ATOM Matrix devices:
-  - Normal Mode STAC: MAC 94:b9:7e:a8:f8:00
-  - Peripheral Mode STAC: MAC 4c:75:25:c5:53:c4
+- **v3.0.0-RC.8** tested on ATOM Matrix (MAC 94:b9:7e:a8:f8:00)
 - Critical error recovery bug fixed (orange X clears immediately)
+- V-160HD startup sequence bugs fixed (channel display, colors, serial output)
 - STS Emulator complete (shell alias: `sts-emulator`)
 - Web UI enhanced for mobile usability
-- Branch `v3_RC` ready for testing
+- Branch `v3_RC` ready for final testing
 
 ### 📋 Next Steps
 1. Final testing on real hardware (both ATOM Matrix and Waveshare if available)
@@ -107,6 +107,47 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### v3.0.0-RC.2 to RC.8 Session (November 20, 2025)
+
+**V-160HD Startup Sequence Bug Fixes:**
+
+**Channel Display Bug** (RC.2)
+- **Problem**: V-160HD SDI channels (9-20) showed wrong glyphs during startup config - displayed glyph indices 9-20 instead of digits 1-8
+- **Root Cause**: `StartupConfig.tpp` used `getGlyph()` which expects index 0-9, but was passing channel numbers 9-20
+- **Solution**: Calculate `displayChannel = tallyChannel - 8` for SDI channels, use `getDigitGlyph(displayChannel)` instead
+- **Files**: `include/Application/StartupConfig.tpp` lines 132-280
+
+**Channel Bank Initialization** (RC.3)
+- **Problem**: When loading V-160HD config from NVS, channelBank wasn't being set correctly
+- **Solution**: Added logic in `loadOperations()` to set `channelBank = "sdi_"` if `tallyChannel > 8`, else `"hdmi_"`
+- **Files**: `src/Storage/ConfigManager.cpp` lines 136-170
+
+**Serial Output Missing** (RC.4-RC.7)
+- **Problem**: `printFooter()` wasn't being called consistently during startup
+- **Root Cause**: Footer was only printing inside startup sequence block, which could be bypassed by autostart
+- **Solution**: Moved `printFooter()` to execute BEFORE autostart logic, after brightness is applied (matches baseline STACProvision.h line 163)
+- **Files**: `src/Application/STACApp.cpp` lines 537-547
+
+**Channel Color Logic** (RC.5-RC.6)
+- **Problem**: V-160HD SDI channels showed blue instead of light green during startup
+- **Solution**: Added color logic - SDI channels (>8) use light green (0x1a800d), HDMI channels use blue
+- **Files**: `src/Application/STACApp.cpp` lines 549-561
+
+**Autostart Corner Color** (RC.7-RC.8)
+- **Problem**: Autostart corner LEDs were always blue, but should vary by channel bank (baseline behavior)
+- **Root Cause**: Baseline uses different colors: first bank (HDMI 1-8) = green corners (0x00ee00), second bank (SDI 9-20) = blue corners
+- **Solution**: Set `autostartColor` based on channel bank - HDMI/V-60HD use 0x00ee00 (green), V-160HD SDI uses blue
+- **Baseline Reference**: `STAC_220_rel/STAC/STACLib/STACGlyph5.h` line 106 (`RGB_AS_PULSE_COLOR 0x00ee00`)
+- **Files**: `src/Application/STACApp.cpp` lines 548-566, 571-597
+
+**Summary of Fixes:**
+- ✅ SDI channels display as digits 1-8 (not indices 9-20)
+- ✅ Channel bank correctly initialized from NVS
+- ✅ Serial output prints before autostart (always visible)
+- ✅ Channel colors: blue for HDMI/V-60HD, light green (0x1a800d) for V-160HD SDI
+- ✅ Autostart colors: green (0x00ee00) for first bank, blue for second bank
+- ✅ Startup workflow matches baseline for both V-60HD and V-160HD
 
 ### v3.0.0-RC.1 Session (November 20, 2025)
 
@@ -581,7 +622,9 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-0878c0a (HEAD -> v3_RC) v3.0.0-RC.1: Critical error recovery fix + STS Emulator + Web UI enhancements
+xxxxxxx (HEAD -> v3_RC) v3.0.0-RC.8: Fix V-160HD startup color logic (channel and autostart colors)
+xxxxxxx v3.0.0-RC.2-RC.7: Fix V-160HD channel display, serial output, and bank initialization
+0878c0a v3.0.0-RC.1: Critical error recovery fix + STS Emulator + Web UI enhancements
 ad1b956 docs: update developer documentation for v3.0.0-RC
 576c56e (refactor/phase1-foundation) perf: optimize OTA and provisioning server startup timing
 f3ba8ac feat: Implement boot button sequence with glyph-based displays and pulsing
@@ -774,7 +817,7 @@ Next step: Final hardware testing, then merge to main and tag v3.0.0.
 ---
 
 *Last Updated: November 20, 2025*  
-*Context Document Version: 2.0*  
-*Project Version: v3.0.0-RC.1*
+*Context Document Version: 2.1*  
+*Project Version: v3.0.0-RC.8*
 
 <!-- End of Context Document -->
