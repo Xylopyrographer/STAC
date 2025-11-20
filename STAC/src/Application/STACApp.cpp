@@ -1319,14 +1319,14 @@ void STACApp::handleNormalMode() {
                 switchState.junkReplyCount = 0;  // Clear junk counter (not a junk reply error)
                 rolandPollInterval = ERROR_REPOLL_MS;  // Use faster error polling
 
-                // Set Grove to unknown state
-                if ( grovePort ) {
-                    grovePort->setTallyState( TallyState::ERROR );
-                }
-
                 if ( !result.connected && result.timedOut ) {
                     // ===== Connection failed and timed out =====
                     switchState.noReplyCount = 0;  // Clear no-reply counter
+                    
+                    // Set Grove to error state (immediate - connection timeout)
+                    if ( grovePort ) {
+                        grovePort->setTallyState( TallyState::ERROR );
+                    }
                     
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show orange X
@@ -1347,6 +1347,11 @@ void STACApp::handleNormalMode() {
                         // Hit error threshold
                         switchState.noReplyCount = 0;  // Reset counter
                         
+                        // Set Grove to error state (threshold reached)
+                        if ( grovePort ) {
+                            grovePort->setTallyState( TallyState::ERROR );
+                        }
+                        
                         if ( ops.cameraOperatorMode ) {
                             // Camera operator mode: Show purple X (big purple X)
                             const uint8_t* xGlyph = glyphManager->getGlyph( GLF_BX );
@@ -1362,6 +1367,11 @@ void STACApp::handleNormalMode() {
                 else {
                     // ===== Some other error condition =====
                     switchState.noReplyCount = 0;  // Clear counter
+                    
+                    // Set Grove to error state (unknown error)
+                    if ( grovePort ) {
+                        grovePort->setTallyState( TallyState::ERROR );
+                    }
                     
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show red X
