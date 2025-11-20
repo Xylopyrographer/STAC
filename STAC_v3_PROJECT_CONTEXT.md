@@ -1,9 +1,10 @@
-# STAC v3.0.0-RC Project Context
+# STAC v3.0.0-RC.1 Project Context
 
-**Date:** November 19, 2025  
+**Date:** November 20, 2025  
 **Branch:** `v3_RC`  
-**Status:** Ready for final testing and release  
-**Last Session:** Performance optimizations and documentation updates complete
+**Version:** v3.0.0-RC.1  
+**Status:** Ready for testing - critical bug fixes applied  
+**Last Session:** Error recovery fix, STS Emulator, web UI enhancements
 
 ---
 
@@ -15,12 +16,17 @@
 - **Performance Optimizations**: Server startup timing improvements
 - **Documentation**: DEVELOPER_GUIDE.md and HARDWARE_CONFIG.md updated for v3.0
 - **Code Quality**: MAC address fix, STAC ID validation, visual parity with baseline
+- **v3.0.0-RC.1**: Critical error recovery fix, STS Emulator, web UI enhancements
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
-- Firmware tested on M5Stack ATOM Matrix
-- Branch `v3_RC` ready for release candidate testing
-- Development branch `refactor/phase1-foundation` preserved for future work
+- **v3.0.0-RC.1** uploaded to both ATOM Matrix devices:
+  - Normal Mode STAC: MAC 94:b9:7e:a8:f8:00
+  - Peripheral Mode STAC: MAC 4c:75:25:c5:53:c4
+- Critical error recovery bug fixed (orange X clears immediately)
+- STS Emulator complete (shell alias: `sts-emulator`)
+- Web UI enhanced for mobile usability
+- Branch `v3_RC` ready for testing
 
 ### 📋 Next Steps
 1. Final testing on real hardware (both ATOM Matrix and Waveshare if available)
@@ -102,7 +108,51 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 
 ## Recent Changes (v3.0 Development)
 
-### Performance Optimizations (Latest)
+### v3.0.0-RC.1 Session (November 20, 2025)
+
+**Critical Bug Fixes:**
+
+**Error Recovery Fix** (Commit: 0878c0a)
+- **Problem**: Orange X error glyph persisted for ~15 poll cycles (~4.5 seconds) when recovering from connection errors
+- **Root Cause**: When tally state was unchanged during error recovery (e.g., UNSELECTED→UNSELECTED), `setState()` returned false without calling callbacks, so display and GROVE port never updated
+- **Solution**: Added `else` branch in `pollRolandSwitch()` to force `updateDisplay()` and `grovePort->setTallyState()` even when state unchanged
+- **Result**: Display and GROVE now update **immediately** on first valid response after error
+- **Files**: `src/Application/STACApp.cpp` lines 1270-1289
+
+**Provisioning Display Fix**
+- **Problem**: After provisioning submit, STAC display showed green fill instead of green checkmark
+- **Solution**: Changed line 1023 to `drawGlyph(GLF_CK, GREEN, BLACK)` instead of `fill(GREEN)`
+- **Additional**: Removed duplicate green fill at line 1098
+- **Files**: `src/Application/STACApp.cpp`
+
+**New Tools:**
+
+**STS Emulator** (754 lines)
+- Unified Roland V-60HD and V-160HD protocol emulator
+- Replaced separate test scripts with comprehensive testing tool
+- Features:
+  - Live keyboard error injection (spacebar trigger for ignore mode)
+  - Auto-cycle tally states with configurable intervals
+  - Multi-STAC support with per-device statistics
+  - Response delay, junk data, and connection loss simulation
+  - Menu navigation uses '0' for Exit/Back consistently
+- Shell alias: `sts-emulator` (bypasses subprocess buffering issues)
+- PlatformIO target removed (buffering problems with subprocess)
+- Files: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py`
+- Documentation: `Documentation/Developer/Utility/SmartTally Server/STS_EMULATOR_GUIDE.md`
+
+**Web UI Enhancements:**
+- Larger touch targets: Buttons 18px font, 44px min-height
+- Larger dropdowns: 18px font, 44px height
+- Centered page layout with max-width container
+- Applied to both provisioning and OTA pages
+- Files: `include/Network/WebConfigPages.h`, `include/Network/OTAUpdatePages.h`
+
+**Other Changes:**
+- Version updated to "3.0.0-RC.1" in `include/Device_Config.h`
+- Removed emulator target from `scripts/custom_targets.py` (shell alias preferred)
+
+### Performance Optimizations (November 19, 2025)
 
 **Server Startup Timing** (Committed: 576c56e)
 - **OTA Mode**: Server starts immediately after 6-second flash sequence (don't wait for button release)
@@ -531,7 +581,8 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-ad1b956 (HEAD -> v3_RC) docs: update developer documentation for v3.0.0-RC
+0878c0a (HEAD -> v3_RC) v3.0.0-RC.1: Critical error recovery fix + STS Emulator + Web UI enhancements
+ad1b956 docs: update developer documentation for v3.0.0-RC
 576c56e (refactor/phase1-foundation) perf: optimize OTA and provisioning server startup timing
 f3ba8ac feat: Implement boot button sequence with glyph-based displays and pulsing
 ```
@@ -722,8 +773,8 @@ Next step: Final hardware testing, then merge to main and tag v3.0.0.
 
 ---
 
-*Last Updated: November 19, 2025*  
-*Context Document Version: 1.0*  
-*Project Version: v3.0.0-RC*
+*Last Updated: November 20, 2025*  
+*Context Document Version: 2.0*  
+*Project Version: v3.0.0-RC.1*
 
 <!-- End of Context Document -->
