@@ -8,7 +8,6 @@
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/Protocol/RolandClientFactory.h"
-#include "Utils/TestConfig.h"
 #include "Utils/InfoPrinter.h"
 
 // Add these using declarations
@@ -400,24 +399,6 @@ namespace Application {
             // Now show the complete display
             display->show();
         }
-
-        // void STACApp::handleNormalMode() {
-        //     // TODO: Implement Roland switch polling
-        //     // For now, tally state is controlled by button
-
-        //     // Ensure WiFi is connected
-        //     if ( !wifiManager->isConnected() && configManager->hasWiFiCredentials() ) {
-        //         String ssid, password;
-        //         if ( configManager->loadWiFiCredentials( ssid, password ) ) {
-        //             static unsigned long lastConnectAttempt = 0;
-        //             if ( millis() - lastConnectAttempt > 30000 ) { // Try every 30 seconds
-        //                 lastConnectAttempt = millis();
-        //                 log_i( "Attempting to connect to WiFi: %s", ssid.c_str() );
-        //                 wifiManager->connect( ssid, password );
-        //             }
-        //         }
-        //     }
-        // }
 
 void STACApp::displayWiFiStatus( Net::WiFiState state ) {
     using namespace Config::Timing;
