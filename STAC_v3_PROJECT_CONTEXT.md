@@ -1,10 +1,10 @@
-# STAC v3.0.0-RC.8 Project Context
+# STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 20, 2025  
+**Date:** November 21, 2025  
 **Branch:** `v3_RC`  
-**Version:** v3.0.0-RC.8  
-**Status:** Ready for testing - V-160HD startup sequence bugs fixed  
-**Last Session:** V-160HD channel display and color fixes
+**Version:** v3.0.0-RC.9  
+**Status:** Ready for testing - V-160HD error handling and performance optimizations complete  
+**Last Session:** V-160HD error handling fixes, polling optimizations, emulator improvements
 
 ---
 
@@ -18,14 +18,16 @@
 - **Code Quality**: MAC address fix, STAC ID validation, visual parity with baseline
 - **v3.0.0-RC.1**: Critical error recovery fix, STS Emulator, web UI enhancements
 - **v3.0.0-RC.2 to RC.8**: V-160HD startup sequence bug fixes (channel display, colors, serial output)
+- **v3.0.0-RC.9**: V-160HD error handling fixes, HTTP timeout optimization, polling improvements
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
-- **v3.0.0-RC.8** tested on ATOM Matrix (MAC 94:b9:7e:a8:f8:00)
-- Critical error recovery bug fixed (orange X clears immediately)
-- V-160HD startup sequence bugs fixed (channel display, colors, serial output)
-- STS Emulator complete (shell alias: `sts-emulator`)
-- Web UI enhanced for mobile usability
+- **v3.0.0-RC.9** tested on ATOM Matrix (MAC 94:b9:7e:a8:f8:00)
+- V-160HD error handling optimized (1-second HTTP timeout, proper error glyphs)
+- Display behavior corrected (stays black until first valid tally response)
+- Fast error polling (50ms during errors, 1s timeout enables quick recovery)
+- STS Emulator enhanced (V-160HD format fixes, immediate shutdown, user/0000 defaults)
+- Error semantics match baseline (connection refused vs timeout distinguished)
 - Branch `v3_RC` ready for final testing
 
 ### 📋 Next Steps
@@ -107,6 +109,103 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### v3.0.0-RC.9 Session (November 20-21, 2025)
+
+**V-160HD Error Handling and Performance Optimizations:**
+
+**HTTP Timeout Optimization**
+- **Problem**: HTTPClient default 5-second timeout caused slow error recovery - polls 5+ seconds apart during errors
+- **Solution**: Set `httpClient.setTimeout(1000)` for 1-second timeout (matches baseline V-60HD WiFiClient timeout)
+- **Impact**: Fast error recovery - approximately 1-second retry rate during timeout conditions
+- **Files**: `src/Network/Protocol/V160HDClient.cpp` lines 40-41
+
+**Error Flag Logic Fix**
+- **Problem**: V-160HD showed wrong error glyphs - orange X for junk/timeout instead of purple ?/X
+- **Root Cause**: `gotReply` flag set incorrectly - was true for HTTP 401/4xx/5xx errors (not valid tally replies)
+- **Solution**: Set `gotReply=true` only for HTTP 200 responses, `false` for all error codes
+- **Baseline Match**: Now matches `STAC_220_rel/STAC/STACLib/STACSTS.h` getTallyState2() semantics
+- **Files**: `src/Network/Protocol/V160HDClient.cpp` lines 61-90
+
+**Connection Error Distinction**
+- **Problem**: Couldn't distinguish between switch offline (connection refused) vs network congestion (timeout)
+- **Solution**: Check `httpCode == HTTPC_ERROR_CONNECTION_REFUSED (-1)` separately from other errors
+- **Behavior**:
+  - Connection refused (errno 104): `connected=false`, orange X immediate display
+  - Timeout/other errors: `connected=true`, purple X after 8-error threshold
+- **Files**: `src/Network/Protocol/V160HDClient.cpp` lines 115-133
+
+**Display Behavior Fix**
+- **Problem**: Display showed purple fill on startup before any valid tally response
+- **Root Cause**: `TallyState::NO_TALLY` mapped to purple color, `updateDisplay()` called prematurely after Roland client init
+- **Solution**: 
+  - Changed NO_TALLY color from PURPLE to BLACK
+  - Removed `updateDisplay()` call after Roland client initialization
+- **Result**: Display stays black (with power pixel) until first valid tally response or error threshold
+- **Files**: 
+  - `src/State/TallyStateManager.cpp` line 87
+  - `src/Application/STACApp.cpp` lines 677-683
+
+**Polling Timing Fix**
+- **Problem**: Fast error polling (50ms) didn't work - still 5 seconds between polls during errors
+- **Root Cause**: `lastRolandPoll = millis()` set BEFORE blocking HTTP call, counted request time as part of interval
+- **Solution**: Moved `lastRolandPoll = millis()` to AFTER `queryTallyStatus()` completes
+- **Result**: Proper 50ms fast polling during errors (within 1-second timeout blocks)
+- **Files**: `src/Application/STACApp.cpp` lines 1150-1158
+
+**WiFi Status Check**
+- **Addition**: Added WiFi connection check before polling to prevent unnecessary switch queries when WiFi down
+- **Files**: `src/Application/STACApp.cpp` lines 1143-1148
+
+**Error Threshold Handling**
+- **Fix**: Added `rolandPollInterval = ERROR_REPOLL_MS` to timeout/no-reply error path
+- **Fix**: Don't update display or tally state until error threshold reached (keep showing last valid state)
+- **Fix**: Set `currentTallyState` and `lastTallyState` when threshold hit
+- **Files**: `src/Application/STACApp.cpp` lines 1272-1295
+
+**STS Emulator Improvements**
+
+**Default Credentials Update**
+- **Change**: Default username from "admin" to "user", password from "admin" to "0000"
+- **Reason**: Better matches typical Roland switch defaults for testing
+- **Files**: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py` lines 53-54
+
+**V-160HD HTTP Response Format**
+- **Problem**: Emulator sent `HTTP/1.1` responses, real Roland V-160HD sends `HTTP/1.0` with lwIP server header
+- **Fix**: Changed to `HTTP/1.0 200 OK\r\nServer: lwIP/1.3.1\r\nContent-type: text/plain\r\n\r\n{response}`
+- **Impact**: Emulator now accurately simulates Roland switch HTTP responses
+- **Files**: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py` lines 372-376
+
+**Channel Format Auto-Detection**
+- **Problem**: Emulator couldn't parse V-160HD channel format (hdmi_5) when not configured for V-160HD mode
+- **Solution**: Auto-detect channel format by checking for underscore - handles both V-60HD (5) and V-160HD (hdmi_5)
+- **Files**: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py` lines 351-359
+
+**Junk Response HTTP Wrapping**
+- **Problem**: Emulator sent raw junk data for V-160HD instead of HTTP-wrapped
+- **Fix**: Wrap junk in HTTP 200 OK response for V-160HD mode, raw for V-60HD
+- **Files**: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py` lines 305-310
+
+**Immediate Shutdown**
+- **Problem**: Delayed responses (5s sleep) continued sending after hitting return to stop emulator
+- **Solution**: Check `self.running` flag after delay, drop response if server stopped
+- **Result**: Hitting return immediately stops all output (no queued delayed responses)
+- **Files**: `Documentation/Developer/Utility/SmartTally Server/sts_emulator.py` lines 330-337
+
+**Error Semantics Summary:**
+- Orange X: Connection refused (switch offline/unreachable), immediate display
+- Purple X: Timeout or no-reply after 8 consecutive errors (~8-10 seconds)
+- Purple ?: Junk responses after 8 consecutive junk replies
+- Black display: On startup until first valid response or error threshold
+- Fast recovery: 1-second timeout enables ~1-second retry rate during errors
+
+**Testing Results:**
+- ✅ Normal V-160HD polling works correctly
+- ✅ Connection refused shows orange X immediately
+- ✅ Display stays black on startup until valid tally response
+- ✅ Fast error recovery verified (~1 second between timeout retries)
+- ✅ Error glyphs correct (orange X for offline, purple X for timeout threshold)
+- ✅ Emulator delay mode shutdown works (no queued responses after stop)
 
 ### v3.0.0-RC.2 to RC.8 Session (November 20, 2025)
 
@@ -622,7 +721,8 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-xxxxxxx (HEAD -> v3_RC) v3.0.0-RC.8: Fix V-160HD startup color logic (channel and autostart colors)
+xxxxxxx (HEAD -> v3_RC) v3.0.0-RC.9: Fix V-160HD error handling and improve polling performance
+xxxxxxx v3.0.0-RC.8: Fix V-160HD startup color logic (channel and autostart colors)
 xxxxxxx v3.0.0-RC.2-RC.7: Fix V-160HD channel display, serial output, and bank initialization
 0878c0a v3.0.0-RC.1: Critical error recovery fix + STS Emulator + Web UI enhancements
 ad1b956 docs: update developer documentation for v3.0.0-RC
@@ -816,8 +916,8 @@ Next step: Final hardware testing, then merge to main and tag v3.0.0.
 
 ---
 
-*Last Updated: November 20, 2025*  
-*Context Document Version: 2.1*  
-*Project Version: v3.0.0-RC.8*
+*Last Updated: November 21, 2025*  
+*Context Document Version: 2.2*  
+*Project Version: v3.0.0-RC.9*
 
 <!-- End of Context Document -->

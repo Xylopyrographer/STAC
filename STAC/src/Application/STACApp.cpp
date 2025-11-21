@@ -678,8 +678,8 @@ void STACApp::handleNormalMode() {
         if ( initializeRolandClient() ) {
             rolandClientInitialized = true;
             log_i( "Roland client initialized" );
-            // Show initial tally state after WiFi/Roland setup complete
-            updateDisplay();
+            // Don't update display yet - wait for first valid tally response
+            // Display will remain black (with power pixel) until tally state is known
         }
     }
 
@@ -1141,7 +1141,10 @@ void STACApp::handleNormalMode() {
                 return;
             }
 
-            lastRolandPoll = now;
+            // Don't poll if WiFi is not connected
+            if ( !wifiManager->isConnected() ) {
+                return;
+            }
 
             // Get references to state
             SwitchState& switchState = systemState->getSwitchState();
@@ -1150,6 +1153,10 @@ void STACApp::handleNormalMode() {
             // Query tally status
             Net::TallyQueryResult result;
             rolandClient->queryTallyStatus( result );
+
+            // Update last poll time AFTER query completes
+            // This ensures we don't count the blocking HTTP request time as part of the interval
+            lastRolandPoll = millis();
 
             // Update switch state from query result
             switchState.connected = result.connected;
@@ -1264,11 +1271,17 @@ void STACApp::handleNormalMode() {
                 }
                 else if ( result.connected && ( result.timedOut || !result.gotReply ) ) {
                     // ===== Connected but no reply or timed out =====
+                    rolandPollInterval = ERROR_REPOLL_MS;  // Use faster error polling
                     switchState.noReplyCount++;
 
+                    // Don't update display or tally state until threshold is reached
+                    // Keep showing last valid state (or blank on first connection)
+                    
                     if ( switchState.noReplyCount >= MAX_POLL_ERRORS ) {
                         // Hit error threshold
                         switchState.noReplyCount = 0;  // Reset counter
+                        switchState.currentTallyState = "NO_INIT";
+                        switchState.lastTallyState = "NO_TALLY";
                         
                         // Set Grove to error state (threshold reached)
                         if ( grovePort ) {

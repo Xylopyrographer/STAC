@@ -38,6 +38,7 @@
 
             // Configure HTTP client
             httpClient.setReuse( true );  // Enable keep-alive
+            httpClient.setTimeout( 1000 );  // 1 second timeout for fast error recovery
 
             // Set authentication credentials
             if ( config.username.length() > 0 ) {
@@ -54,42 +55,82 @@
 
             // Check return code
             if ( httpCode > 0 ) {
+                // Got some response from server (even if error code)
                 result.connected = true;
                 result.timedOut = false;
 
                 if ( httpCode == HTTP_CODE_OK ) {
-                    // Success - got valid response
+                    // Success - got valid HTTP 200 response
                     String response = httpClient.getString();
+                    
+                    // Trim whitespace
+                    response.trim();
+                    
+                    // Store raw response
                     result.rawResponse = response;
                     result.gotReply = true;
+                    
+                    // Handle special cases
+                    if ( response.length() == 0 ) {
+                        // Empty response - treat as no reply
+                        result.status = TallyStatus::NO_REPLY;
+                        httpClient.end();
+                        return false;
+                    }
+                    
+                    if ( response == "None" ) {
+                        // Python emulator quirk when it "takes a nap"
+                        result.status = TallyStatus::NO_REPLY;
+                        httpClient.end();
+                        return false;
+                    }
+                    
+                    // Parse the response
                     result.status = parseResponse( response );
                     httpClient.end();
                     return true;
                 }
                 else if ( httpCode == 401 ) {
-                    // Authentication failed
+                    // Authentication failed - got reply but auth error
                     result.rawResponse = httpClient.getString();
-                    result.gotReply = true;
+                    result.gotReply = false;  // Not a valid tally reply
                     result.status = TallyStatus::AUTH_FAILED;
                     httpClient.end();
                     return false;
                 }
                 else {
-                    // Other HTTP error
+                    // Other HTTP error (4xx, 5xx) - connected but not valid tally reply
                     result.rawResponse = httpClient.getString();
-                    result.gotReply = true;
-                    result.status = TallyStatus::INVALID_REPLY;
+                    result.gotReply = false;  // Not a valid tally reply
+                    result.status = TallyStatus::NO_REPLY;
                     httpClient.end();
                     return false;
                 }
             }
             else {
-                // HTTP request failed (connection or other error)
-                result.connected = false;
-                result.timedOut = true;
-                result.status = TallyStatus::NO_CONNECTION;
-                httpClient.end();
-                return false;
+                // HTTP request failed (httpCode <= 0)
+                // Distinguish between connection refused (switch offline) vs timeout (congestion)
+                
+                if ( httpCode == HTTPC_ERROR_CONNECTION_REFUSED ) {
+                    // Connection actively refused - switch is offline/unreachable
+                    // Show orange X immediately (don't accumulate)
+                    result.connected = false;
+                    result.timedOut = true;
+                    result.gotReply = false;
+                    result.status = TallyStatus::NO_CONNECTION;
+                    httpClient.end();
+                    return false;
+                }
+                else {
+                    // Timeout or other error - likely network congestion
+                    // Treat as "connected but no response" to allow error accumulation
+                    result.connected = true;  // WiFi is up, we attempted connection
+                    result.timedOut = true;   // But the HTTP request timed out
+                    result.gotReply = false;  // No valid reply received
+                    result.status = TallyStatus::NO_CONNECTION;
+                    httpClient.end();
+                    return false;
+                }
             }
         }
 
@@ -117,6 +158,12 @@
             String trimmedResponse = response;
             trimmedResponse.trim();
 
+            // Check response length - valid responses are "onair", "selected", or "unselected"
+            // Maximum valid length is 10 ("unselected"), anything longer is junk
+            if ( trimmedResponse.length() > 12 || trimmedResponse.length() == 0 ) {
+                return TallyStatus::INVALID_REPLY;
+            }
+
             if ( trimmedResponse == "onair" ) {
                 return TallyStatus::ONAIR;
             }
@@ -127,6 +174,7 @@
                 return TallyStatus::UNSELECTED;
             }
             else {
+                // Anything else is junk/invalid
                 return TallyStatus::INVALID_REPLY;
             }
         }

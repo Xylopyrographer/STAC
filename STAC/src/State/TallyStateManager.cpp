@@ -83,7 +83,7 @@
                 case TallyState::UNSELECTED:
                     return StandardColors::PURPLE;   // Purple (matches baseline)
                 case TallyState::NO_TALLY:
-                    return StandardColors::PURPLE;   // Purple
+                    return StandardColors::BLACK;    // Black - no tally info available
                 case TallyState::ERROR:
                     return STACColors::ALERT;        // Red (alert)
                 default:

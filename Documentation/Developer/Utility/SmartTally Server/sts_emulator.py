@@ -50,8 +50,8 @@ class EmulatorConfig:
     model: SwitcherModel = SwitcherModel.V60HD
     
     # V-160HD authentication
-    username: str = "admin"
-    password: str = "admin"
+    username: str = "user"
+    password: str = "0000"
     
     # Channel configuration
     max_channels_v60hd: int = 8
@@ -301,7 +301,8 @@ class STSEmulator:
                 self.log(f"Ignore mode complete ({self.config.ignore_count} requests ignored) - resuming normal operation")
                 self.ignore_request_queue.clear()
             
-            # Return empty response (connection will close)
+            # Return empty string to simulate network congestion/packet loss
+            # No response sent = simulates packets lost in transit
             return ""
         
         # Check for junk data injection
@@ -313,7 +314,14 @@ class STSEmulator:
             junk_data = ''.join(random.choices(string.ascii_letters + string.digits + string.punctuation, k=junk_length))
             
             self.log(f"Sending junk data to {stac_ip} (length={junk_length})", prefix="-->")
-            return junk_data
+            
+            # Return junk based on model
+            if self.config.model == SwitcherModel.V60HD:
+                # V-60HD: Raw junk data (no HTTP headers)
+                return junk_data
+            else:
+                # V-160HD: Junk wrapped in HTTP 200 OK response matching Roland switch format
+                return f"HTTP/1.0 200 OK\r\nServer: lwIP/1.3.1 (http://savannah.nongnu.org/projects/lwip)\r\nContent-type: text/plain\r\n\r\n{junk_data}"
         
         # Check for response delay
         if self.config.response_delay_ms > 0:
@@ -323,6 +331,12 @@ class STSEmulator:
             request_time = self.timestamp()
             self.log(f"Delaying response by {self.config.response_delay_ms} ms to {stac_ip}", prefix="-->")
             time.sleep(self.config.response_delay_ms / 1000.0)
+            
+            # Check if server was stopped during delay
+            if not self.running:
+                self.log(f"Server stopped during delay - dropping response to {stac_ip}", prefix="-->")
+                return ""
+            
             self.log(f"Replying to request received at {request_time} from {stac_ip}", prefix="-->")
         
         # Normal processing - parse channel from request
@@ -342,10 +356,12 @@ class STSEmulator:
             channel_str = path_parts[2]
             
             # Parse channel (may include bank prefix for V-160HD)
-            if '_' in channel_str and self.config.model == SwitcherModel.V160HD:
+            if '_' in channel_str:
+                # V-160HD format: hdmi_5 or sdi_3
                 bank, ch_num = channel_str.split('_')
                 channel = int(ch_num)
             else:
+                # V-60HD format: just channel number
                 channel = int(channel_str)
             
             # Get channel state
@@ -363,11 +379,11 @@ class STSEmulator:
             
             # Return response based on model
             # V-60HD uses raw text response (no HTTP headers)
-            # V-160HD uses full HTTP response
+            # V-160HD uses full HTTP response matching Roland switch format
             if self.config.model == SwitcherModel.V60HD:
                 return response_text
             else:
-                return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(response_text)}\r\n\r\n{response_text}"
+                return f"HTTP/1.0 200 OK\r\nServer: lwIP/1.3.1 (http://savannah.nongnu.org/projects/lwip)\r\nContent-type: text/plain\r\n\r\n{response_text}"
         
         except (ValueError, IndexError) as e:
             self.log(f"Error parsing request from {stac_ip}: {e}")
