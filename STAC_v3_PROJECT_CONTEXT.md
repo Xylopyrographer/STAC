@@ -3,8 +3,8 @@
 **Date:** November 21, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Ready for testing - V-160HD error handling and performance optimizations complete  
-**Last Session:** V-160HD error handling fixes, polling optimizations, emulator improvements
+**Status:** Ready for testing - Automatic build versioning complete  
+**Last Session:** Automatic build versioning system, build number display in serial output
 
 ---
 
@@ -109,6 +109,47 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### Automatic Build Versioning (November 21, 2025)
+
+**Build Version Automation** (Commit: 9f10899)
+- **Problem**: Baseline v2.x required 7 manual steps to generate build number using external hashdir tool
+- **Solution**: Fully automated build versioning system using Python script
+- **Features**:
+  - Automatic version extraction from `Device_Config.h`
+  - MD5 hash of all source files (src/ and include/) for build number
+  - Git integration (commit hash, branch name, dirty status detection)
+  - Timestamp generation
+  - Auto-generated `build_info.h` header with macros
+- **Integration**: Registered as PlatformIO pre-action, runs before every build
+- **Macros**:
+  - `BUILD_VERSION`: "3.0.0-RC.9" (from Device_Config.h)
+  - `BUILD_NUMBER`: "a34bd6" (last 6 chars of source MD5)
+  - `BUILD_GIT_COMMIT`: "9f10899+" (+ if uncommitted changes)
+  - `BUILD_GIT_BRANCH`: "v3_RC"
+  - `BUILD_TIMESTAMP`: "2025-11-21 01:00:25"
+  - `BUILD_FULL_VERSION`: "3.0.0-RC.9 (a34bd6)"
+  - `BUILD_INFO_STRING`: Complete build information
+- **Documentation**: New file `Documentation/Developer/Automatic Build Versioning.md`
+- **Old Method**: Renamed to `Creating the build number (v2-manual-obsolete).md`
+- **Files**:
+  - `scripts/build_version.py` (165 lines)
+  - `platformio.ini` (registered pre-action)
+  - `.gitignore` (excludes build_info.h)
+
+**Build Number Display** (Commit: 0b7b71e)
+- **Integration**: Updated `InfoPrinter.h` to display build information at startup
+- **Serial Output**:
+  ```
+  Version: 3.0.0-RC.9 (a34bd6)
+  Build: 0b7b71e+ @ 2025-11-21
+  ```
+- **Changes**:
+  - Added `#include "../build_info.h"`
+  - Version line uses `BUILD_FULL_VERSION` instead of `Config::Strings::SOFTWARE_VERSION`
+  - New Build line shows `BUILD_GIT_COMMIT` and `BUILD_DATE`
+- **Impact**: Users can easily identify which exact build is running on a device
+- **Files**: `include/Utils/InfoPrinter.h`
 
 ### Code Cleanup (November 21, 2025)
 
@@ -733,7 +774,10 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-286e690 (HEAD -> v3_RC) refactor: Remove refactoring artifacts from STACApp
+0b7b71e (HEAD -> v3_RC) feat: Display build number in serial startup output
+9f10899 feat: Add automatic build versioning system
+8a8f1e9 docs: Update context for code cleanup commit
+286e690 refactor: Remove refactoring artifacts from STACApp
 0cb6394 v3.0.0-RC.9: Fix V-160HD error handling and improve polling performance
 xxxxxxx v3.0.0-RC.8: Fix V-160HD startup color logic (channel and autostart colors)
 xxxxxxx v3.0.0-RC.2-RC.7: Fix V-160HD channel display, serial output, and bank initialization
@@ -930,7 +974,7 @@ Next step: Final hardware testing, then merge to main and tag v3.0.0.
 ---
 
 *Last Updated: November 21, 2025*  
-*Context Document Version: 2.2*  
+*Context Document Version: 2.3*  
 *Project Version: v3.0.0-RC.9*
 
 <!-- End of Context Document -->
