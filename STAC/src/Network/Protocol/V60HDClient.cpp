@@ -27,9 +27,9 @@
 
                 while ( !connected && connectionAttempts < 1 ) {
                     if ( client.connect( config.switchIP, config.switchPort, CONNECTION_TIMEOUT_MS ) ) {
-                        // Flush any stale data
+                        // Clear any stale data from RX buffer
                         if ( client.available() > 0 ) {
-                            client.flush();
+                            client.clear();
                         }
                         connected = true;
                         result.connected = true;
