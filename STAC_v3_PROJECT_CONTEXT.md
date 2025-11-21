@@ -110,6 +110,18 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 
 ## Recent Changes (v3.0 Development)
 
+### Code Cleanup (November 21, 2025)
+
+**Refactoring Artifact Removal** (Commit: 286e690)
+- **Removed**: Unused `#include "Utils/TestConfig.h"` from STACApp.cpp
+  - Test mode (`ENABLE_TEST_CONFIG`) is disabled and not being used
+  - Include was leftover from early refactoring development
+- **Removed**: Commented-out `handleNormalMode()` stub (lines 404-420)
+  - Old TODO placeholder from before Roland polling was implemented
+  - Fully replaced by current working implementation
+- **Impact**: Cleaner code, no functional changes
+- **Files**: `src/Application/STACApp.cpp`
+
 ### v3.0.0-RC.9 Session (November 20-21, 2025)
 
 **V-160HD Error Handling and Performance Optimizations:**
@@ -721,7 +733,8 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-xxxxxxx (HEAD -> v3_RC) v3.0.0-RC.9: Fix V-160HD error handling and improve polling performance
+286e690 (HEAD -> v3_RC) refactor: Remove refactoring artifacts from STACApp
+0cb6394 v3.0.0-RC.9: Fix V-160HD error handling and improve polling performance
 xxxxxxx v3.0.0-RC.8: Fix V-160HD startup color logic (channel and autostart colors)
 xxxxxxx v3.0.0-RC.2-RC.7: Fix V-160HD channel display, serial output, and bank initialization
 0878c0a v3.0.0-RC.1: Critical error recovery fix + STS Emulator + Web UI enhancements
