@@ -3,8 +3,8 @@
 **Date:** November 21, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Ready for testing - Automatic build versioning complete  
-**Last Session:** Automatic build versioning system, build number display in serial output
+**Status:** Ready for testing - Code refactoring and API updates complete  
+**Last Session:** Major code refactoring (Display, Network, State), NetworkClient API update, binary generation
 
 ---
 
@@ -19,16 +19,24 @@
 - **v3.0.0-RC.1**: Critical error recovery fix, STS Emulator, web UI enhancements
 - **v3.0.0-RC.2 to RC.8**: V-160HD startup sequence bug fixes (channel display, colors, serial output)
 - **v3.0.0-RC.9**: V-160HD error handling fixes, HTTP timeout optimization, polling improvements
+- **Code Refactoring**: Display, Network, State management - ~330+ lines of duplication eliminated
+- **API Updates**: NetworkClient.flush() → clear() for arduino-esp32 v3.3.2+ compatibility
+- **Build System**: Release binary generation with standardized naming convention
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
-- **v3.0.0-RC.9** tested on ATOM Matrix (MAC 94:b9:7e:a8:f8:00)
-- V-160HD error handling optimized (1-second HTTP timeout, proper error glyphs)
-- Display behavior corrected (stays black until first valid tally response)
-- Fast error polling (50ms during errors, 1s timeout enables quick recovery)
-- STS Emulator enhanced (V-160HD format fixes, immediate shutdown, user/0000 defaults)
-- Error semantics match baseline (connection refused vs timeout distinguished)
-- Branch `v3_RC` ready for final testing
+- **v3.0.0-RC.9** tested on all hardware:
+  - ATOM Matrix #1 (94:b9:7e:a8:f8:00) - Normal mode
+  - ATOM Matrix #2 (4c:75:25:c5:53:c4) - Peripheral mode
+  - Waveshare ESP32-S3 (f0:f5:bd:6e:31:fc) - Normal mode with 8x8 display
+- Major refactoring complete:
+  - DisplayBase class eliminates ~180 lines per display type
+  - RolandClientBase class eliminates ~100 lines between protocols
+  - StateManagerBase<T> template eliminates ~140 lines of state management code
+- API updates for future compatibility:
+  - NetworkClient.flush() → clear() (arduino-esp32 v3.3.2+)
+- Release binaries generated in `bin/` with naming convention
+- Branch `v3_RC` ready for final testing and merge
 
 ### 📋 Next Steps
 1. Final testing on real hardware (both ATOM Matrix and Waveshare if available)
@@ -109,6 +117,95 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### Code Refactoring and API Updates (November 21, 2025)
+
+**Display Refactoring** (Commit: d05809b)
+- **Problem**: Display5x5 and Display8x8 had ~180 lines of duplicate code each
+- **Solution**: Created DisplayBase abstract base class with common functionality
+- **Impact**: 
+  - Display5x5.cpp: 179→41 lines (77% reduction)
+  - Display8x8.cpp: ~170→41 lines (76% reduction)
+  - Net reduction: ~93 lines of duplicate code
+- **Files**:
+  - Created: `include/Hardware/Display/DisplayBase.h`, `src/Hardware/Display/DisplayBase.cpp`
+  - Modified: `src/Hardware/Display/Matrix5x5/Display5x5.cpp`, `src/Hardware/Display/Matrix8x8/Display8x8.cpp`
+
+**Network Client Refactoring** (Commit: f9f431b)
+- **Problem**: V60HDClient and V160HDClient had ~100 lines of duplicate code
+- **Solution**: Created RolandClientBase abstract base class
+- **Common Methods**: begin(), end(), isInitialized(), parseResponse(), handleSpecialCases()
+- **Impact**:
+  - V60HDClient: Removed ~40 lines of duplicate code
+  - V160HDClient: Removed ~60 lines of duplicate code
+  - Net reduction: ~100 lines of duplicate code
+- **Files**:
+  - Created: `include/Network/Protocol/RolandClientBase.h`, `src/Network/Protocol/RolandClientBase.cpp`
+  - Modified: `include/Network/Protocol/V60HDClient.h`, `src/Network/Protocol/V60HDClient.cpp`
+  - Modified: `include/Network/Protocol/V160HDClient.h`, `src/Network/Protocol/V160HDClient.cpp`
+
+**State Management Refactoring** (Commit: b9265d2)
+- **Problem**: TallyStateManager and OperatingModeManager had ~50 lines of duplicate state management logic
+- **Solution**: Created StateManagerBase<T> template class (header-only, ~110 lines)
+- **Template**: Generic state manager for any enum type (TallyState, OperatingMode)
+- **Common Methods**: setState(), getTimeSinceChange(), setStateChangeCallback(), getCurrentState(), getPreviousState()
+- **Impact**:
+  - TallyStateManager: Removed duplicate constructor, setState logic, callbacks, accessors
+  - OperatingModeManager: Removed duplicate logic, added getCurrentMode()/getPreviousMode() wrappers
+  - Net reduction: ~50 lines core logic + ~90 lines boilerplate
+- **Integration**: Updated SystemState.cpp to use setStateChangeCallback() instead of setModeChangeCallback()
+- **Files**:
+  - Created: `include/State/StateManagerBase.h` (template class)
+  - Modified: `include/State/TallyStateManager.h`, `src/State/TallyStateManager.cpp`
+  - Modified: `include/State/OperatingModeManager.h`, `src/State/OperatingModeManager.cpp`
+  - Modified: `src/State/SystemState.cpp`
+
+**NetworkClient API Update** (Commit: 4953018)
+- **Problem**: arduino-esp32 v3.3.2+ deprecated NetworkClient.flush(), recommends clear() instead
+- **Solution**: Changed client.flush() to client.clear() in V60HDClient
+- **Impact**: Eliminates deprecation warning, future-proofs code for arduino-esp32 core updates
+- **Files**: `src/Network/Protocol/V60HDClient.cpp` line 32
+
+**Git Cleanup** (Commit: b0d29ad)
+- **Problem**: Auto-generated build_info.h was tracked by git despite being in .gitignore
+- **Solution**: Removed build_info.h from git tracking (file already in .gitignore)
+- **Impact**: Clean git status, build_info.h regenerated automatically on each build
+- **Files**: `include/build_info.h` (removed from tracking)
+
+**Release Binary Generation** (November 21, 2025)
+- **Naming Convention**: `STAC-{version}-{hardware}-{type}.bin`
+  - version: From BUILD_VERSION (e.g., "3.0.0-RC.9")
+  - hardware: `atom-matrix` or `waveshare-s3`
+  - type: `firmware` (OTA updates) or `full` (complete flash image)
+- **Binaries Created**:
+  - `STAC-3.0.0-RC.9-atom-matrix-firmware.bin` (1.2M) - OTA app only
+  - `STAC-3.0.0-RC.9-atom-matrix-full.bin` (1.3M) - Bootloader + partitions + app
+  - `STAC-3.0.0-RC.9-waveshare-s3-firmware.bin` (1.2M) - OTA app only
+  - `STAC-3.0.0-RC.9-waveshare-s3-full.bin` (1.3M) - Bootloader + partitions + app
+- **Location**: `/Users/robl/Documents/PlatformIO/Projects/STAC3/STAC/bin/`
+- **Full Image Layout**:
+  - ATOM Matrix: 0x1000=bootloader, 0x8000=partitions, 0x10000=firmware
+  - Waveshare S3: 0x0=bootloader, 0x8000=partitions, 0x10000=firmware
+
+**Testing Results:**
+- ✅ All refactoring validated on three hardware devices
+- ✅ ATOM Matrix #1 (94:b9:7e:a8:f8:00): Normal mode, V-160HD client, DisplayBase, StateManagerBase
+- ✅ ATOM Matrix #2 (4c:75:25:c5:53:c4): Peripheral mode, state transitions logged from StateManagerBase.h:69
+- ✅ Waveshare ESP32-S3 (f0:f5:bd:6e:31:fc): Normal mode, V-60HD client, 8x8 display with DisplayBase
+- ✅ No deprecation warnings in STAC code (only upstream WebServer library warning)
+- ✅ Clean builds, all functionality working correctly
+
+**Total Code Reduction:**
+- Display refactoring: ~93 lines removed
+- Network refactoring: ~100 lines removed  
+- State refactoring: ~50 core + ~90 boilerplate = ~140 lines removed
+- **Total: ~330+ lines of duplicate code eliminated**
+
+**Maintainability Improvements:**
+- Adding new displays: Only implement size-specific methods, inherit from DisplayBase
+- Adding new Roland protocols: Only implement protocol-specific transport, inherit from RolandClientBase
+- Adding new state types: Use StateManagerBase<T> template with any enum type
+- Future API changes: Centralized in base classes, minimal changes to derived classes
 
 ### Automatic Build Versioning (November 21, 2025)
 
@@ -968,13 +1065,13 @@ When picking up this project again:
 
 **Project Status:** ✅ **READY FOR RELEASE CANDIDATE TESTING**
 
-All major features complete. Code tested and working. Documentation updated.
-Next step: Final hardware testing, then merge to main and tag v3.0.0.
+All major features complete. Code refactored and optimized. Tested on all hardware platforms.
+Next step: Final testing, then merge to main and tag v3.0.0.
 
 ---
 
 *Last Updated: November 21, 2025*  
-*Context Document Version: 2.3*  
+*Context Document Version: 2.4*  
 *Project Version: v3.0.0-RC.9*
 
 <!-- End of Context Document -->

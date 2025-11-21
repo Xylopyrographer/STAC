@@ -280,6 +280,7 @@ namespace Application {
             // Check if configured
             if (!configManager->hasWiFiCredentials()) {
                 log_i("No WiFi configuration found, entering provisioning mode");
+                Serial.println("      ***** STAC not configured *****");
                 return OperatingMode::PROVISIONING;
             }
 
@@ -1365,14 +1366,6 @@ void STACApp::handleNormalMode() {
             // Print factory reset notification to serial
             Utils::InfoPrinter::printReset();
             
-            // Show red flashing to indicate factory reset
-            for (int i = 0; i < 5; i++) {
-                display->fill(Display::StandardColors::RED, true);
-                delay(200);
-                display->clear(true);
-                delay(200);
-            }
-            
             // Clear all NVS data
             log_i("Clearing all NVS configuration data");
             
@@ -1395,14 +1388,31 @@ void STACApp::handleNormalMode() {
             prefs.clear();
             prefs.end();
             
-            log_i("Factory reset complete, restarting...");
+            prefs.begin("peripheral", false);
+            prefs.clear();
+            prefs.end();
             
-            // Show green to confirm
-            display->fill(Display::StandardColors::GREEN, true);
-            delay(2000);
+            log_i("Factory reset complete");
             
-            // Restart
-            ESP.restart();
+            // Brief pause
+            delay(Config::Timing::GUI_PAUSE_MS);
+            
+            // Flash display once to confirm (baseline behavior)
+            // Use brightness level 1 for the flash
+            uint8_t brightness;
+            #ifdef GLYPH_SIZE_5X5
+            brightness = Config::Display::BRIGHTNESS_MAP_5X5[1];
+            #else
+            brightness = Config::Display::BRIGHTNESS_MAP_8X8[1];
+            #endif
+            
+            display->flash(1, 500, brightness);
+            
+            // Park here forever showing the factory reset glyph (baseline behavior)
+            // User must power cycle or press reset button to restart
+            while (true) {
+                yield();
+            }
         }
 
         OperatingMode STACApp::checkBootButtonSequence() {
@@ -1422,10 +1432,20 @@ void STACApp::handleNormalMode() {
                 OTA_UPDATE_PENDING     // Long hold -> OTA update
             };
             
-            BootButtonState state = BootButtonState::PROVISIONING_PENDING;
+            BootButtonState state;
             unsigned long stateArmTime = millis() + STATE_HOLD_TIME;
             bool sequenceExit = false;
             OperatingMode resultMode = OperatingMode::NORMAL;
+            
+            // Check if STAC is configured to determine initial state
+            // If not configured, skip provisioning and factory reset, start at OTA update
+            if (!configManager->isConfigured()) {
+                state = BootButtonState::OTA_UPDATE_PENDING;
+                log_i("STAC not configured - button sequence starts at OTA_UPDATE_PENDING");
+            } else {
+                state = BootButtonState::PROVISIONING_PENDING;
+                log_i("STAC configured - button sequence starts at PROVISIONING_PENDING");
+            }
             
             // Get glyph indices
             #ifdef GLYPH_SIZE_5X5
@@ -1438,15 +1458,25 @@ void STACApp::handleNormalMode() {
             const uint8_t* cfgGlyph = glyphManager->getGlyph(GLF_CFG);
             const uint8_t* udGlyph = glyphManager->getGlyph(GLF_UD);
             
-            // Show initial state - GLF_CFG in orange for provisioning
-            display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
+            // Show initial state glyph based on configuration status
+            if (!configManager->isConfigured()) {
+                // Not configured - show OTA update glyph (red)
+                display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
+            } else {
+                // Configured - show provisioning glyph (orange)
+                display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
+            }
             delay(250);
             
             // Flash to confirm we're in button sequence mode
             for (int i = 0; i < 4; i++) {
                 display->clear(true);
                 delay(125);
-                display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
+                if (!configManager->isConfigured()) {
+                    display->drawGlyph(udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true);
+                } else {
+                    display->drawGlyph(cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true);
+                }
                 delay(125);
             }
             
@@ -1519,7 +1549,14 @@ void STACApp::handleNormalMode() {
                         break;
                         
                     case BootButtonState::OTA_UPDATE_PENDING:
-                        // This state is no longer reachable - OTA mode starts immediately above
+                        // If STAC is not configured, this is the initial state
+                        // Wait for button release to start OTA server
+                        if (!button->isPressed()) {
+                            log_i("Boot button sequence: OTA UPDATE selected");
+                            handleOTAUpdateMode();
+                            // Never returns - ESP32 restarts after OTA
+                        }
+                        // If button stays pressed, just wait (no next state when unconfigured)
                         break;
                 }
                 
