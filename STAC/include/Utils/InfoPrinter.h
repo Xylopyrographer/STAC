@@ -7,6 +7,7 @@
 #include <esp_mac.h>
 #include "../Config/Types.h"
 #include "../Config/Constants.h"
+#include "../build_info.h"
 
 namespace Utils {
 
@@ -34,7 +35,11 @@ public:
         Serial.println("      github.com/Xylopyrographer/STAC");
         Serial.println();
         Serial.print("    Version: "); 
-        Serial.println(Config::Strings::SOFTWARE_VERSION);
+        Serial.println(BUILD_FULL_VERSION);  // Shows "3.0.0-RC.9 (a1b2c3)"
+        Serial.print("    Build: ");
+        Serial.print(BUILD_GIT_COMMIT);
+        Serial.print(" @ ");
+        Serial.println(BUILD_DATE);
         Serial.print("    Core: ");
         Serial.print(ESP_ARDUINO_VERSION_MAJOR);
         Serial.print(".");
