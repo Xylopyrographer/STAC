@@ -4,17 +4,11 @@
     namespace Net {
 
         V60HDClient::V60HDClient()
-            : initialized( false ) {
+            : RolandClientBase() {
         }
 
         V60HDClient::~V60HDClient() {
             end();
-        }
-
-        bool V60HDClient::begin( const RolandConfig& cfg ) {
-            config = cfg;
-            initialized = true;
-            return true;
         }
 
         bool V60HDClient::queryTallyStatus( TallyQueryResult& result ) {
@@ -119,23 +113,14 @@
                 }
             }
 
-            // Trim whitespace from response
+            // Trim and store raw response
             response.trim();
-
-            // Store raw response
             result.rawResponse = response;
             result.gotReply = true;
             result.timedOut = false;
 
-            // Handle special cases
-            if ( response.length() == 0 ) {
-                result.status = TallyStatus::NO_REPLY;
-                return false;
-            }
-
-            if ( response == "None" ) {
-                // Python emulator quirk when it "takes a nap"
-                result.status = TallyStatus::NO_REPLY;
+            // Handle special cases (empty response, "None" quirk)
+            if ( handleSpecialCases( response, result ) ) {
                 return false;
             }
 
@@ -145,30 +130,11 @@
             return true;
         }
 
-        TallyStatus V60HDClient::parseResponse( const String& response ) const {
-            if ( response == "onair" ) {
-                return TallyStatus::ONAIR;
-            }
-            else if ( response == "selected" ) {
-                return TallyStatus::SELECTED;
-            }
-            else if ( response == "unselected" ) {
-                return TallyStatus::UNSELECTED;
-            }
-            else {
-                return TallyStatus::INVALID_REPLY;
-            }
-        }
-
         void V60HDClient::end() {
             if ( client.connected() ) {
                 client.stop();
             }
-            initialized = false;
-        }
-
-        bool V60HDClient::isInitialized() const {
-            return initialized;
+            RolandClientBase::end();
         }
 
         String V60HDClient::getSwitchType() const {

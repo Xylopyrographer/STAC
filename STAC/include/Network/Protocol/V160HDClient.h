@@ -2,7 +2,7 @@
 #define STAC_V160HD_CLIENT_H
 
 #include <HTTPClient.h>
-#include "IRolandClient.h"
+#include "RolandClientBase.h"
 
 
     namespace Net {
@@ -25,28 +25,17 @@
          * - Channels 1-8: bankA + channel (1-8)
          * - Channels 9-16: bankB + channel - 8 (1-8)
          */
-        class V160HDClient : public IRolandClient {
+        class V160HDClient : public RolandClientBase {
           public:
             V160HDClient();
             ~V160HDClient() override;
 
-            bool begin( const RolandConfig& config ) override;
             bool queryTallyStatus( TallyQueryResult& result ) override;
             void end() override;
-            bool isInitialized() const override;
             String getSwitchType() const override;
 
           private:
             HTTPClient httpClient;
-            RolandConfig config;
-            bool initialized;
-
-            /**
-             * @brief Parse response string to TallyStatus
-             * @param response Response string from switch
-             * @return Parsed TallyStatus
-             */
-            TallyStatus parseResponse( const String &response ) const;
 
             /**
              * @brief Build the tally request URL

@@ -2,7 +2,7 @@
 #define STAC_V60HD_CLIENT_H
 
 #include <WiFi.h>
-#include "IRolandClient.h"
+#include "RolandClientBase.h"
 
 
     namespace Net {
@@ -20,32 +20,21 @@
          * - No authentication required
          * - Short-form GET (no HTTP headers in response)
          */
-        class V60HDClient : public IRolandClient {
+        class V60HDClient : public RolandClientBase {
           public:
             V60HDClient();
             ~V60HDClient() override;
 
-            bool begin( const RolandConfig& config ) override;
             bool queryTallyStatus( TallyQueryResult& result ) override;
             void end() override;
-            bool isInitialized() const override;
             String getSwitchType() const override;
 
           private:
             WiFiClient client;
-            RolandConfig config;
-            bool initialized;
 
             static constexpr uint32_t CONNECTION_TIMEOUT_MS = 1000;  ///< Connection timeout
             static constexpr uint32_t RESPONSE_TIMEOUT_MS = 100;     ///< Response wait timeout
             static constexpr uint8_t MAX_RESPONSE_LENGTH = 12;       ///< Max expected response length
-
-            /**
-             * @brief Parse response string to TallyStatus
-             * @param response Response string from switch
-             * @return Parsed TallyStatus
-             */
-            TallyStatus parseResponse( const String& response ) const;
 
             /**
              * @brief Send GET request to switch

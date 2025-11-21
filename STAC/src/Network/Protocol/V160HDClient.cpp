@@ -4,17 +4,11 @@
     namespace Net {
 
         V160HDClient::V160HDClient()
-            : initialized( false ) {
+            : RolandClientBase() {
         }
 
         V160HDClient::~V160HDClient() {
             end();
-        }
-
-        bool V160HDClient::begin( const RolandConfig& cfg ) {
-            config = cfg;
-            initialized = true;
-            return true;
         }
 
         bool V160HDClient::queryTallyStatus( TallyQueryResult& result ) {
@@ -63,30 +57,19 @@
                     // Success - got valid HTTP 200 response
                     String response = httpClient.getString();
                     
-                    // Trim whitespace
+                    // Trim and store raw response
                     response.trim();
-                    
-                    // Store raw response
                     result.rawResponse = response;
                     result.gotReply = true;
                     
-                    // Handle special cases
-                    if ( response.length() == 0 ) {
-                        // Empty response - treat as no reply
-                        result.status = TallyStatus::NO_REPLY;
+                    // Handle special cases (empty response, "None" quirk)
+                    if ( handleSpecialCases( response, result ) ) {
                         httpClient.end();
                         return false;
                     }
                     
-                    if ( response == "None" ) {
-                        // Python emulator quirk when it "takes a nap"
-                        result.status = TallyStatus::NO_REPLY;
-                        httpClient.end();
-                        return false;
-                    }
-                    
-                    // Parse the response
-                    result.status = parseResponse( response );
+                    // Parse the response (with length check for V-160HD)
+                    result.status = parseResponse( response, true );
                     httpClient.end();
                     return true;
                 }
@@ -153,39 +136,9 @@
             }
         }
 
-        TallyStatus V160HDClient::parseResponse( const String &response ) const {
-            // Trim response
-            String trimmedResponse = response;
-            trimmedResponse.trim();
-
-            // Check response length - valid responses are "onair", "selected", or "unselected"
-            // Maximum valid length is 10 ("unselected"), anything longer is junk
-            if ( trimmedResponse.length() > 12 || trimmedResponse.length() == 0 ) {
-                return TallyStatus::INVALID_REPLY;
-            }
-
-            if ( trimmedResponse == "onair" ) {
-                return TallyStatus::ONAIR;
-            }
-            else if ( trimmedResponse == "selected" ) {
-                return TallyStatus::SELECTED;
-            }
-            else if ( trimmedResponse == "unselected" ) {
-                return TallyStatus::UNSELECTED;
-            }
-            else {
-                // Anything else is junk/invalid
-                return TallyStatus::INVALID_REPLY;
-            }
-        }
-
         void V160HDClient::end() {
             httpClient.end();
-            initialized = false;
-        }
-
-        bool V160HDClient::isInitialized() const {
-            return initialized;
+            RolandClientBase::end();
         }
 
         String V160HDClient::getSwitchType() const {
