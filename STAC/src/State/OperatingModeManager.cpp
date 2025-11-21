@@ -5,45 +5,15 @@
     namespace State {
 
         OperatingModeManager::OperatingModeManager()
-            : currentMode( OperatingMode::NORMAL )
-            , previousMode( OperatingMode::NORMAL )
-            , lastChangeTime( 0 )
-            , callback( nullptr ) {
+            : StateManagerBase<OperatingMode>( OperatingMode::NORMAL ) {
         }
 
         bool OperatingModeManager::setMode( OperatingMode newMode ) {
-            if ( newMode == currentMode ) {
-                return false;  // No change
-            }
-
-            // Store previous mode
-            previousMode = currentMode;
-            currentMode = newMode;
-            lastChangeTime = millis();
-
-            // Log mode change
-            log_i( "Operating mode: %s -> %s",
-                   modeToString( previousMode ),
-                   modeToString( currentMode ) );
-
-            // Notify callback if registered
-            if ( callback ) {
-                callback( previousMode, currentMode );
-            }
-
-            return true;
-        }
-
-        unsigned long OperatingModeManager::getTimeSinceChange() const {
-            return millis() - lastChangeTime;
+            return StateManagerBase<OperatingMode>::setState( newMode, modeToString );
         }
 
         const char *OperatingModeManager::getModeString() const {
-            return modeToString( currentMode );
-        }
-
-        void OperatingModeManager::setModeChangeCallback( ModeChangeCallback cb ) {
-            callback = cb;
+            return modeToString( currentState );
         }
 
         const char *OperatingModeManager::modeToString( OperatingMode mode ) {

@@ -5,6 +5,7 @@
 #include <functional>
 #include "Config/Types.h"
 #include "Hardware/Display/Colors.h"
+#include "StateManagerBase.h"
 
 
     namespace State {
@@ -15,7 +16,7 @@
          * Tracks current tally state, handles state changes,
          * and notifies observers when state changes occur.
          */
-        class TallyStateManager {
+        class TallyStateManager : public StateManagerBase<TallyState> {
           public:
             /**
              * @brief Callback function type for state changes
@@ -91,12 +92,6 @@
              * @return State name as string
              */
             const char *getStateString() const;
-
-            /**
-             * @brief Set callback for state changes
-             * @param callback Function to call on state change
-             */
-            void setStateChangeCallback( StateChangeCallback callback );
  
             /**
             * @brief Convert TallyState to string
@@ -116,14 +111,6 @@
              * @brief Reset to default state (NO_TALLY)
              */
             void reset();
-
-          private:
-            TallyState currentState;        ///< Current tally state
-            TallyState previousState;       ///< Previous tally state
-            unsigned long lastChangeTime;   ///< Time of last state change
-            StateChangeCallback callback;   ///< State change callback function
-
-
         };
 
     } // namespace State

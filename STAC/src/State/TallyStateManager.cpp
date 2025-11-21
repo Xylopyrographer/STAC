@@ -6,37 +6,11 @@
     namespace State {
 
         TallyStateManager::TallyStateManager()
-            : currentState( TallyState::NO_TALLY )
-            , previousState( TallyState::NO_TALLY )
-            , lastChangeTime( 0 )
-            , callback( nullptr ) {
+            : StateManagerBase<TallyState>( TallyState::NO_TALLY ) {
         }
 
         bool TallyStateManager::setState( TallyState newState ) {
-            if ( newState == currentState ) {
-                return false;  // No change
-            }
-
-            // Store previous state
-            previousState = currentState;
-            currentState = newState;
-            lastChangeTime = millis();
-
-            // Log state change
-            log_i( "Tally state: %s -> %s",
-                   stateToString( previousState ),
-                   stateToString( currentState ) );
-
-            // Notify callback if registered
-            if ( callback ) {
-                callback( previousState, currentState );
-            }
-
-            return true;
-        }
-
-        unsigned long TallyStateManager::getTimeSinceChange() const {
-            return millis() - lastChangeTime;
+            return StateManagerBase<TallyState>::setState( newState, stateToString );
         }
 
         Display::color_t TallyStateManager::getStateColor() const {
@@ -45,10 +19,6 @@
 
         const char *TallyStateManager::getStateString() const {
             return stateToString( currentState );
-        }
-
-        void TallyStateManager::setStateChangeCallback( StateChangeCallback cb ) {
-            callback = cb;
         }
 
         void TallyStateManager::reset() {

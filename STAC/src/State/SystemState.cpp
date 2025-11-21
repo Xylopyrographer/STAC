@@ -24,7 +24,7 @@
                        tallyState.stateToString( newState ) );
             } );
 
-            operatingMode.setModeChangeCallback( [ this ]( OperatingMode oldMode, OperatingMode newMode ) {
+            operatingMode.setStateChangeCallback( [ this ]( OperatingMode oldMode, OperatingMode newMode ) {
                 // Could trigger mode-specific setup on mode change
                 log_d( "Operating mode change callback: %s -> %s",
                        operatingMode.modeToString( oldMode ),

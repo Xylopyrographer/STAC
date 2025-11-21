@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include "Config/Types.h"
+#include "StateManagerBase.h"
 
 
     namespace State {
@@ -14,25 +15,10 @@
          * Handles transitions between Normal, Peripheral, and Provisioning modes.
          * Coordinates mode-specific behavior and state management.
          */
-        class OperatingModeManager {
+        class OperatingModeManager : public StateManagerBase<OperatingMode> {
           public:
-            /**
-             * @brief Callback function type for mode changes
-             * @param oldMode Previous operating mode
-             * @param newMode New operating mode
-             */
-            using ModeChangeCallback = std::function<void( OperatingMode oldMode, OperatingMode newMode )>;
-
             OperatingModeManager();
             ~OperatingModeManager() = default;
-
-            /**
-             * @brief Get current operating mode
-             * @return Current OperatingMode
-             */
-            OperatingMode getCurrentMode() const {
-                return currentMode;
-            }
 
             /**
              * @brief Set new operating mode
@@ -42,11 +28,19 @@
             bool setMode( OperatingMode newMode );
 
             /**
-             * @brief Get previous operating mode
+             * @brief Get current operating mode (wrapper)
+             * @return Current OperatingMode
+             */
+            OperatingMode getCurrentMode() const {
+                return currentState;
+            }
+
+            /**
+             * @brief Get previous operating mode (wrapper)
              * @return Previous OperatingMode
              */
             OperatingMode getPreviousMode() const {
-                return previousMode;
+                return previousState;
             }
 
             /**
@@ -54,7 +48,7 @@
              * @return true if mode is NORMAL
              */
             bool isNormalMode() const {
-                return currentMode == OperatingMode::NORMAL;
+                return currentState == OperatingMode::NORMAL;
             }
 
             /**
@@ -62,7 +56,7 @@
              * @return true if mode is PERIPHERAL
              */
             bool isPeripheralMode() const {
-                return currentMode == OperatingMode::PERIPHERAL;
+                return currentState == OperatingMode::PERIPHERAL;
             }
 
             /**
@@ -70,7 +64,7 @@
              * @return true if mode is PROVISIONING
              */
             bool isProvisioningMode() const {
-                return currentMode == OperatingMode::PROVISIONING;
+                return currentState == OperatingMode::PROVISIONING;
             }
 
             /**
@@ -79,24 +73,7 @@
              */
             const char *getModeString() const;
 
-            /**
-             * @brief Set callback for mode changes
-             * @param callback Function to call on mode change
-             */
-            void setModeChangeCallback( ModeChangeCallback callback );
-
-            /**
-             * @brief Get time since last mode change
-             * @return Milliseconds since last change
-             */
-            unsigned long getTimeSinceChange() const;
-
           private:
-            OperatingMode currentMode;      ///< Current operating mode
-            OperatingMode previousMode;     ///< Previous operating mode
-            unsigned long lastChangeTime;   ///< Time of last mode change
-            ModeChangeCallback callback;    ///< Mode change callback function
-
             /**
              * @brief Convert OperatingMode to string
              * @param mode Mode to convert
