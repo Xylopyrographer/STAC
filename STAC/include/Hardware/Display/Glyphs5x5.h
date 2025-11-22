@@ -18,50 +18,10 @@ namespace Display {
             constexpr uint8_t GLYPH_SIZE = 25;
 
             /**
-             * @brief Glyph identifier enum
-             *
-             * IMPORTANT: Digits 0-9 MUST remain at indices 0-9 for numeric display.
-             */
-            enum class GlyphId : uint8_t {
-                DIGIT_0 = 0,        ///< Number 0
-                DIGIT_1 = 1,        ///< Number 1
-                DIGIT_2 = 2,        ///< Number 2
-                DIGIT_3 = 3,        ///< Number 3
-                DIGIT_4 = 4,        ///< Number 4
-                DIGIT_5 = 5,        ///< Number 5
-                DIGIT_6 = 6,        ///< Number 6
-                DIGIT_7 = 7,        ///< Number 7
-                DIGIT_8 = 8,        ///< Number 8
-                DIGIT_9 = 9,        ///< Number 9
-                LETTER_X = 10,      ///< Letter X
-                WIFI = 11,          ///< WiFi icon
-                SMART_TALLY = 12,   ///< Smart Tally (ST) icon
-                LETTER_C = 13,      ///< Letter C
-                LETTER_T = 14,      ///< Letter T
-                ARROW_RIGHT = 15,   ///< Right arrow
-                ARROW_LEFT = 16,    ///< Left arrow
-                HAPPY_FACE = 17,    ///< Smiley face
-                BIG_X = 18,         ///< Big X (error/cancel)
-                FRAME = 19,         ///< Solid frame
-                FRAME_DOTTED = 20,  ///< Dotted frame
-                QUESTION_MARK = 21, ///< Question mark
-                CHECKERBOARD = 22,  ///< Checkerboard pattern
-                CHECKMARK = 23,     ///< Checkmark
-                SPACE_EN = 24,      ///< En space (3 columns)
-                SPACE_EM = 25,      ///< Em space (full display)
-                DOT = 26,           ///< Dot/period
-                WIFI_CONFIG = 27,   ///< WiFi configuration icon
-                LETTER_A = 28,      ///< Letter A
-                LETTER_S = 29,      ///< Letter S
-                LETTER_P = 30,      ///< Letter P
-                FIRMWARE_UPDATE = 31, ///< Firmware update icon
-                CENTER_PIXEL = 32   ///< Center pixel only (for power indicator)
-            };
-
-            /**
              * @brief Mnemonic constants for glyph indices (baseline compatibility)
              * 
              * These match the baseline GLF_* defines for easier code reading.
+             * IMPORTANT: Digits 0-9 MUST remain at indices 0-9 for numeric display.
              */
             namespace GlyphIndex {
                 constexpr uint8_t GLF_0   = 0;   ///< Number 0
@@ -94,9 +54,10 @@ namespace Display {
                 constexpr uint8_t GLF_CFG = 27;  ///< WiFi config icon
                 constexpr uint8_t GLF_A   = 28;  ///< Letter A
                 constexpr uint8_t GLF_S   = 29;  ///< Letter S
-                constexpr uint8_t GLF_P   = 30;  ///< Letter P
-                constexpr uint8_t GLF_UD  = 31;  ///< Firmware update icon
-                constexpr uint8_t GLF_PO  = 32;  ///< Power-on pixel (center)
+                constexpr uint8_t GLF_P       = 30;  ///< Letter P
+                constexpr uint8_t GLF_UD      = 31;  ///< Firmware update icon
+                constexpr uint8_t GLF_PO      = 32;  ///< Power-on pixel (center)
+                constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
             }
 
             /**
@@ -171,7 +132,9 @@ namespace Display {
                 // FIRMWARE_UPDATE
                 {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,1,1,0, 0,1,1,1,0},
                 // CENTER_PIXEL (pixel 12 only - for power indicator overlay)
-                {0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0}
+                {0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0},
+                // CORNERS (pixels 0, 4, 20, 24 - for autostart/pulsing)
+                {1,0,0,0,1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 1,0,0,0,1}
             };
 
             // Derive glyph count from array size at compile time

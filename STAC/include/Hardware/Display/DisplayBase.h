@@ -63,9 +63,9 @@
             void drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show = true ) override;
             void pulseDisplay( const uint8_t* glyph, color_t foreground, color_t background,
                              bool& pulseState, uint8_t normalBrightness, uint8_t dimBrightness ) override;
+            void pulseCorners( const uint8_t* cornersGlyph, bool state, color_t color ) override;
 
             // Size-specific methods must be implemented by derived classes
-            // pulseCorners() - corner positions differ by matrix size
             // getWidth(), getHeight(), getPixelCount() - dimension-specific
         };
 

@@ -28,8 +28,6 @@
             ~Display5x5() override = default;
 
             // Size-specific overrides
-            void pulseCorners( bool state, color_t color ) override;
-
             uint8_t getWidth() const override {
                 return 5;
             }

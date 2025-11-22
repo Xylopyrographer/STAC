@@ -101,11 +101,11 @@
 
             /**
              * @brief Toggle the four corner pixels (for autostart indication)
+             * @param cornersGlyph Pointer to corners glyph data (with rotation applied)
              * @param state True to turn on corners, false to turn off
              * @param color Color to use when state is true
-             * @note Corner pixels are: 0 (top-left), 4 (top-right), 20 (bottom-left), 24 (bottom-right)
              */
-            virtual void pulseCorners( bool state, color_t color ) = 0;
+            virtual void pulseCorners( const uint8_t* cornersGlyph, bool state, color_t color ) = 0;
 
             /**
              * @brief Pulse display brightness between normal and dim levels

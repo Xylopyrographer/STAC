@@ -16,11 +16,6 @@
             return ( ( uint32_t )r << 16 ) | ( ( uint32_t )g << 8 ) | b;
         }
 
-        // Helper function to create GRB color (for GRB LED strips)
-        constexpr color_t makeGRB( uint8_t r, uint8_t g, uint8_t b ) {
-            return ( ( uint32_t )g << 16 ) | ( ( uint32_t )r << 8 ) | b;
-        }
-
         // Standard colors (RGB order)
         namespace StandardColors {
             constexpr color_t BLACK       = makeRGB( 0, 0, 0 );
@@ -28,6 +23,8 @@
             constexpr color_t RED         = makeRGB( 255, 0, 0 );
             constexpr color_t GREEN       = makeRGB( 0, 255, 0 );
             constexpr color_t BLUE        = makeRGB( 0, 0, 255 );
+            constexpr color_t LIGHT_GREEN = makeRGB( 0x1a, 0x80, 0x0d );  // For V-160HD SDI channels
+            constexpr color_t BRIGHT_GREEN = makeRGB( 0x00, 0xee, 0x00 );  // For autostart corners
             constexpr color_t PURPLE      = makeRGB( 128, 0, 128 );
             constexpr color_t ORANGE      = makeRGB( 255, 165, 0 );
             constexpr color_t YELLOW      = makeRGB( 255, 255, 0 );
@@ -54,36 +51,6 @@
             constexpr color_t HDMI_VALUE      = StandardColors::BLUE;     // HDMI channel
             constexpr color_t SDI_VALUE       = StandardColors::ORANGE;   // SDI channel
             constexpr color_t AUTOSTART_PULSE = StandardColors::BLUE;     // Auto-start pulse
-        }
-
-        /**
-         * @brief Convert RGB color to board-specific color order
-         * @param r Red component (0-255)
-         * @param g Green component (0-255)
-         * @param b Blue component (0-255)
-         * @return Color value in correct order for current board
-         */
-        inline color_t boardColor( uint8_t r, uint8_t g, uint8_t b ) {
-#if defined(DISPLAY_COLOR_ORDER_RGB)
-            return makeRGB( r, g, b );
-#elif defined(DISPLAY_COLOR_ORDER_GRB)
-            return makeGRB( r, g, b );
-#else
-#error "No color order defined! Check Device_Config.h"
-            return 0;
-#endif
-        }
-
-        /**
-         * @brief Convert standard RGB color to board-specific order
-         * @param rgbColor Color in RGB format
-         * @return Color in board-specific format
-         */
-        inline color_t boardColor( color_t rgbColor ) {
-            uint8_t r = ( rgbColor >> 16 ) & 0xFF;
-            uint8_t g = ( rgbColor >> 8 ) & 0xFF;
-            uint8_t b = rgbColor & 0xFF;
-            return boardColor( r, g, b );
         }
 
     } // namespace Display

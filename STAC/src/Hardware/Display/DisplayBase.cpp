@@ -34,9 +34,7 @@
                 return;
             }
 
-            // Convert color to board-specific order
-            color_t boardSpecificColor = boardColor( color );
-            display.setPixel( position, boardSpecificColor, show );
+            display.setPixel( position, color, show );
         }
 
         void DisplayBase::setPixelXY( uint8_t x, uint8_t y, color_t color, bool show ) {
@@ -45,10 +43,8 @@
         }
 
         void DisplayBase::fill( color_t color, bool show ) {
-            color_t boardSpecificColor = boardColor( color );
-
             for ( uint8_t i = 0; i < numLeds; i++ ) {
-                display.setPixel( i, boardSpecificColor, false );
+                display.setPixel( i, color, false );
             }
 
             if ( show ) {
@@ -62,13 +58,9 @@
                 return;
             }
 
-            // Convert colors to board-specific order
-            color_t fgColor = boardColor( foreground );
-            color_t bgColor = boardColor( background );
-
             // Draw glyph (unpacked format: 1 byte per pixel)
             for ( uint8_t i = 0; i < numLeds; i++ ) {
-                color_t color = ( glyph[ i ] != 0 ) ? fgColor : bgColor;
+                color_t color = ( glyph[ i ] != 0 ) ? foreground : background;
                 display.setPixel( i, color, false );
             }
 
@@ -112,13 +104,10 @@
                 return;
             }
 
-            // Convert color to board-specific order
-            color_t boardSpecificColor = boardColor( color );
-
             // Overlay glyph: only draw pixels where glyph[i] == 1
             for ( uint8_t i = 0; i < numLeds; i++ ) {
                 if ( glyph[ i ] == 1 ) {
-                    display.setPixel( i, boardSpecificColor, false );
+                    display.setPixel( i, color, false );
                 }
             }
 
@@ -136,6 +125,13 @@
 
         bool DisplayBase::isValidPosition( uint8_t position ) const {
             return position < numLeds;
+        }
+
+        void DisplayBase::pulseCorners( const uint8_t* cornersGlyph, bool state, color_t color ) {
+            // Use corners glyph with state-dependent color
+            // The glyph is size-specific (5x5 or 8x8) and rotation-aware from GlyphManager
+            color_t glyphColor = state ? color : StandardColors::BLACK;
+            drawGlyphOverlay( cornersGlyph, glyphColor );
         }
 
     } // namespace Display

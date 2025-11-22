@@ -19,9 +19,8 @@
     #define DISPLAY_TOTAL_LEDS (DISPLAY_MATRIX_WIDTH * DISPLAY_MATRIX_HEIGHT)
 
     // LED configuration
-    #define DISPLAY_LED_TYPE LED_STRIP_WS2812
+    #define DISPLAY_LED_TYPE LED_STRIP_WS2812  // GRB color order (default WS2812)
     #define DISPLAY_LED_IS_RGBW false
-    #define DISPLAY_COLOR_ORDER_RGB
 
     // Display wiring pattern
     // Uncomment the one that matches your panel wiring

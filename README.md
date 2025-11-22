@@ -322,6 +322,22 @@ STAC/                    # PlatformIO project (primary)
   - I2C_MPU6886 (for ATOM)
   - SensorLib (for Waveshare)
 
+**IMPORTANT: Building Firmware Binaries**
+
+Always use the custom build script to generate firmware binaries:
+
+```bash
+cd STAC
+pio run -e <environment> -t merged -t ota
+```
+
+This creates properly named binaries:
+- `STAC_v<version>_<board>_<build>.bin` - OTA update
+- `STAC_v<version>_<board>_<build>_FULL.bin` - Web Serial flash
+
+For complete build instructions and naming conventions, see:
+[Building Firmware Binaries](STAC/Documentation/Developer/Building%20Firmware%20Binaries.md)
+
 ### Adding New Hardware
 
 1. Create board config: `include/BoardConfigs/YourBoard_Config.h`

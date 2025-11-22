@@ -20,46 +20,10 @@ namespace Display {
             constexpr uint8_t GLYPH_SIZE = 64;
 
             /**
-             * @brief Glyph identifier enum
-             *
-             * IMPORTANT: Digits 0-9 MUST remain at indices 0-9 for numeric display.
-             * Note: 8×8 has 28 glyphs (fewer than 5×5's 32 glyphs)
-             */
-            enum class GlyphId : uint8_t {
-                DIGIT_0 = 0,        ///< Number 0
-                DIGIT_1 = 1,        ///< Number 1
-                DIGIT_2 = 2,        ///< Number 2
-                DIGIT_3 = 3,        ///< Number 3
-                DIGIT_4 = 4,        ///< Number 4
-                DIGIT_5 = 5,        ///< Number 5
-                DIGIT_6 = 6,        ///< Number 6
-                DIGIT_7 = 7,        ///< Number 7
-                DIGIT_8 = 8,        ///< Number 8
-                DIGIT_9 = 9,        ///< Number 9
-                LETTER_A = 10,      ///< Letter A
-                LETTER_C = 11,      ///< Letter C
-                LETTER_P = 12,      ///< Letter P
-                LETTER_S = 13,      ///< Letter S
-                LETTER_T = 14,      ///< Letter T
-                QUESTION_MARK = 15, ///< Question mark
-                WIFI = 16,          ///< WiFi icon
-                CONFIG_REQ = 17,    ///< Configuration required icon
-                BIG_X = 18,         ///< Big X (error/cancel)
-                CHECKMARK = 19,     ///< Checkmark
-                CHECKERBOARD = 20,  ///< Checkerboard pattern
-                FRAME = 21,         ///< Solid frame
-                FRAME_DOTTED = 22,  ///< Dotted frame
-                SMILEY_FACE = 23,   ///< Smiley face
-                SPACE_EN = 24,      ///< En space (4 columns)
-                CENTER_DOT = 25,    ///< Four center pixels (power indicator overlay)
-                FIRMWARE_UPDATE = 26, ///< Firmware update icon
-                IMU_ERROR = 27      ///< IMU error icon
-            };
-
-            /**
              * @brief Mnemonic constants for glyph indices (baseline compatibility)
              * 
              * These match the baseline GLF_* defines for easier code reading.
+             * IMPORTANT: Digits 0-9 MUST remain at indices 0-9 for numeric display.
              */
             namespace GlyphIndex {
                 constexpr uint8_t GLF_0    = 0;   ///< Number 0
@@ -85,11 +49,12 @@ namespace Display {
                 constexpr uint8_t GLF_CBD  = 20;  ///< Checkerboard
                 constexpr uint8_t GLF_FM   = 21;  ///< Frame (solid)
                 constexpr uint8_t GLF_DF   = 22;  ///< Dotted frame
-                constexpr uint8_t GLF_SF   = 23;  ///< Smiley face
-                constexpr uint8_t GLF_EN   = 24;  ///< En space
-                constexpr uint8_t GLF_MID  = 25;  ///< Center dot (4 pixels)
-                constexpr uint8_t GLF_UD   = 26;  ///< Firmware update
-                constexpr uint8_t GLF_IMUX = 27;  ///< IMU error icon
+                constexpr uint8_t GLF_SF      = 23;  ///< Smiley face
+                constexpr uint8_t GLF_EN      = 24;  ///< En space
+                constexpr uint8_t GLF_MID     = 25;  ///< Center dot (4 pixels) - power indicator
+                constexpr uint8_t GLF_UD      = 26;  ///< Firmware update
+                constexpr uint8_t GLF_IMUX    = 27;  ///< IMU error icon
+                constexpr uint8_t GLF_CORNERS = 28;  ///< Four corner pixels
             }
 
             /**
@@ -210,7 +175,11 @@ namespace Display {
                 
                 // IMU_ERROR - 0xe7, 0x81, 0xa5, 0x18, 0x18, 0xa5, 0x81, 0xe7
                 {1,1,1,0,0,1,1,1, 1,0,0,0,0,0,0,1, 1,0,1,0,0,1,0,1, 0,0,0,1,1,0,0,0,
-                 0,0,0,1,1,0,0,0, 1,0,1,0,0,1,0,1, 1,0,0,0,0,0,0,1, 1,1,1,0,0,1,1,1}
+                 0,0,0,1,1,0,0,0, 1,0,1,0,0,1,0,1, 1,0,0,0,0,0,0,1, 1,1,1,0,0,1,1,1},
+                
+                // CORNERS (pixels 0, 7, 56, 63 - for autostart/pulsing)
+                {1,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+                 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 1,0,0,0,0,0,0,1}
             };
 
             // Derive glyph count from array size at compile time

@@ -1,10 +1,10 @@
 # STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 21, 2025  
+**Date:** November 22, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Ready for testing - Protocol-specific namespace refactoring complete  
-**Last Session:** Build versioning enhancement - build type and debug level display
+**Status:** Ready for testing - Code quality improvements and build system finalized  
+**Last Session:** Glyph-based refactoring (corners) + color management + custom build script
 
 ---
 
@@ -35,6 +35,20 @@
   - Clean version display for release builds: "3.0.0-RC.9 (b26d99)"
   - Annotated version for dev builds: "3.0.0-RC.9 (6928a8) D3"
   - Separate release environments for production builds
+- **Glyph-Based Refactoring**: Corner pixel handling and color management
+  - Eliminated 18 magic numbers (16 corner pixels + 2 colors)
+  - Created GLF_CORNERS glyphs for 5×5 and 8×8 displays
+  - Moved pulseCorners to DisplayBase for proper abstraction
+  - Fixed color order handling via LiteLED strip types
+  - Consolidated all colors to StandardColors namespace
+  - ~60 lines of code removed
+- **Custom Build Script**: Automated firmware binary generation
+  - Naming convention: STAC_v{version}_{board}_{build}.bin (OTA), STAC_v{version}_{board}_{build}_FULL.bin (full flash)
+  - Board codes: ATOM (Matrix 5×5), WS (Waveshare S3 8×8)
+  - Build codes: D3 (debug), R (release)
+  - Automatic version extraction from Device_Config.h
+  - PlatformIO targets: `pio run -e <env> -t merged -t ota`
+  - Documentation: Building Firmware Binaries.md
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
@@ -130,6 +144,97 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### Glyph-Based Refactoring and Build System (November 22, 2025)
+
+**Corner Pixel Refactoring**
+- **Problem**: Magic numbers for corner pixels hardcoded across multiple files
+  - 5×5 display: pixels 0, 4, 20, 24 repeated in 8 locations
+  - 8×8 display: pixels 0, 7, 56, 63 repeated in 6 locations
+- **Solution**: Created GLF_CORNERS glyphs, used drawGlyphOverlay for rendering
+- **Architecture Improvement**: Moved pulseCorners from Display5x5/Display8x8 to DisplayBase
+- **Impact**:
+  - Eliminated 16 corner pixel magic numbers
+  - Removed duplicate pulseCorners implementations
+  - Net reduction: ~20 lines of code
+- **Files**:
+  - `include/Hardware/Display/Glyphs5x5.h`: Added GLF_CORNERS glyph (index 33)
+  - `include/Hardware/Display/Glyphs8x8.h`: Added GLF_CORNERS glyph (index 28)
+  - `include/Hardware/Display/DisplayBase.h`: Added pulseCorners method
+  - `src/Hardware/Display/DisplayBase.cpp`: Implemented pulseCorners using drawGlyphOverlay
+  - `src/Hardware/Display/Matrix5x5/Display5x5.cpp`: Removed pulseCorners override
+  - `src/Hardware/Display/Matrix8x8/Display8x8.cpp`: Removed pulseCorners override
+  - `src/Application/STACApp.cpp`: Updated to use cornersGlyph from GlyphManager
+
+**Color Management Overhaul**
+- **Problem**: Manual boardColor() conversion causing incorrect colors on Waveshare (red instead of green)
+- **Root Cause**: Application code converting RGB→GRB manually, LiteLED also converting = double conversion
+- **Solution**: All colors defined as RGB, LiteLED handles hardware-specific conversion via LED strip type
+- **Changes**:
+  - ATOM Matrix: Set to LED_STRIP_WS2812 (GRB hardware order)
+  - Waveshare S3: Set to LED_STRIP_WS2812_RGB (RGB hardware order)
+  - Removed all boardColor() conversion functions (~20 lines)
+  - Removed makeGRB() helper function
+- **Color Constant Consolidation**:
+  - Added StandardColors::LIGHT_GREEN = makeRGB(0x1a, 0x80, 0x0d)
+  - Added StandardColors::BRIGHT_GREEN = makeRGB(0x00, 0xee, 0x00)
+  - Replaced magic numbers 0x1a800d and 0x00ee00 in STACApp.cpp
+  - All colors now in single StandardColors namespace
+- **Impact**:
+  - Eliminated 2 color magic numbers
+  - Removed ~30 lines of conversion code
+  - Correct colors on all hardware
+- **Files**:
+  - `include/Hardware/Display/Colors.h`: Removed boardColor() and makeGRB(), added LIGHT_GREEN/BRIGHT_GREEN
+  - `include/BoardConfigs/AtomMatrix_Config.h`: Changed to LED_STRIP_WS2812
+  - `include/BoardConfigs/WaveshareS3_Config.h`: Changed to LED_STRIP_WS2812_RGB
+  - `src/Hardware/Display/DisplayBase.cpp`: Removed all boardColor() calls
+  - `src/Application/STACApp.cpp`: Replaced magic number colors with StandardColors
+
+**Glyph System Cleanup**
+- **Problem**: Redundant enum class GlyphId and namespace GlyphIndex in both glyph files
+- **Solution**: Removed enum class GlyphId (45 lines from 5×5, 28 lines from 8×8), kept only GlyphIndex namespace
+- **Impact**: Simplified glyph references, eliminated redundancy
+- **Files**:
+  - `include/Hardware/Display/Glyphs5x5.h`: Removed enum class GlyphId
+  - `include/Hardware/Display/Glyphs8x8.h`: Removed enum class GlyphId
+
+**Custom Build Script Enhancement**
+- **Problem**: Previous binaries had generic names (merged-atom-matrix.bin, firmware-atom-matrix-ota.bin)
+- **Solution**: Updated custom_targets.py to use agreed naming convention with version extraction
+- **Naming Convention**:
+  - OTA: `STAC_v{version}_{board}_{build}.bin`
+  - Full flash: `STAC_v{version}_{board}_{build}_FULL.bin`
+  - Board codes: ATOM (Matrix 5×5), WS (Waveshare S3 8×8)
+  - Build codes: D3 (debug with LOG_LEVEL_DEBUG), R (release)
+- **Features**:
+  - Automatic version extraction from Device_Config.h using regex
+  - Build type detection from PlatformIO environment name and build_type
+  - Generates both merged (full flash) and OTA binaries with single command
+- **Examples**:
+  - `STAC_v3.0.0-RC.9_ATOM_D3.bin` - ATOM Matrix debug OTA (1.2M)
+  - `STAC_v3.0.0-RC.9_ATOM_D3_FULL.bin` - ATOM Matrix debug full flash (1.3M)
+  - `STAC_v3.0.0-RC.9_ATOM_R.bin` - ATOM Matrix release OTA (1.1M)
+  - `STAC_v3.0.0-RC.9_WS_R_FULL.bin` - Waveshare S3 release full flash (1.2M)
+- **Usage**: `pio run -e <environment> -t merged -t ota`
+- **Documentation**: Created `Documentation/Developer/Building Firmware Binaries.md` (complete build guide)
+- **Files**:
+  - `scripts/custom_targets.py`: Updated filename generation logic, added version/build extraction
+  - `Documentation/Developer/Building Firmware Binaries.md`: New comprehensive build documentation
+  - `README.md`: Added note about custom build script usage
+
+**Testing Results**:
+- ✅ All 8 firmware binaries generated successfully
+- ✅ ATOM Matrix (normal mode): Green corners displayed correctly (was red before color fix)
+- ✅ Waveshare S3 (8x8): All colors accurate
+- ✅ pulseCorners working from DisplayBase on both display sizes
+- ✅ All hardware configurations validated
+
+**Total Code Quality Improvements**:
+- Magic numbers eliminated: 18 total (16 corner pixels + 2 colors)
+- Lines removed: ~60 (duplicate implementations + conversion functions + redundant enums)
+- Architecture: Proper abstraction (DisplayBase), correct color management (LiteLED)
+- Maintainability: Single source of truth for colors, size-independent corner rendering
 
 ### Code Refactoring and API Updates (November 21, 2025)
 
