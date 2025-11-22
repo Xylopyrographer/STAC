@@ -11,7 +11,7 @@ All protocol namespaces use version tracking to support future migrations and up
 ## Namespaces
 
 ### 1. `wifi` Namespace
-**Purpose:** WiFi network credentials for infrastructure mode
+**Purpose:** WiFi network credentials for infrastructure (station) mode
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -19,8 +19,11 @@ All protocol namespaces use version tracking to support future migrations and up
 | `password` | String | WiFi network password |
 
 **Notes:**
-- Access Point mode credentials are hardcoded in firmware and not stored in NVS
-- Used when connecting to existing WiFi network
+- These credentials are for connecting to an **existing WiFi network** (infrastructure/station mode)
+- Configured by user during initial provisioning via web interface
+- Access Point mode credentials are hardcoded in firmware:
+  - SSID: Dynamically generated from STAC ID (e.g., "STAC-12345")
+  - Password: "1234567890" (hardcoded constant)
 
 ---
 
