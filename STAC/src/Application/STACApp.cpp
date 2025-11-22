@@ -322,7 +322,14 @@ namespace Application {
                         // Save if changed
                         if (ops.displayBrightnessLevel != oldBrightness) {
                             systemState->setOperations(ops);
-                            if (!configManager->saveOperations(ops)) {
+                            // Save to protocol-specific namespace
+                            bool saved = false;
+                            if ( ops.switchModel == "V-60HD" ) {
+                                saved = configManager->saveV60HDConfig( ops );
+                            } else if ( ops.switchModel == "V-160HD" ) {
+                                saved = configManager->saveV160HDConfig( ops );
+                            }
+                            if ( !saved ) {
                                 log_e("Failed to save brightness level");
                             }
                         }
@@ -472,31 +479,23 @@ void STACApp::handleNormalMode() {
     if ( !startupConfigDone ) {
         startupConfigDone = true;
 
-        // Load operations from NVS
+        // Load protocol-specific operations from NVS
         StacOperations ops;
-        if ( !configManager->loadOperations( ops ) ) {
-            log_w( "Failed to load operations from NVS, using defaults" );
-            ops = systemState->getOperations();
+        String protocol = configManager->getActiveProtocol();
+        bool opsLoaded = false;
+        
+        if ( protocol == "V-60HD" ) {
+            opsLoaded = configManager->loadV60HDConfig( ops );
+        } else if ( protocol == "V-160HD" ) {
+            opsLoaded = configManager->loadV160HDConfig( ops );
         }
         
-        // Sync switchModel from switch config if it's not set
-        if (ops.switchModel == "NO_MODEL") {
-            String switchModel;
-            IPAddress switchIP;
-            uint16_t switchPort;
-            String username, password;
-            if (configManager->loadSwitchConfig(switchModel, switchIP, switchPort, username, password)) {
-                ops.switchModel = switchModel;
-                // Set appropriate maxChannelCount based on model
-                if (switchModel == "V-60HD") {
-                    if (ops.maxChannelCount == 0 || ops.maxChannelCount > 8) {
-                        ops.maxChannelCount = 8;
-                    }
-                } else if (switchModel == "V-160HD") {
-                    ops.maxChannelCount = 0; // V-160HD uses maxHDMIChannel/maxSDIChannel
-                }
-                configManager->saveOperations(ops); // Save the synced model
-                log_i("Synced switchModel to operations: %s", switchModel.c_str());
+        if ( !opsLoaded ) {
+            log_w( "Failed to load protocol configuration from NVS, using defaults" );
+            ops = systemState->getOperations();
+            // Set switchModel from active protocol if available
+            if ( !protocol.isEmpty() ) {
+                ops.switchModel = protocol;
             }
         }
         
@@ -630,9 +629,15 @@ void STACApp::handleNormalMode() {
             // Update operations in system state
             systemState->setOperations( ops );
             
-            // Save operations to NVS
-            if ( !configManager->saveOperations( ops ) ) {
-                log_e( "Failed to save operations configuration after startup" );
+            // Save to protocol-specific namespace
+            bool saved = false;
+            if ( ops.switchModel == "V-60HD" ) {
+                saved = configManager->saveV60HDConfig( ops );
+            } else if ( ops.switchModel == "V-160HD" ) {
+                saved = configManager->saveV160HDConfig( ops );
+            }
+            if ( !saved ) {
+                log_e( "Failed to save protocol configuration after startup" );
             }
         }
     }
@@ -1024,8 +1029,15 @@ void STACApp::handleNormalMode() {
                 ops.channelBank = "hdmi_"; // Default to HDMI bank
             }
             
-            if (!configManager->saveOperations(ops)) {
-                log_e("Failed to save operations configuration");
+            // Save to protocol-specific namespace
+            bool saved = false;
+            if ( ops.switchModel == "V-60HD" ) {
+                saved = configManager->saveV60HDConfig( ops );
+            } else if ( ops.switchModel == "V-160HD" ) {
+                saved = configManager->saveV160HDConfig( ops );
+            }
+            if ( !saved ) {
+                log_e("Failed to save protocol configuration");
                 showError(6);
                 return;
             }
@@ -1067,8 +1079,17 @@ void STACApp::handleNormalMode() {
 
             // Load operations (for tally channel and bank)
             StacOperations ops;
-            if ( !configManager->loadOperations( ops ) ) {
-                log_w( "No operations configuration found" );
+            bool loaded = false;
+            
+            // Try loading from protocol-specific namespace based on switch model
+            if ( model == "V-60HD" ) {
+                loaded = configManager->loadV60HDConfig( ops );
+            } else if ( model == "V-160HD" ) {
+                loaded = configManager->loadV160HDConfig( ops );
+            }
+            
+            if ( !loaded ) {
+                log_w( "No protocol configuration found" );
                 return false;
             }
 
@@ -1384,7 +1405,12 @@ void STACApp::handleNormalMode() {
             prefs.clear();
             prefs.end();
             
-            prefs.begin("operations", false);
+            // Clear protocol-specific namespaces
+            prefs.begin("v60hd", false);
+            prefs.clear();
+            prefs.end();
+            
+            prefs.begin("v160hd", false);
             prefs.clear();
             prefs.end();
             

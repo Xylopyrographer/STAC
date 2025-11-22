@@ -110,70 +110,136 @@
             return true;
         }
 
-        bool ConfigManager::saveOperations( const StacOperations& ops ) {
-            if ( !prefs.begin( NS_OPERATIONS, false ) ) {
-                log_e( "Failed to open operations preferences" );
+        bool ConfigManager::saveV60HDConfig( const StacOperations& ops ) {
+            if ( !prefs.begin( NS_V60HD, false ) ) {
+                log_e( "Failed to open V-60HD preferences" );
                 return false;
             }
 
-            prefs.putString( "switchModel", ops.switchModel );
-            prefs.putUChar( "tallyChannel", ops.tallyChannel );
-            prefs.putUChar( "maxChannelCount", ops.maxChannelCount );
-            prefs.putString( "channelBank", ops.channelBank );
-            prefs.putUChar( "maxHDMI", ops.maxHDMIChannel );
-            prefs.putUChar( "maxSDI", ops.maxSDIChannel );
-            prefs.putBool( "autoStart", ops.autoStartEnabled );
-            prefs.putBool( "camOpMode", ops.cameraOperatorMode );
-            prefs.putUChar( "brightness", ops.displayBrightnessLevel );
-            prefs.putULong( "pollInterval", ops.statusPollInterval );
+            prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+            prefs.putUChar( KEY_MAX_CHANNEL, ops.maxChannelCount );
+            prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+            prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+            prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+            prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
             prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
             prefs.end();
 
-            log_i( "Operations saved" );
+            log_i( "V-60HD configuration saved" );
             return true;
         }
 
-        bool ConfigManager::loadOperations( StacOperations& ops ) {
-            if ( !prefs.begin( NS_OPERATIONS, true ) ) {
-                log_w( "No operations preferences found" );
+        bool ConfigManager::loadV60HDConfig( StacOperations& ops ) {
+            if ( !prefs.begin( NS_V60HD, true ) ) {
+                log_w( "No V-60HD configuration found" );
                 return false;
             }
 
-            ops.switchModel = prefs.getString( "switchModel", "V-60HD" );
-            ops.tallyChannel = prefs.getUChar( "tallyChannel", 1 );
-            ops.maxChannelCount = prefs.getUChar( "maxChannelCount", 8 );
-            ops.channelBank = prefs.getString( "channelBank", "hdmi_" );
-            ops.maxHDMIChannel = prefs.getUChar( "maxHDMI", 8 );
-            ops.maxSDIChannel = prefs.getUChar( "maxSDI", 8 );
+            ops.switchModel = "V-60HD";
+            ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+            ops.maxChannelCount = prefs.getUChar( KEY_MAX_CHANNEL, 8 );
+            ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+            ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+            ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+            ops.statusPollInterval = prefs.getULong( KEY_POLL_INTERVAL, 300 );
             
-            // Validate and correct channelBank based on tallyChannel for V-160HD
-            if (ops.switchModel == "V-160HD") {
-                if (ops.tallyChannel > 8) {
-                    ops.channelBank = "sdi_";
-                } else {
-                    ops.channelBank = "hdmi_";
-                }
+            // V-60HD doesn't use these fields
+            ops.channelBank = "";
+            ops.maxHDMIChannel = 0;
+            ops.maxSDIChannel = 0;
+            
+            // Validate maxChannelCount
+            if ( ops.maxChannelCount == 0 || ops.maxChannelCount > 8 ) {
+                ops.maxChannelCount = 8;
+                log_w( "Invalid maxChannelCount for V-60HD, set to 8" );
             }
             
-            // Validate maxChannelCount based on switch model
-            if (ops.switchModel == "V-60HD") {
-                if (ops.maxChannelCount == 0 || ops.maxChannelCount > 8) {
-                    ops.maxChannelCount = 8;
-                    log_w("Invalid maxChannelCount for V-60HD, set to 8");
-                }
-            } else if (ops.switchModel == "V-160HD") {
-                // V-160HD uses maxHDMIChannel and maxSDIChannel instead
-                ops.maxChannelCount = 0;
-            }
-            
-            ops.autoStartEnabled = prefs.getBool( "autoStart", false );
-            ops.cameraOperatorMode = prefs.getBool( "camOpMode", true );
-            ops.displayBrightnessLevel = prefs.getUChar( "brightness", 1 );
-            ops.statusPollInterval = prefs.getULong( "pollInterval", 300 );
             prefs.end();
 
-            log_v( "Operations loaded" );  // Changed to verbose to reduce log spam
+            log_i( "V-60HD configuration loaded" );
             return true;
+        }
+
+        bool ConfigManager::saveV160HDConfig( const StacOperations& ops ) {
+            if ( !prefs.begin( NS_V160HD, false ) ) {
+                log_e( "Failed to open V-160HD preferences" );
+                return false;
+            }
+
+            prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+            prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
+            prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
+            prefs.putString( KEY_CHANNEL_BANK, ops.channelBank );
+            prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+            prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+            prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+            prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
+            prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
+            prefs.end();
+
+            log_i( "V-160HD configuration saved" );
+            return true;
+        }
+
+        bool ConfigManager::loadV160HDConfig( StacOperations& ops ) {
+            if ( !prefs.begin( NS_V160HD, true ) ) {
+                log_w( "No V-160HD configuration found" );
+                return false;
+            }
+
+            ops.switchModel = "V-160HD";
+            ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+            ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 8 );
+            ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 8 );
+            ops.channelBank = prefs.getString( KEY_CHANNEL_BANK, "hdmi_" );
+            ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+            ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+            ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+            ops.statusPollInterval = prefs.getULong( KEY_POLL_INTERVAL, 300 );
+            
+            // V-160HD doesn't use maxChannelCount
+            ops.maxChannelCount = 0;
+            
+            // Validate and correct channelBank based on tallyChannel
+            if ( ops.tallyChannel > 8 ) {
+                ops.channelBank = "sdi_";
+            } else {
+                ops.channelBank = "hdmi_";
+            }
+            
+            prefs.end();
+
+            log_i( "V-160HD configuration loaded" );
+            return true;
+        }
+
+        String ConfigManager::getActiveProtocol() {
+            String model;
+            IPAddress ip;
+            uint16_t port;
+            String username, password;
+            
+            if ( loadSwitchConfig( model, ip, port, username, password ) ) {
+                return model;
+            }
+            
+            return "";
+        }
+
+        bool ConfigManager::hasProtocolConfig( const String& protocol ) {
+            bool exists = false;
+            if ( protocol == "V-60HD" ) {
+                if ( prefs.begin( NS_V60HD, true ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+            } else if ( protocol == "V-160HD" ) {
+                if ( prefs.begin( NS_V160HD, true ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+            }
+            return exists;
         }
 
         bool ConfigManager::saveStacID( const String &stacID ) {
@@ -223,6 +289,39 @@
             return stacID;
         }
 
+        bool ConfigManager::savePeripheralSettings( bool cameraMode, uint8_t brightnessLevel ) {
+            if ( !prefs.begin( NS_PERIPHERAL, false ) ) {
+                log_e( "Failed to open peripheral preferences" );
+                return false;
+            }
+
+            prefs.putBool( KEY_PM_CAMERA_MODE, cameraMode );
+            prefs.putUChar( KEY_PM_BRIGHTNESS, brightnessLevel );
+            prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
+            prefs.end();
+
+            log_i( "Peripheral settings saved: mode=%s, brightness=%d",
+                   cameraMode ? "Camera" : "Talent", brightnessLevel );
+            return true;
+        }
+
+        bool ConfigManager::loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel ) {
+            if ( !prefs.begin( NS_PERIPHERAL, true ) ) {
+                log_w( "No peripheral settings found, using defaults" );
+                cameraMode = false;  // Default to Talent mode
+                brightnessLevel = 1;  // Default to brightness level 1
+                return false;
+            }
+
+            cameraMode = prefs.getBool( KEY_PM_CAMERA_MODE, false );
+            brightnessLevel = prefs.getUChar( KEY_PM_BRIGHTNESS, 1 );
+            prefs.end();
+
+            log_i( "Peripheral settings loaded: mode=%s, brightness=%d",
+                   cameraMode ? "Camera" : "Talent", brightnessLevel );
+            return true;
+        }
+
         bool ConfigManager::isConfigured() {
             return hasWiFiCredentials();
         }
@@ -238,7 +337,15 @@
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_OPERATIONS, false );
+            prefs.begin( NS_V60HD, false );
+            prefs.clear();
+            prefs.end();
+
+            prefs.begin( NS_V160HD, false );
+            prefs.clear();
+            prefs.end();
+
+            prefs.begin( NS_PERIPHERAL, false );
             prefs.clear();
             prefs.end();
 
@@ -251,17 +358,66 @@
         }
 
         uint8_t ConfigManager::getConfigVersion() {
-            if ( !prefs.begin( NS_OPERATIONS, true ) ) {
-                return 0;
+            // Check both protocol namespaces and return the one that exists
+            if ( prefs.begin( NS_V60HD, true ) ) {
+                uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
+                prefs.end();
+                if ( version > 0 ) return version;
             }
 
-            uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
-            prefs.end();
+            if ( prefs.begin( NS_V160HD, true ) ) {
+                uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
+                prefs.end();
+                return version;
+            }
 
-            return version;
+            return 0;
         }
 
         bool ConfigManager::checkAndMigrateConfig() {
+            // Check if old "operations" namespace exists (pre-protocol-refactor)
+            bool hasOldOperations = false;
+            StacOperations oldOps;
+            String oldModel;
+            
+            if ( prefs.begin( "operations", true ) ) {
+                hasOldOperations = prefs.isKey( "switchModel" );
+                if ( hasOldOperations ) {
+                    // Load old operations data
+                    oldModel = prefs.getString( "switchModel", "V-60HD" );
+                    oldOps.switchModel = oldModel;
+                    oldOps.tallyChannel = prefs.getUChar( "tallyChannel", 1 );
+                    oldOps.maxChannelCount = prefs.getUChar( "maxChannelCount", 8 );
+                    oldOps.channelBank = prefs.getString( "channelBank", "hdmi_" );
+                    oldOps.maxHDMIChannel = prefs.getUChar( "maxHDMI", 8 );
+                    oldOps.maxSDIChannel = prefs.getUChar( "maxSDI", 8 );
+                    oldOps.autoStartEnabled = prefs.getBool( "autoStart", false );
+                    oldOps.cameraOperatorMode = prefs.getBool( "camOpMode", true );
+                    oldOps.displayBrightnessLevel = prefs.getUChar( "brightness", 1 );
+                    oldOps.statusPollInterval = prefs.getULong( "pollInterval", 300 );
+                    
+                    log_i( "Found old operations namespace, migrating to %s protocol namespace", oldModel.c_str() );
+                }
+                prefs.end();
+            }
+            
+            // Migrate old operations to new protocol-specific namespace
+            if ( hasOldOperations ) {
+                if ( oldModel == "V-60HD" ) {
+                    saveV60HDConfig( oldOps );
+                    log_i( "Migrated configuration to v60hd namespace" );
+                } else if ( oldModel == "V-160HD" ) {
+                    saveV160HDConfig( oldOps );
+                    log_i( "Migrated configuration to v160hd namespace" );
+                }
+                
+                // Clear old operations namespace after successful migration
+                prefs.begin( "operations", false );
+                prefs.clear();
+                prefs.end();
+                log_i( "Cleared old operations namespace" );
+            }
+            
             uint8_t currentVersion = getConfigVersion();
 
             if ( currentVersion == 0 ) {
@@ -273,48 +429,9 @@
                 log_i( "Configuration version %d is older than current %d",
                        currentVersion, Config::NVS::NOM_PREFS_VERSION );
                 log_i( "Migration may be needed (not implemented yet)" );
-                // TODO: Implement migration logic if needed
+                // TODO: Implement additional migration logic if needed
             }
 
-            return true;
-        }
-
-        bool ConfigManager::savePeripheralSettings( bool cameraMode, uint8_t brightnessLevel ) {
-            if ( !prefs.begin( "PModePrefs", false ) ) {
-                log_e( "Failed to open PModePrefs namespace" );
-                return false;
-            }
-
-            prefs.putUShort( "pmPrefVer", Config::NVS::PM_PREFS_VERSION );
-            prefs.putBool( "pmct", cameraMode );
-            prefs.putUChar( "pmbrightness", brightnessLevel );
-            prefs.end();
-
-            log_i( "Peripheral settings saved: mode=%s, brightness=%d",
-                   cameraMode ? "Camera" : "Talent", brightnessLevel );
-            return true;
-        }
-
-        bool ConfigManager::loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel ) {
-            if ( !prefs.begin( "PModePrefs", true ) ) {
-                log_w( "PModePrefs namespace not found" );
-                return false;
-            }
-
-            // Check version
-            if ( !prefs.isKey( "pmPrefVer" ) ||
-                 prefs.getUShort( "pmPrefVer" ) != Config::NVS::PM_PREFS_VERSION ) {
-                prefs.end();
-                log_w( "Peripheral prefs version mismatch or missing" );
-                return false;
-            }
-
-            cameraMode = prefs.getBool( "pmct", false );
-            brightnessLevel = prefs.getUChar( "pmbrightness", 1 );
-            prefs.end();
-
-            log_v( "Peripheral settings loaded: mode=%s, brightness=%d",
-                   cameraMode ? "Camera" : "Talent", brightnessLevel );
             return true;
         }
 

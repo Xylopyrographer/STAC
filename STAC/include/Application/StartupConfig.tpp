@@ -276,7 +276,13 @@ namespace Application {
                 
                 // Save if changed
                 if (originalChannel != ops.tallyChannel) {
-                    if (!configManager->saveOperations(ops)) {
+                    bool saved = false;
+                    if ( ops.switchModel == "V-60HD" ) {
+                        saved = configManager->saveV60HDConfig( ops );
+                    } else if ( ops.switchModel == "V-160HD" ) {
+                        saved = configManager->saveV160HDConfig( ops );
+                    }
+                    if ( !saved ) {
                         log_e("Failed to save tally channel");
                     }
                 }
@@ -356,7 +362,13 @@ namespace Application {
                 // Save if changed
                 if (originalMode != currentMode) {
                     ops.cameraOperatorMode = currentMode;
-                    if (!configManager->saveOperations(ops)) {
+                    bool saved = false;
+                    if ( ops.switchModel == "V-60HD" ) {
+                        saved = configManager->saveV60HDConfig( ops );
+                    } else if ( ops.switchModel == "V-160HD" ) {
+                        saved = configManager->saveV160HDConfig( ops );
+                    }
+                    if ( !saved ) {
                         log_e("Failed to save tally mode");
                     }
                 }
@@ -438,7 +450,13 @@ namespace Application {
                 // Save if changed
                 if (originalMode != currentMode) {
                     ops.autoStartEnabled = currentMode;
-                    if (!configManager->saveOperations(ops)) {
+                    bool saved = false;
+                    if ( ops.switchModel == "V-60HD" ) {
+                        saved = configManager->saveV60HDConfig( ops );
+                    } else if ( ops.switchModel == "V-160HD" ) {
+                        saved = configManager->saveV160HDConfig( ops );
+                    }
+                    if ( !saved ) {
                         log_e("Failed to save startup mode");
                     }
                 }
@@ -574,7 +592,13 @@ namespace Application {
                 
                 // Save if changed
                 if (originalBrightness != currentBrightness) {
-                    if (!configManager->saveOperations(ops)) {
+                    bool saved = false;
+                    if ( ops.switchModel == "V-60HD" ) {
+                        saved = configManager->saveV60HDConfig( ops );
+                    } else if ( ops.switchModel == "V-160HD" ) {
+                        saved = configManager->saveV160HDConfig( ops );
+                    }
+                    if ( !saved ) {
                         log_e("Failed to save brightness level");
                     }
                 }

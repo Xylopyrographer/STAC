@@ -86,22 +86,49 @@
                                    String &username, String &password );
 
             // ========================================================================
-            // Operating Parameters
+            // Protocol-Specific Operating Parameters
             // ========================================================================
 
             /**
-             * @brief Save operating parameters
-             * @param ops StacOperations structure
+             * @brief Save V-60HD protocol configuration
+             * @param ops StacOperations structure containing V-60HD settings
              * @return true if saved successfully
              */
-            bool saveOperations( const StacOperations& ops );
+            bool saveV60HDConfig( const StacOperations& ops );
 
             /**
-             * @brief Load operating parameters
-             * @param ops Output: StacOperations structure
-             * @return true if parameters exist
+             * @brief Load V-60HD protocol configuration
+             * @param ops Output: StacOperations structure with V-60HD settings
+             * @return true if configuration exists
              */
-            bool loadOperations( StacOperations& ops );
+            bool loadV60HDConfig( StacOperations& ops );
+
+            /**
+             * @brief Save V-160HD protocol configuration
+             * @param ops StacOperations structure containing V-160HD settings
+             * @return true if saved successfully
+             */
+            bool saveV160HDConfig( const StacOperations& ops );
+
+            /**
+             * @brief Load V-160HD protocol configuration
+             * @param ops Output: StacOperations structure with V-160HD settings
+             * @return true if configuration exists
+             */
+            bool loadV160HDConfig( StacOperations& ops );
+
+            /**
+             * @brief Get currently active protocol
+             * @return Protocol name ("V-60HD", "V-160HD", or empty if not set)
+             */
+            String getActiveProtocol();
+
+            /**
+             * @brief Check if a specific protocol has configuration stored
+             * @param protocol Protocol name ("V-60HD" or "V-160HD")
+             * @return true if protocol configuration exists
+             */
+            bool hasProtocolConfig( const String& protocol );
 
             // ========================================================================
             // STAC Identity
@@ -171,18 +198,43 @@
             // Namespace names for different config areas
             static constexpr const char *NS_WIFI = "wifi";
             static constexpr const char *NS_SWITCH = "switch";
-            static constexpr const char *NS_OPERATIONS = "operations";
+            static constexpr const char *NS_V60HD = "v60hd";
+            static constexpr const char *NS_V160HD = "v160hd";
             static constexpr const char *NS_IDENTITY = "identity";
+            static constexpr const char *NS_PERIPHERAL = "peripheral";
 
-            // Key names
+            // Key names - WiFi
             static constexpr const char *KEY_VERSION = "version";
             static constexpr const char *KEY_SSID = "ssid";
             static constexpr const char *KEY_PASSWORD = "password";
+            
+            // Key names - Switch
             static constexpr const char *KEY_MODEL = "model";
             static constexpr const char *KEY_IP = "ip";
             static constexpr const char *KEY_PORT = "port";
             static constexpr const char *KEY_USERNAME = "username";
+            
+            // Key names - Identity
             static constexpr const char *KEY_STAC_ID = "stacid";
+            
+            // Key names - Protocol Operations (common)
+            static constexpr const char *KEY_TALLY_CHANNEL = "tallyChannel";
+            static constexpr const char *KEY_BRIGHTNESS = "brightness";
+            static constexpr const char *KEY_AUTO_START = "autoStart";
+            static constexpr const char *KEY_CAM_OP_MODE = "camOpMode";
+            static constexpr const char *KEY_POLL_INTERVAL = "pollInterval";
+            
+            // Key names - V-60HD specific
+            static constexpr const char *KEY_MAX_CHANNEL = "maxChannel";
+            
+            // Key names - V-160HD specific
+            static constexpr const char *KEY_MAX_HDMI = "maxHDMI";
+            static constexpr const char *KEY_MAX_SDI = "maxSDI";
+            static constexpr const char *KEY_CHANNEL_BANK = "channelBank";
+            
+            // Key names - Peripheral Mode
+            static constexpr const char *KEY_PM_CAMERA_MODE = "pmCamMode";
+            static constexpr const char *KEY_PM_BRIGHTNESS = "pmBrightness";
 
             /**
              * @brief Check and migrate configuration if needed
