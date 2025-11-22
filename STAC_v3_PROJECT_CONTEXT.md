@@ -3,8 +3,8 @@
 **Date:** November 21, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Ready for testing - Code refactoring and API updates complete  
-**Last Session:** Major code refactoring (Display, Network, State), NetworkClient API update, binary generation
+**Status:** Ready for testing - Protocol-specific namespace refactoring complete  
+**Last Session:** NVS namespace architecture refactoring, factory reset fixes, documentation updates
 
 ---
 
@@ -22,6 +22,14 @@
 - **Code Refactoring**: Display, Network, State management - ~330+ lines of duplication eliminated
 - **API Updates**: NetworkClient.flush() → clear() for arduino-esp32 v3.3.2+ compatibility
 - **Build System**: Release binary generation with standardized naming convention
+- **Factory Reset**: Fixed to match baseline v2.x behavior (single flash, infinite park)
+- **Button Sequence**: Skip factory reset when unconfigured (matches User's Guide)
+- **NVS Architecture Refactoring**: Protocol-specific namespaces (v60hd, v160hd)
+  - Migrated from unified 'operations' namespace to protocol-specific namespaces
+  - Automatic migration logic preserves existing configurations
+  - Improved extensibility for future protocols (ATEM, VMix, etc.)
+  - Complete separation of protocol parameters (no "dead" keys)
+- **Documentation**: NVS_Namespace_Structure.md v2.0 with complete architecture details
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
@@ -905,6 +913,66 @@ git push origin main --tags
 # refactor/phase1-foundation: Development history
 # v3_RC: Release candidate testing
 ```
+
+---
+
+## Recent Changes (November 21, 2025)
+
+### Factory Reset and Button Sequence Fixes
+- **Factory Reset Behavior**: Fixed to match baseline v2.x
+  - Single flash confirmation (was 5x flash + green checkmark)
+  - Infinite park with factory reset glyph displayed (was auto-restart)
+  - Clears all NVS namespaces: stac, wifi, switch, v60hd, v160hd, peripheral
+- **Button Sequence Logic**: Updated to skip factory reset when unconfigured
+  - Unconfigured state starts at OTA_UPDATE_PENDING
+  - Configured state starts at PROVISIONING_PENDING → FACTORY_RESET_PENDING → OTA_UPDATE_PENDING
+  - Added serial output "***** STAC not configured *****"
+  - Matches User's Guide: "You cannot do a Factory Reset if the red Configuration Required icon is displayed"
+
+### NVS Architecture Refactoring
+**Major architectural improvement for better extensibility and maintainability.**
+
+**Changes:**
+- Replaced unified `operations` namespace with protocol-specific namespaces:
+  - `v60hd`: Roland V-60HD operational parameters
+  - `v160hd`: Roland V-160HD operational parameters
+- Updated ConfigManager API with protocol-specific methods:
+  - `saveV60HDConfig()`, `loadV60HDConfig()` for V-60HD
+  - `saveV160HDConfig()`, `loadV160HDConfig()` for V-160HD
+  - `getActiveProtocol()` for protocol detection
+  - `hasProtocolConfig()` for namespace validation
+- Added automatic migration from legacy `operations` namespace:
+  - Detects old namespace on first boot after update
+  - Migrates all parameters to appropriate protocol namespace
+  - Clears old namespace after successful migration
+- Updated all save/load call sites (8 locations):
+  - STACApp.cpp: startup sequence, provisioning, info printer, Roland client init
+  - StartupConfig.tpp: tally channel, camera/talent mode, startup mode, brightness
+- Updated factory reset to clear new namespaces (v60hd, v160hd)
+- Updated NVS documentation (v2.0) with new architecture
+
+**Benefits:**
+- Clean separation: each protocol fully self-contained
+- No dead keys: no unused parameters for inactive protocols
+- Extensibility: easy to add new protocols (ATEM, VMix, etc.)
+- Protocol independence: no parameter conflicts when switching models
+- Better maintainability: clearer code organization
+
+**Migration:**
+- Transparent on first boot after update
+- Preserves all existing configuration data
+- Serial output: "Found old operations namespace, migrating to V-60HD protocol namespace"
+
+**Testing:**
+- Build: Successful compilation, all warnings resolved
+- Hardware: Tested on ATOM Matrix, migration successful from RC.8 configuration
+- Operational: V-60HD client functioning correctly with migrated settings
+
+**Commits:**
+- `4890891`: Fix factory reset behavior to match baseline v2.x
+- `60e61b0`: Add NVS namespace structure documentation
+- `b085803`: Refactor to protocol-specific NVS namespaces
+- `a48d83b`: Update NVS documentation: clarify WiFi namespace usage
 
 ---
 
