@@ -4,7 +4,7 @@
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
 **Status:** Ready for testing - Protocol-specific namespace refactoring complete  
-**Last Session:** NVS namespace architecture refactoring, factory reset fixes, documentation updates
+**Last Session:** Build versioning enhancement - build type and debug level display
 
 ---
 
@@ -30,6 +30,11 @@
   - Improved extensibility for future protocols (ATEM, VMix, etc.)
   - Complete separation of protocol parameters (no "dead" keys)
 - **Documentation**: NVS_Namespace_Structure.md v2.0 with complete architecture details
+- **Build Versioning Enhancement**: Build type and debug level display in version string
+  - Automatic extraction from PlatformIO configuration
+  - Clean version display for release builds: "3.0.0-RC.9 (b26d99)"
+  - Annotated version for dev builds: "3.0.0-RC.9 (6928a8) D3"
+  - Separate release environments for production builds
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
@@ -238,9 +243,9 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 - **Documentation**: New file `Documentation/Developer/Automatic Build Versioning.md`
 - **Old Method**: Renamed to `Creating the build number (v2-manual-obsolete).md`
 - **Files**:
-  - `scripts/build_version.py` (165 lines)
+  - `scripts/build_version.py` (204 lines)
   - `platformio.ini` (registered pre-action)
-  - `.gitignore` (excludes build_info.h)
+  - `.gitignore` (excludes build_info.h, scripts/__pycache__)
 
 **Build Number Display** (Commit: 0b7b71e)
 - **Integration**: Updated `InfoPrinter.h` to display build information at startup
@@ -255,6 +260,31 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
   - New Build line shows `BUILD_GIT_COMMIT` and `BUILD_DATE`
 - **Impact**: Users can easily identify which exact build is running on a device
 - **Files**: `include/Utils/InfoPrinter.h`
+
+**Build Type and Debug Level Display** (Commit: 3c8b41f)
+- **Problem**: Different debug levels produce different binaries with same build number (MD5 only covers source)
+- **Solution**: Append build type and debug level to version string for non-release builds
+- **Features**:
+  - Extracts `build_type` from PlatformIO environment (debug/release/test)
+  - Maps to single character: D (debug), R (release), T (test)
+  - Extracts `CORE_DEBUG_LEVEL` from build flags (0-5)
+  - Adds `BUILD_TYPE_CHAR` and `BUILD_DEBUG_LEVEL` defines to build_info.h
+  - Conditional display logic in InfoPrinter.h
+- **Version Display Examples**:
+  - Release build (R0): `Version: 3.0.0-RC.9 (b26d99)` (clean - no suffix)
+  - Debug build (D3): `Version: 3.0.0-RC.9 (6928a8) D3`
+  - Test build (T5): `Version: 3.0.0-RC.9 (abc123) T5`
+- **Build Environments**:
+  - Development: `atom-matrix`, `waveshare-s3` (build_type=debug, CORE_DEBUG_LEVEL=3)
+  - Production: `atom-matrix-release`, `waveshare-s3-release` (build_type=release, CORE_DEBUG_LEVEL=0)
+- **Size Comparison**:
+  - Debug build: 1,291,219 bytes
+  - Release build: 1,186,583 bytes (~100KB smaller)
+- **Files**:
+  - `scripts/build_version.py` - Extract build configuration and add to defines
+  - `include/Utils/InfoPrinter.h` - Conditional suffix display logic
+  - `platformio.ini` - Release build environment configurations
+  - `.gitignore` - Added scripts/__pycache__/
 
 ### Code Cleanup (November 21, 2025)
 
@@ -763,11 +793,15 @@ Define:
 # Navigate to project
 cd /Users/robl/Documents/PlatformIO/Projects/STAC3/STAC
 
-# Build
-pio run
+# Development builds (with debug logging)
+pio run -e atom-matrix              # Build for ATOM Matrix (debug mode, level 3)
+pio run -e waveshare-s3             # Build for Waveshare (debug mode, level 3)
+pio run -e atom-matrix -t upload   # Upload debug build
 
-# Upload
-pio run -t upload
+# Production builds (optimized, no logging)
+pio run -e atom-matrix-release      # Build for ATOM Matrix (release mode, level 0)
+pio run -e waveshare-s3-release     # Build for Waveshare (release mode, level 0)
+pio run -e atom-matrix-release -t upload   # Upload release build
 
 # Monitor serial
 pio device monitor -b 115200
@@ -775,6 +809,21 @@ pio device monitor -b 115200
 # Combined (upload and monitor)
 pio run -t upload && pio device monitor -b 115200
 ```
+
+**Build Configuration:**
+- **Development**: `build_type=debug`, `CORE_DEBUG_LEVEL=3` (INFO)
+  - Version shows suffix: `3.0.0-RC.9 (6928a8) D3`
+  - More verbose logging
+  - Larger binary (~1.29MB)
+- **Production**: `build_type=release`, `CORE_DEBUG_LEVEL=0` (NONE)
+  - Clean version: `3.0.0-RC.9 (b26d99)`
+  - No debug logging
+  - Smaller binary (~1.19MB)
+
+**Changing Build Configuration:**
+Edit `platformio.ini`:
+- `[common_settings]`: Change `build_type` (debug/release/test)
+- `[debug_level]`: Change `CORE_DEBUG_LEVEL` (0-5)
 
 ### Expected Output
 
@@ -879,7 +928,8 @@ main (or master)                # Production/release branch
 ### Recent Commits (v3_RC)
 
 ```
-0b7b71e (HEAD -> v3_RC) feat: Display build number in serial startup output
+3c8b41f (HEAD -> v3_RC) Add build type and debug level to version display
+0b7b71e feat: Display build number in serial startup output
 9f10899 feat: Add automatic build versioning system
 8a8f1e9 docs: Update context for code cleanup commit
 286e690 refactor: Remove refactoring artifacts from STACApp
@@ -973,6 +1023,8 @@ git push origin main --tags
 - `60e61b0`: Add NVS namespace structure documentation
 - `b085803`: Refactor to protocol-specific NVS namespaces
 - `a48d83b`: Update NVS documentation: clarify WiFi namespace usage
+- `2911d36`: Update project context with NVS refactoring details
+- `3c8b41f`: Add build type and debug level to version display
 
 ---
 
@@ -1139,7 +1191,7 @@ Next step: Final testing, then merge to main and tag v3.0.0.
 ---
 
 *Last Updated: November 21, 2025*  
-*Context Document Version: 2.4*  
+*Context Document Version: 2.5*  
 *Project Version: v3.0.0-RC.9*
 
 <!-- End of Context Document -->
