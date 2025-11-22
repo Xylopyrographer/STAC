@@ -35,7 +35,20 @@ public:
         Serial.println("      github.com/Xylopyrographer/STAC");
         Serial.println();
         Serial.print("    Version: "); 
-        Serial.println(BUILD_FULL_VERSION);  // Shows "3.0.0-RC.9 (a1b2c3)"
+        
+        // Print version with build number
+        Serial.print(BUILD_FULL_VERSION);  // Shows "3.0.0-RC.9 (a1b2c3)"
+        
+        // Add build type and debug level suffix if not a clean release build
+        // Release build with no debug logging shows clean version only
+        // Check if build type is NOT release OR debug level is NOT 0
+        if (String(BUILD_TYPE_CHAR) != "R" || String(BUILD_DEBUG_LEVEL) != "0") {
+            Serial.print(" ");
+            Serial.print(BUILD_TYPE_CHAR);
+            Serial.print(BUILD_DEBUG_LEVEL);
+        }
+        
+        Serial.println();
         Serial.print("    Build: ");
         Serial.print(BUILD_GIT_COMMIT);
         Serial.print(" @ ");

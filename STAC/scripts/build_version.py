@@ -122,6 +122,26 @@ def generate_build_info():
     build_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     build_date = datetime.now().strftime("%Y-%m-%d")
     
+    # Determine build type from PlatformIO build_type setting
+    # PlatformIO has exactly 3 build types: release, debug, test
+    build_type = env.get("BUILD_TYPE", "release")  # Default to release if not set
+    
+    # Map build type to single character
+    build_type_map = {
+        "debug": "D",
+        "release": "R",
+        "test": "T"
+    }
+    build_type_char = build_type_map.get(build_type, "?")
+    
+    # Extract CORE_DEBUG_LEVEL from build flags
+    debug_level = "?"
+    build_flags = env.get("BUILD_FLAGS", [])
+    for flag in build_flags:
+        if isinstance(flag, str) and "CORE_DEBUG_LEVEL=" in flag:
+            debug_level = flag.split("=")[1]
+            break
+    
     # Generate header file
     header_path = project_dir / "include" / "build_info.h"
     
@@ -146,6 +166,10 @@ def generate_build_info():
 #define BUILD_TIMESTAMP "{build_time}"
 #define BUILD_DATE "{build_date}"
 
+// Build type and debug level
+#define BUILD_TYPE_CHAR "{build_type_char}"
+#define BUILD_DEBUG_LEVEL "{debug_level}"
+
 // Full version string with build info
 #define BUILD_FULL_VERSION "{sw_version} ({build_number})"
 
@@ -167,6 +191,8 @@ def generate_build_info():
     print(f"  Git Commit:   {git_commit}{git_dirty}")
     print(f"  Git Branch:   {git_branch}")
     print(f"  Build Time:   {build_time}")
+    print(f"  Build Type:   {build_type_char}")
+    print(f"  Debug Level:  {debug_level}")
     print("=" * 60)
 
 
