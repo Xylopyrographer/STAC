@@ -1345,36 +1345,11 @@ using namespace Display;
         // Print factory reset notification to serial
         Utils::InfoPrinter::printReset();
 
-        // Clear all NVS data
-        log_i( "Clearing all NVS configuration data" );
-
-        // Clear each namespace
-        Preferences prefs;
-
-        prefs.begin( "stac", false );
-        prefs.clear();
-        prefs.end();
-
-        prefs.begin( "wifi", false );
-        prefs.clear();
-        prefs.end();
-
-        prefs.begin( "switch", false );
-        prefs.clear();
-        prefs.end();
-
-        // Clear protocol-specific namespaces
-        prefs.begin( "v60hd", false );
-        prefs.clear();
-        prefs.end();
-
-        prefs.begin( "v160hd", false );
-        prefs.clear();
-        prefs.end();
-
-        prefs.begin( "peripheral", false );
-        prefs.clear();
-        prefs.end();
+        // Clear all NVS data using ConfigManager
+        if ( !configManager->clearAll() ) {
+            log_e( "Factory reset failed - NVS clear unsuccessful" );
+            return;
+        }
 
         log_i( "Factory reset complete" );
 

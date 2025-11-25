@@ -351,34 +351,23 @@ using namespace Config::Storage;
         }
 
         bool ConfigManager::clearAll() {
-            // @Claude: Let's use the esp-idf NVS functions presented elsewhere to clear out NVS.
-            log_i( "Clearing all configuration" );
+            log_i( "Clearing all NVS configuration data" );
 
-            prefs.begin( NS_WIFI, READ_WRITE );
-            prefs.clear();
-            prefs.end();
+            // Use esp-idf functions to erase entire NVS partition
+            // This is simpler, faster, and more reliable than clearing each namespace individually
+            esp_err_t err = nvs_flash_erase();
+            if ( err != ESP_OK ) {
+                log_e( "Failed to erase NVS flash: %s", esp_err_to_name( err ) );
+                return false;
+            }
 
-            prefs.begin( NS_SWITCH, READ_WRITE );
-            prefs.clear();
-            prefs.end();
+            err = nvs_flash_init();
+            if ( err != ESP_OK ) {
+                log_e( "Failed to reinitialize NVS flash: %s", esp_err_to_name( err ) );
+                return false;
+            }
 
-            prefs.begin( NS_V60HD, READ_WRITE );
-            prefs.clear();
-            prefs.end();
-
-            prefs.begin( NS_V160HD, READ_WRITE );
-            prefs.clear();
-            prefs.end();
-
-            prefs.begin( NS_PERIPHERAL, READ_WRITE );
-            prefs.clear();
-            prefs.end();
-
-            prefs.begin( NS_IDENTITY, READ_WRITE );
-            prefs.clear();
-            prefs.end();
-
-            log_i( "All configuration cleared" );
+            log_i( "NVS flash erased and reinitialized" );
             return true;
         }
 

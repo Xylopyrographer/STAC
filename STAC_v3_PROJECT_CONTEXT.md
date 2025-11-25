@@ -3,8 +3,8 @@
 **Date:** November 24, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Hardware tested - Startup sequence improvements complete  
-**Last Session:** Pre-release code quality improvements (Phases 1-4)
+**Status:** Hardware tested - Pre-release code quality complete  
+**Last Session:** NVS factory reset optimization + code quality improvements (Phases 1-4)
 
 ---
 
@@ -49,6 +49,16 @@
   - Automatic version extraction from Device_Config.h
   - PlatformIO targets: `pio run -e <env> -t merged -t ota`
   - Documentation: Building Firmware Binaries.md
+- **Pre-Release Code Quality** (November 24, 2025): ~180 LOC reduction across 4 phases
+  - Phase 1: Helper methods (isProvisioned), storage constants, yield removal
+  - Phase 2: Board-specific brightness maps, glyph rename (GLF_PO)
+  - Phase 2b: Separate glyph headers per display size
+  - Phase 3: Centralized provisioning, simplified boot sequence, autostart fix
+  - Phase 4: Switch model helpers (isV60HD, isV160HD)
+- **NVS Factory Reset Optimization**: Simplified using esp-idf functions
+  - Replaced 30+ lines of manual namespace clearing with nvs_flash_erase/init
+  - Single source of truth in ConfigManager::clearAll()
+  - Future-proof and more reliable
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
@@ -144,6 +154,27 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### NVS Factory Reset Optimization (November 24, 2025)
+
+**Factory Reset Simplification**
+- **Problem**: Factory reset logic duplicated in two places (ConfigManager::clearAll() and STACApp::handleFactoryReset())
+  - ConfigManager had 18 lines manually clearing each namespace individually
+  - STACApp had 30+ lines duplicating the same clearing logic
+  - Brittle - adding new namespaces required updating both locations
+- **Solution**: Single source of truth using esp-idf NVS functions
+  - ConfigManager::clearAll() now uses nvs_flash_erase() + nvs_flash_init()
+  - STACApp::handleFactoryReset() calls configManager->clearAll()
+  - Added proper error handling with esp_err_to_name()
+- **Benefits**:
+  - Simplified from 30+ lines to 2 function calls
+  - Future-proof - adding namespaces doesn't require updating factory reset
+  - More reliable - complete NVS partition erase, no orphaned data
+  - Proper separation of concerns - ConfigManager owns all NVS operations
+- **Files Modified**:
+  - `include/Storage/ConfigManager.h` - Added nvs_flash.h include, clarified comments
+  - `src/Storage/ConfigManager.cpp` - Replaced manual clearing with nvs_flash_erase/init
+  - `src/Application/STACApp.cpp` - Removed duplicate code, calls configManager->clearAll()
 
 ### Pre-Release Code Quality Improvements (November 24, 2025)
 

@@ -3,6 +3,7 @@
 
 #include <Preferences.h>
 #include <IPAddress.h>
+#include <nvs_flash.h>
 #include "Config/Types.h"
 #include "Config/Constants.h"
 
@@ -200,20 +201,10 @@
             uint8_t getConfigVersion();
 
           private:
-
-            /*
-            * @Claude: We only have a single Preferences namespace defined, not separate ones for 
-            * each config area as we discussed. This setup doesn't give us the separation we wanted.
-            * It creates all keys in the same namespace, not dynamically as needed.
-            * Managing each makes it a bit more work though for sure.
-            * To simplify clearing NVS later for factory reset we should use the esp-idf functions:
-            *   nvs_flash_erase(void)
-            *   nvs_flash_init(void)
-            */
-
+            // Single Preferences object used to access multiple NVS namespaces
+            // Each prefs.begin(namespace) call opens a different NVS partition
             Preferences prefs;
 
-            // @Claude: Again, these aren't separate namespaces? They all exist in the same 'prefs' instance?
             // Namespace names for different config areas
             static constexpr const char *NS_WIFI = "wifi";
             static constexpr const char *NS_SWITCH = "switch";
