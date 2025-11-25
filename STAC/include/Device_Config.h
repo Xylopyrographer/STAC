@@ -12,17 +12,24 @@
     // If building with PlatformIO, the board is set via platformio.ini
     // If building with Arduino IDE, uncomment ONE of these:
 
+    /**
+     *  QUESTION(Claude): Should we have a better way to select boards?
+     *  The user should put the board name/type in the  {board}_Config.h file and we adpot it from there?
+     * 
+     */ 
+
+
     #ifndef BOARD_M5STACK_ATOM_MATRIX
-        #ifndef BOARD_WAVESHARE_ESP32_S3_MATRIX
-            #ifndef BOARD_CUSTOM_5X5
-                #ifndef BOARD_CUSTOM_8X8
-                    #define BOARD_M5STACK_ATOM_MATRIX
-                    // #define BOARD_WAVESHARE_ESP32_S3_MATRIX
-                    // #define BOARD_CUSTOM_5X5
-                    // #define BOARD_CUSTOM_8X8
-                #endif
-            #endif
-        #endif
+    #ifndef BOARD_WAVESHARE_ESP32_S3_MATRIX
+    #ifndef BOARD_CUSTOM_5X5
+    #ifndef BOARD_CUSTOM_8X8
+    #define BOARD_M5STACK_ATOM_MATRIX
+    // #define BOARD_WAVESHARE_ESP32_S3_MATRIX
+    // #define BOARD_CUSTOM_5X5
+    // #define BOARD_CUSTOM_8X8
+    #endif
+    #endif
+    #endif
     #endif
 
     // ============================================================================
@@ -49,6 +56,7 @@
     // SOFTWARE VERSION
     // ============================================================================
 
+    // FIXME(Claude): This is better in STACApp or ??
     #define STAC_SOFTWARE_VERSION "3.0.0-RC.9"  // Software version string
 
 #endif // DEVICE_CONFIG_H

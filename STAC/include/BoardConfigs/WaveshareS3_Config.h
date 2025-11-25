@@ -1,6 +1,9 @@
 #ifndef WAVESHARE_S3_CONFIG_H
     #define WAVESHARE_S3_CONFIG_H
 
+    // Include glyph definitions for this display size
+    #include "Hardware/Display/Glyphs8x8.h"
+
     // ============================================================================
     // WAVESHARE ESP32-S3-MATRIX CONFIGURATION
     // ============================================================================
@@ -34,9 +37,9 @@
     #define DISPLAY_POWER_LED_PIXEL 27
 
     // Brightness limits
-    #define DISPLAY_BRIGHTNESS_MIN 0
-    #define DISPLAY_BRIGHTNESS_MAX 60
-    #define DISPLAY_BRIGHTNESS_DEFAULT 10
+    // Brightness map: index 0 is unused, indices 1-N are user-selectable levels
+    // Default brightness is always map[1] (second entry)
+    #define BOARD_BRIGHTNESS_MAP { 0, 5, 10, 15, 20, 25, 30, 35, 40 }
 
     // ============================================================================
     // BUTTON CONFIGURATION

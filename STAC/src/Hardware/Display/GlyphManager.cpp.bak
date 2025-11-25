@@ -1,5 +1,6 @@
 #include "Hardware/Display/GlyphManager.h"
-// Glyph data already included via GlyphManager.h
+#include "Hardware/Display/Glyphs5x5.h"
+#include "Hardware/Display/Glyphs8x8.h"
 #include <cstring>
 
 
@@ -200,7 +201,12 @@
 
         template<uint8_t SIZE>
         const uint8_t* GlyphManager<SIZE>::getBaseGlyphs() const {
-            return &Display::BASE_GLYPHS[0][0];
+            if constexpr ( SIZE == 5 ) {
+                return &Glyphs5x5::BASE_GLYPHS[0][0];
+            } else if constexpr ( SIZE == 8 ) {
+                return &Glyphs8x8::BASE_GLYPHS[0][0];
+            }
+            return nullptr;  // Should never reach here
         }
 
         // ========================================================================

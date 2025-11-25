@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <esp_mac.h>
 
+using namespace Config::Storage;
 
     namespace Storage {
 
@@ -12,11 +13,12 @@
             log_i( "Config Manager initialized" );
 
             // Check and migrate configuration if needed
+            // @Claude: We don't need the migration functionality. If the NVS layout changes, wipe the NVS partition and set it so the user has to provision the device again. Check how the baseline code does this.
             return checkAndMigrateConfig();
         }
 
         bool ConfigManager::saveWiFiCredentials( const String &ssid, const String &password ) {
-            if ( !prefs.begin( NS_WIFI, false ) ) { // Read-write mode
+            if ( !prefs.begin( NS_WIFI, READ_WRITE ) ) {
                 log_e( "Failed to open WiFi preferences" );
                 return false;
             }
@@ -31,7 +33,7 @@
         }
 
         bool ConfigManager::loadWiFiCredentials( String &ssid, String &password ) {
-            if ( !prefs.begin( NS_WIFI, true ) ) { // Read-only mode
+            if ( !prefs.begin( NS_WIFI, READ_ONLY ) ) {
                 log_w( "No WiFi preferences found" );
                 return false;
             }
@@ -50,7 +52,7 @@
         }
 
         bool ConfigManager::hasWiFiCredentials() {
-            if ( !prefs.begin( NS_WIFI, true ) ) {
+            if ( !prefs.begin( NS_WIFI, READ_ONLY ) ) {
                 return false;
             }
 
@@ -60,8 +62,30 @@
             return !ssid.isEmpty();
         }
 
+        bool ConfigManager::isProvisioned() {
+            // Check for WiFi credentials
+            if ( !prefs.begin( NS_WIFI, true ) ) {
+                return false;
+            }
+            bool hasSSID = prefs.isKey( KEY_SSID );
+            prefs.end();
+
+            if ( !hasSSID ) {
+                return false;
+            }
+
+            // Check for switch configuration
+            if ( !prefs.begin( NS_SWITCH, READ_ONLY ) ) {
+                return false;
+            }
+            bool hasSwitch = prefs.isKey( KEY_MODEL );
+            prefs.end();
+
+            return hasSwitch;
+        }
+
         void ConfigManager::clearWiFiCredentials() {
-            prefs.begin( NS_WIFI, false );
+            prefs.begin( NS_WIFI, READ_WRITE );
             prefs.clear();
             prefs.end();
             log_i( "WiFi credentials cleared" );
@@ -69,7 +93,7 @@
 
         bool ConfigManager::saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
                                                        const String &username, const String &password ) {
-            if ( !prefs.begin( NS_SWITCH, false ) ) {
+            if ( !prefs.begin( NS_SWITCH, READ_WRITE ) ) {
                 log_e( "Failed to open switch preferences" );
                 return false;
             }
@@ -88,7 +112,7 @@
 
         bool ConfigManager::loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
                                                        String &username, String &password ) {
-            if ( !prefs.begin( NS_SWITCH, true ) ) {
+            if ( !prefs.begin( NS_SWITCH, READ_ONLY ) ) {
                 log_w( "No switch preferences found" );
                 return false;
             }
@@ -111,7 +135,7 @@
         }
 
         bool ConfigManager::saveV60HDConfig( const StacOperations& ops ) {
-            if ( !prefs.begin( NS_V60HD, false ) ) {
+            if ( !prefs.begin( NS_V60HD, READ_WRITE ) ) {
                 log_e( "Failed to open V-60HD preferences" );
                 return false;
             }
@@ -130,7 +154,7 @@
         }
 
         bool ConfigManager::loadV60HDConfig( StacOperations& ops ) {
-            if ( !prefs.begin( NS_V60HD, true ) ) {
+            if ( !prefs.begin( NS_V60HD, READ_ONLY ) ) {
                 log_w( "No V-60HD configuration found" );
                 return false;
             }
@@ -161,7 +185,7 @@
         }
 
         bool ConfigManager::saveV160HDConfig( const StacOperations& ops ) {
-            if ( !prefs.begin( NS_V160HD, false ) ) {
+            if ( !prefs.begin( NS_V160HD, READ_WRITE ) ) {
                 log_e( "Failed to open V-160HD preferences" );
                 return false;
             }
@@ -182,7 +206,7 @@
         }
 
         bool ConfigManager::loadV160HDConfig( StacOperations& ops ) {
-            if ( !prefs.begin( NS_V160HD, true ) ) {
+            if ( !prefs.begin( NS_V160HD, READ_ONLY ) ) {
                 log_w( "No V-160HD configuration found" );
                 return false;
             }
@@ -229,12 +253,12 @@
         bool ConfigManager::hasProtocolConfig( const String& protocol ) {
             bool exists = false;
             if ( protocol == "V-60HD" ) {
-                if ( prefs.begin( NS_V60HD, true ) ) {
+                if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
                     exists = prefs.isKey( KEY_TALLY_CHANNEL );
                     prefs.end();
                 }
             } else if ( protocol == "V-160HD" ) {
-                if ( prefs.begin( NS_V160HD, true ) ) {
+                if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
                     exists = prefs.isKey( KEY_TALLY_CHANNEL );
                     prefs.end();
                 }
@@ -243,7 +267,7 @@
         }
 
         bool ConfigManager::saveStacID( const String &stacID ) {
-            if ( !prefs.begin( NS_IDENTITY, false ) ) {
+            if ( !prefs.begin( NS_IDENTITY, READ_WRITE ) ) {
                 log_e( "Failed to open identity preferences" );
                 return false;
             }
@@ -256,7 +280,7 @@
         }
 
         bool ConfigManager::loadStacID( String &stacID ) {
-            if ( !prefs.begin( NS_IDENTITY, true ) ) {
+            if ( !prefs.begin( NS_IDENTITY, READ_ONLY ) ) {
                 return false;
             }
 
@@ -290,7 +314,7 @@
         }
 
         bool ConfigManager::savePeripheralSettings( bool cameraMode, uint8_t brightnessLevel ) {
-            if ( !prefs.begin( NS_PERIPHERAL, false ) ) {
+            if ( !prefs.begin( NS_PERIPHERAL, READ_WRITE ) ) {
                 log_e( "Failed to open peripheral preferences" );
                 return false;
             }
@@ -306,7 +330,7 @@
         }
 
         bool ConfigManager::loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel ) {
-            if ( !prefs.begin( NS_PERIPHERAL, true ) ) {
+            if ( !prefs.begin( NS_PERIPHERAL, READ_ONLY ) ) {
                 log_w( "No peripheral settings found, using defaults" );
                 cameraMode = false;  // Default to Talent mode
                 brightnessLevel = 1;  // Default to brightness level 1
@@ -327,29 +351,30 @@
         }
 
         bool ConfigManager::clearAll() {
+            // @Claude: Let's use the esp-idf NVS functions presented elsewhere to clear out NVS.
             log_i( "Clearing all configuration" );
 
-            prefs.begin( NS_WIFI, false );
+            prefs.begin( NS_WIFI, READ_WRITE );
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_SWITCH, false );
+            prefs.begin( NS_SWITCH, READ_WRITE );
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_V60HD, false );
+            prefs.begin( NS_V60HD, READ_WRITE );
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_V160HD, false );
+            prefs.begin( NS_V160HD, READ_WRITE );
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_PERIPHERAL, false );
+            prefs.begin( NS_PERIPHERAL, READ_WRITE );
             prefs.clear();
             prefs.end();
 
-            prefs.begin( NS_IDENTITY, false );
+            prefs.begin( NS_IDENTITY, READ_WRITE );
             prefs.clear();
             prefs.end();
 
@@ -359,13 +384,13 @@
 
         uint8_t ConfigManager::getConfigVersion() {
             // Check both protocol namespaces and return the one that exists
-            if ( prefs.begin( NS_V60HD, true ) ) {
+            if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
                 uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
                 prefs.end();
                 if ( version > 0 ) return version;
             }
 
-            if ( prefs.begin( NS_V160HD, true ) ) {
+            if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
                 uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
                 prefs.end();
                 return version;
@@ -374,13 +399,14 @@
             return 0;
         }
 
+        // @Claude: Don't need the whole migration functionality, Confirm with how the baseline code deals with prefernces version number mismatches
         bool ConfigManager::checkAndMigrateConfig() {
             // Check if old "operations" namespace exists (pre-protocol-refactor)
             bool hasOldOperations = false;
             StacOperations oldOps;
             String oldModel;
             
-            if ( prefs.begin( "operations", true ) ) {
+            if ( prefs.begin( "operations", READ_ONLY ) ) {
                 hasOldOperations = prefs.isKey( "switchModel" );
                 if ( hasOldOperations ) {
                     // Load old operations data
@@ -412,7 +438,7 @@
                 }
                 
                 // Clear old operations namespace after successful migration
-                prefs.begin( "operations", false );
+                prefs.begin( "operations", READ_WRITE );
                 prefs.clear();
                 prefs.end();
                 log_i( "Cleared old operations namespace" );

@@ -2,7 +2,8 @@
 #include "Application/STACApp.h"
 #include "Hardware/Display/DisplayFactory.h"
 #include "Hardware/Display/GlyphManager.h"
-// Glyph definitions included via Device_Config.h -> board config
+#include "Hardware/Display/Glyphs5x5.h"
+#include "Hardware/Display/Glyphs8x8.h"
 #include "Hardware/Sensors/IMUFactory.h"
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
@@ -317,10 +318,10 @@ namespace Application {
                         systemState->setOperations( ops );
                         // Save to protocol-specific namespace
                         bool saved = false;
-                        if ( ops.isV60HD() ) {
+                        if ( ops.switchModel == "V-60HD" ) {
                             saved = configManager->saveV60HDConfig( ops );
                         }
-                        else if ( ops.isV160HD() ) {
+                        else if ( ops.switchModel == "V-160HD" ) {
                             saved = configManager->saveV160HDConfig( ops );
                         }
                         if ( !saved ) {
@@ -377,8 +378,12 @@ namespace Application {
         if ( currentState == TallyState::UNSELECTED ) {
             if ( ops.cameraOperatorMode ) {
                 // Camera Operator mode: Show dotted frame glyph
-using namespace Display;
-                const uint8_t *glyphData = glyphManager->getGlyph( Display::GLF_DF );
+#ifdef GLYPH_SIZE_5X5
+                using namespace Display::Glyphs5x5::GlyphIndex;
+#else
+                using namespace Display::Glyphs8x8::GlyphIndex;
+#endif
+                const uint8_t *glyphData = glyphManager->getGlyph( GLF_DF );
                 display->drawGlyph( glyphData,
                                     Display::StandardColors::PURPLE,
                                     Display::StandardColors::BLACK,
@@ -397,7 +402,13 @@ using namespace Display;
 
         // Overlay power-on indicator (center pixel for 5x5, center 4 pixels for 8x8)
         // After orientation is determined, use rotated glyphs from GlyphManager
-        const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+#ifdef GLYPH_SIZE_5X5
+        using namespace Display::Glyphs5x5::GlyphIndex;
+        const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
+#else
+        using namespace Display::Glyphs8x8::GlyphIndex;
+        const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
+#endif
         display->drawGlyphOverlay( powerGlyph, Display::StandardColors::ORANGE, false );
 
         // Now show the complete display
@@ -409,9 +420,11 @@ using namespace Display;
         using namespace Display;
 
 #ifdef GLYPH_SIZE_5X5
-        const uint8_t *wifiGlyph = glyphManager->getGlyph( Display::GLF_WIFI );
+        using namespace Glyphs5x5::GlyphIndex;
+        const uint8_t *wifiGlyph = glyphManager->getGlyph( GLF_WIFI );
 #else
-        const uint8_t *wifiGlyph = glyphManager->getGlyph( Display::GLF_WIFI );
+        using namespace Glyphs8x8::GlyphIndex;
+        const uint8_t *wifiGlyph = glyphManager->getGlyph( GLF_WIFI );
 #endif
 
         switch ( state ) {
@@ -437,9 +450,11 @@ using namespace Display;
                 display->fill( StandardColors::BLACK, false );
 // @Claude: We created a new glyph for the "power on" pixel. Can we not use that here? See also the note above on using a single glyph map
 #ifdef GLYPH_SIZE_5X5
-                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                using namespace Display::Glyphs5x5::GlyphIndex;
+                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                using namespace Display::Glyphs8x8::GlyphIndex;
+                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, false );
                 display->show();
@@ -555,8 +570,12 @@ using namespace Display;
                 using namespace Display;
 
                 // Turn on corner pixels (color based on channel bank) - channel already displayed above
-using namespace Display;
-                const uint8_t *cornersGlyph = glyphManager->getGlyph( Display::GLF_CORNERS );
+#ifdef GLYPH_SIZE_5X5
+                using namespace Glyphs5x5::GlyphIndex;
+#else
+                using namespace Glyphs8x8::GlyphIndex;
+#endif
+                const uint8_t *cornersGlyph = glyphManager->getGlyph( GLF_CORNERS );
                 display->pulseCorners( cornersGlyph, true, autostartColor );
 
                 unsigned long autostartTimeout = millis() + AUTOSTART_TIMEOUT_MS;
@@ -597,10 +616,10 @@ using namespace Display;
 
                 // Save to protocol-specific namespace
                 bool saved = false;
-                if ( ops.isV60HD() ) {
+                if ( ops.switchModel == "V-60HD" ) {
                     saved = configManager->saveV60HDConfig( ops );
                 }
-                else if ( ops.isV160HD() ) {
+                else if ( ops.switchModel == "V-160HD" ) {
                     saved = configManager->saveV160HDConfig( ops );
                 }
                 if ( !saved ) {
@@ -648,7 +667,11 @@ using namespace Display;
         using namespace Config::Timing;
 
         // Get glyph indices based on display size
-using namespace Display;
+#ifdef GLYPH_SIZE_5X5
+        using namespace Glyphs5x5::GlyphIndex;
+#else
+        using namespace Glyphs8x8::GlyphIndex;
+#endif
 
         log_i( "Entering Peripheral Mode" );
 
@@ -675,7 +698,7 @@ using namespace Display;
 
         // ===== Startup animation =====
         // Show "P" glyph in green (perifmodecolor)
-        const uint8_t *pGlyph = glyphManager->getGlyph( Display::GLF_P );
+        const uint8_t *pGlyph = glyphManager->getGlyph( GLF_P );
         display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
 
         // Flash display 4 times
@@ -689,16 +712,16 @@ using namespace Display;
         delay( GUI_PAUSE_MS );
 
         // Show checkmark confirmation
-        const uint8_t *checkGlyph = glyphManager->getGlyph( Display::GLF_CK );
+        const uint8_t *checkGlyph = glyphManager->getGlyph( GLF_CK );
         display->drawGlyph( checkGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
         delay( GUI_PAUSE_MS );
 
         // Clear and show power-on glyph
         display->clear( false );
 #ifdef GLYPH_SIZE_5X5
-        const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+        const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-        const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+        const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
         display->drawGlyph( powerGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
 
@@ -745,9 +768,9 @@ using namespace Display;
                             // Red (program)
                             display->fill( StandardColors::RED, false );
 #ifdef GLYPH_SIZE_5X5
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                             display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                             break;
@@ -757,9 +780,9 @@ using namespace Display;
                             // Green (preview)
                             display->fill( StandardColors::GREEN, false );
 #ifdef GLYPH_SIZE_5X5
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                             display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                             break;
@@ -768,7 +791,7 @@ using namespace Display;
                         case TallyState::UNSELECTED: {
                             if ( cameraMode ) {
                                 // Camera mode: Show dark frame glyph in purple
-                                const uint8_t *dfGlyph = glyphManager->getGlyph( Display::GLF_DF );
+                                const uint8_t *dfGlyph = glyphManager->getGlyph( GLF_DF );
                                 display->drawGlyph( dfGlyph, StandardColors::PURPLE, StandardColors::BLACK, false );
                             }
                             else {
@@ -776,9 +799,9 @@ using namespace Display;
                                 display->fill( StandardColors::GREEN, false );
                             }
 #ifdef GLYPH_SIZE_5X5
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                            const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                             display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                             break;
@@ -788,12 +811,12 @@ using namespace Display;
                             // Error/unknown state
                             if ( cameraMode ) {
                                 // Camera mode: Show orange X
-                                const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
+                                const uint8_t *xGlyph = glyphManager->getGlyph( GLF_BX );
                                 display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, false );
 #ifdef GLYPH_SIZE_5X5
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                             }
@@ -801,9 +824,9 @@ using namespace Display;
                                 // Talent mode: Show green with power glyph
                                 display->fill( StandardColors::GREEN, false );
 #ifdef GLYPH_SIZE_5X5
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #else
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+                                const uint8_t *powerGlyph = glyphManager->getGlyph( GLF_PO );
 #endif
                                 display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
                             }
@@ -824,9 +847,9 @@ using namespace Display;
 
                 // Blank center columns
 #ifdef GLYPH_SIZE_5X5
-                const uint8_t *centerBlank = glyphManager->getGlyph( Display::GLF_EN );
+                const uint8_t *centerBlank = glyphManager->getGlyph( GLF_EN );
 #else
-                const uint8_t *centerBlank = glyphManager->getGlyph( Display::GLF_EN );
+                const uint8_t *centerBlank = glyphManager->getGlyph( GLF_EN );
 #endif
                 display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
 
@@ -897,10 +920,14 @@ using namespace Display;
         }
 
         // Get glyph indices
-using namespace Display;
+#ifdef GLYPH_SIZE_5X5
+        using namespace Display::Glyphs5x5::GlyphIndex;
+#else
+        using namespace Display::Glyphs8x8::GlyphIndex;
+#endif
 
         // Show GLF_CFG in red (matching baseline alertcolor for provisioning)
-        const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
+        const uint8_t *cfgGlyph = glyphManager->getGlyph( GLF_CFG );
         const uint8_t normalBrightness = display->getBrightness();
         const uint8_t dimBrightness = normalBrightness / 2;
 
@@ -929,7 +956,7 @@ using namespace Display;
         ProvisioningData provData = configServer.waitForConfiguration();
 
         // Show green checkmark to confirm receipt (matching baseline)
-        const uint8_t *checkmarkGlyph = glyphManager->getGlyph( Display::GLF_CK );
+        const uint8_t *checkmarkGlyph = glyphManager->getGlyph( GLF_CK );
         display->drawGlyph( checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, true );
         delay( 1000 );
 
@@ -994,10 +1021,10 @@ using namespace Display;
 
         // Save to protocol-specific namespace
         bool saved = false;
-        if ( ops.isV60HD() ) {
+        if ( ops.switchModel == "V-60HD" ) {
             saved = configManager->saveV60HDConfig( ops );
         }
-        else if ( ops.isV160HD() ) {
+        else if ( ops.switchModel == "V-160HD" ) {
             saved = configManager->saveV160HDConfig( ops );
         }
         if ( !saved ) {
@@ -1098,7 +1125,11 @@ using namespace Display;
         using namespace Config::Net;
 
         // Get glyph indices based on display size
-using namespace Display;
+#ifdef GLYPH_SIZE_5X5
+        using namespace Glyphs5x5::GlyphIndex;
+#else
+        using namespace Glyphs8x8::GlyphIndex;
+#endif
 
         // Check if it's time to poll
         unsigned long now = millis();
@@ -1196,7 +1227,7 @@ using namespace Display;
 
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple question mark
-                        const uint8_t *qmGlyph = glyphManager->getGlyph( Display::GLF_QM );
+                        const uint8_t *qmGlyph = glyphManager->getGlyph( GLF_QM );
                         display->drawGlyph( qmGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
                         log_e( "Junk reply error - showing purple '?'" );
                     }
@@ -1225,7 +1256,7 @@ using namespace Display;
 
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show orange X
-                    const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
+                    const uint8_t *xGlyph = glyphManager->getGlyph( GLF_BX );
                     display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
                     log_e( "Connection timeout - showing orange 'X'" );
                 }
@@ -1255,7 +1286,7 @@ using namespace Display;
 
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple X (big purple X)
-                        const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
+                        const uint8_t *xGlyph = glyphManager->getGlyph( GLF_BX );
                         display->drawGlyph( xGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
                         log_e( "No reply error - showing purple 'X'" );
                     }
@@ -1276,7 +1307,7 @@ using namespace Display;
 
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show red X
-                    const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
+                    const uint8_t *xGlyph = glyphManager->getGlyph( GLF_BX );
                     display->drawGlyph( xGlyph, StandardColors::RED, StandardColors::BLACK, true );
                     log_e( "Unknown error - showing red 'X'" );
                 }
@@ -1298,9 +1329,13 @@ using namespace Display;
         // (matching baseline behavior which doesn't change display on OTA entry)
 
         // Get glyph for pulsing display
-using namespace Display;
+#ifdef GLYPH_SIZE_5X5
+        using namespace Display::Glyphs5x5::GlyphIndex;
+#else
+        using namespace Display::Glyphs8x8::GlyphIndex;
+#endif
 
-        const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
+        const uint8_t *udGlyph = glyphManager->getGlyph( GLF_UD );
         const uint8_t normalBrightness = display->getBrightness();
         const uint8_t dimBrightness = normalBrightness / 2;
 
@@ -1417,11 +1452,15 @@ using namespace Display;
         OperatingMode resultMode = OperatingMode::NORMAL;
 
         // Get glyph indices
-using namespace Display;
+#ifdef GLYPH_SIZE_5X5
+        using namespace Display::Glyphs5x5::GlyphIndex;
+#else
+        using namespace Display::Glyphs8x8::GlyphIndex;
+#endif
 
         // Get all glyphs we'll need
-        const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
-        const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
+        const uint8_t *cfgGlyph = glyphManager->getGlyph( GLF_CFG );
+        const uint8_t *udGlyph = glyphManager->getGlyph( GLF_UD );
 
         // Show provisioning glyph (orange) - always start here
         display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true );
@@ -1452,8 +1491,8 @@ using namespace Display;
                         log_v( "Advancing to FACTORY_RESET_PENDING state" );
 
                         // GLF_FM (solid frame) in red with GLF_CK (checkmark) in green overlay
-                        const uint8_t *fmGlyph = glyphManager->getGlyph( Display::GLF_FM );
-                        const uint8_t *ckGlyph = glyphManager->getGlyph( Display::GLF_CK );
+                        const uint8_t *fmGlyph = glyphManager->getGlyph( GLF_FM );
+                        const uint8_t *ckGlyph = glyphManager->getGlyph( GLF_CK );
                         display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, false );
                         display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, true );
                         delay( 250 );

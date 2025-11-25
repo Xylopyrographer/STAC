@@ -3,7 +3,8 @@
 
 #include "Config/Constants.h"
 #include "Hardware/Display/Colors.h"
-// Glyph definitions included via Device_Config.h -> board config
+#include "Hardware/Display/Glyphs5x5.h"
+#include "Hardware/Display/Glyphs8x8.h"
 #include <Arduino.h>
 
 namespace Application {
@@ -131,7 +132,9 @@ namespace Application {
         using namespace Display;
 
         if constexpr (GLYPH_SIZE == 5) {
+            using namespace Glyphs5x5::GlyphIndex;
         } else {
+            using namespace Glyphs8x8::GlyphIndex;
         }
 
         // Get the glyph for the channel number
@@ -145,7 +148,7 @@ namespace Application {
         // Color depends on switch model and bank
         color_t foreground, background;
         
-        if (ops.isV60HD()) {
+        if (ops.switchModel == "V-60HD") {
             // V-60HD: Blue for all channels
             background = StandardColors::BLACK;
             foreground = StandardColors::BLUE;
@@ -171,11 +174,13 @@ namespace Application {
         using namespace Config::Timing;
 
         if constexpr (GLYPH_SIZE == 5) {
+            using namespace Glyphs5x5::GlyphIndex;
         } else {
+            using namespace Glyphs8x8::GlyphIndex;
         }
 
         // Validate and clamp channel to valid range before displaying
-        if (ops.isV60HD()) {
+        if (ops.switchModel == "V-60HD") {
             if (ops.tallyChannel < 1 || ops.tallyChannel > ops.maxChannelCount) {
                 ops.tallyChannel = 1;
             }
@@ -201,7 +206,7 @@ namespace Application {
         color_t selectForeground = StandardColors::ORANGE;
         color_t selectBackground;
         
-        if (ops.isV60HD()) {
+        if (ops.switchModel == "V-60HD") {
             selectBackground = 0x00007f; // RGB_COLOR_BLUEDK
         } else {
             if (ops.channelBank == "hdmi_" || ops.tallyChannel <= 8) {
@@ -222,7 +227,7 @@ namespace Application {
             if (button->wasReleased()) {
                 timeout = millis() + OP_MODE_TIMEOUT_MS; // Reset timeout
                 
-                if (ops.isV60HD()) {
+                if (ops.switchModel == "V-60HD") {
                     // V-60HD: Check if at max, wrap to 1, else increment
                     if (ops.tallyChannel >= ops.maxChannelCount) {
                         ops.tallyChannel = 1;
@@ -252,7 +257,7 @@ namespace Application {
                 }
                 channelGlyph = glyphManager->getDigitGlyph(displayChannel);
                 
-                if (ops.isV60HD()) {
+                if (ops.switchModel == "V-60HD") {
                     selectBackground = 0x00007f;
                 } else {
                     if (ops.channelBank == "hdmi_" || ops.tallyChannel <= 8) {
@@ -272,9 +277,9 @@ namespace Application {
                 // Save if changed
                 if (originalChannel != ops.tallyChannel) {
                     bool saved = false;
-                    if ( ops.isV60HD() ) {
+                    if ( ops.switchModel == "V-60HD" ) {
                         saved = configManager->saveV60HDConfig( ops );
-                    } else if ( ops.isV160HD() ) {
+                    } else if ( ops.switchModel == "V-160HD" ) {
                         saved = configManager->saveV160HDConfig( ops );
                     }
                     if ( !saved ) {
@@ -299,9 +304,11 @@ namespace Application {
 
         const uint8_t* modeGlyph;
         if constexpr (GLYPH_SIZE == 5) {
+            using namespace Glyphs5x5::GlyphIndex;
             modeGlyph = ops.cameraOperatorMode ? 
                 glyphManager->getGlyph(GLF_C) : glyphManager->getGlyph(GLF_T);
         } else {
+            using namespace Glyphs8x8::GlyphIndex;
             modeGlyph = ops.cameraOperatorMode ? 
                 glyphManager->getGlyph(GLF_C) : glyphManager->getGlyph(GLF_T);
         }
@@ -315,8 +322,14 @@ namespace Application {
         using namespace Config::Timing;
 
         // Get glyph indices based on display size
-        uint8_t GLF_C_IDX = Display::GLF_C;
-        uint8_t GLF_T_IDX = Display::GLF_T;
+        uint8_t GLF_C_IDX, GLF_T_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_C_IDX = Glyphs5x5::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs5x5::GlyphIndex::GLF_T;
+        } else {
+            GLF_C_IDX = Glyphs8x8::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs8x8::GlyphIndex::GLF_T;
+        }
 
         bool originalMode = ops.cameraOperatorMode;
         bool currentMode = originalMode;
@@ -350,9 +363,9 @@ namespace Application {
                 if (originalMode != currentMode) {
                     ops.cameraOperatorMode = currentMode;
                     bool saved = false;
-                    if ( ops.isV60HD() ) {
+                    if ( ops.switchModel == "V-60HD" ) {
                         saved = configManager->saveV60HDConfig( ops );
-                    } else if ( ops.isV160HD() ) {
+                    } else if ( ops.switchModel == "V-160HD" ) {
                         saved = configManager->saveV160HDConfig( ops );
                     }
                     if ( !saved ) {
@@ -376,8 +389,14 @@ namespace Application {
         using namespace Display;
 
         // Get glyph indices based on display size
-        uint8_t GLF_A_IDX = Display::GLF_A;
-        uint8_t GLF_S_IDX = Display::GLF_S;
+        uint8_t GLF_A_IDX, GLF_S_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_A_IDX = Glyphs5x5::GlyphIndex::GLF_A;
+            GLF_S_IDX = Glyphs5x5::GlyphIndex::GLF_S;
+        } else {
+            GLF_A_IDX = Glyphs8x8::GlyphIndex::GLF_A;
+            GLF_S_IDX = Glyphs8x8::GlyphIndex::GLF_S;
+        }
 
         const uint8_t* modeGlyph = ops.autoStartEnabled ? 
             glyphManager->getGlyph(GLF_A_IDX) : glyphManager->getGlyph(GLF_S_IDX);
@@ -391,8 +410,14 @@ namespace Application {
         using namespace Config::Timing;
 
         // Get glyph indices based on display size
-        uint8_t GLF_A_IDX = Display::GLF_A;
-        uint8_t GLF_S_IDX = Display::GLF_S;
+        uint8_t GLF_A_IDX, GLF_S_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_A_IDX = Glyphs5x5::GlyphIndex::GLF_A;
+            GLF_S_IDX = Glyphs5x5::GlyphIndex::GLF_S;
+        } else {
+            GLF_A_IDX = Glyphs8x8::GlyphIndex::GLF_A;
+            GLF_S_IDX = Glyphs8x8::GlyphIndex::GLF_S;
+        }
 
         bool originalMode = ops.autoStartEnabled;
         bool currentMode = originalMode;
@@ -426,9 +451,9 @@ namespace Application {
                 if (originalMode != currentMode) {
                     ops.autoStartEnabled = currentMode;
                     bool saved = false;
-                    if ( ops.isV60HD() ) {
+                    if ( ops.switchModel == "V-60HD" ) {
                         saved = configManager->saveV60HDConfig( ops );
-                    } else if ( ops.isV160HD() ) {
+                    } else if ( ops.switchModel == "V-160HD" ) {
                         saved = configManager->saveV160HDConfig( ops );
                     }
                     if ( !saved ) {
@@ -452,8 +477,14 @@ namespace Application {
         using namespace Display;
 
         // Get glyph indices based on display size
-        uint8_t GLF_CBD_IDX = Display::GLF_CBD;
-        uint8_t GLF_EN_IDX = Display::GLF_EN;
+        uint8_t GLF_CBD_IDX, GLF_EN_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_CBD_IDX = Glyphs5x5::GlyphIndex::GLF_CBD;
+            GLF_EN_IDX = Glyphs5x5::GlyphIndex::GLF_EN;
+        } else {
+            GLF_CBD_IDX = Glyphs8x8::GlyphIndex::GLF_CBD;
+            GLF_EN_IDX = Glyphs8x8::GlyphIndex::GLF_EN;
+        }
 
         const uint8_t* checkboard = glyphManager->getGlyph(GLF_CBD_IDX);
         const uint8_t* centerBlank = glyphManager->getGlyph(GLF_EN_IDX);
@@ -476,7 +507,11 @@ namespace Application {
 
         // Get glyph index based on display size
         uint8_t GLF_EN_IDX;
-        GLF_EN_IDX = Display::GLF_EN;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_EN_IDX = Glyphs5x5::GlyphIndex::GLF_EN;
+        } else {
+            GLF_EN_IDX = Glyphs8x8::GlyphIndex::GLF_EN;
+        }
 
         const uint8_t* centerBlank = glyphManager->getGlyph(GLF_EN_IDX);
 
@@ -543,9 +578,9 @@ namespace Application {
                 // Save if changed
                 if (originalBrightness != currentBrightness) {
                     bool saved = false;
-                    if ( ops.isV60HD() ) {
+                    if ( ops.switchModel == "V-60HD" ) {
                         saved = configManager->saveV60HDConfig( ops );
-                    } else if ( ops.isV160HD() ) {
+                    } else if ( ops.switchModel == "V-160HD" ) {
                         saved = configManager->saveV160HDConfig( ops );
                     }
                     if ( !saved ) {
@@ -581,7 +616,11 @@ namespace Application {
 
         // Get glyph index based on display size
         uint8_t GLF_CK_IDX;
-        GLF_CK_IDX = Display::GLF_CK;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_CK_IDX = Glyphs5x5::GlyphIndex::GLF_CK;
+        } else {
+            GLF_CK_IDX = Glyphs8x8::GlyphIndex::GLF_CK;
+        }
 
         const uint8_t* checkmark = glyphManager->getGlyph(GLF_CK_IDX);
 
@@ -604,7 +643,11 @@ namespace Application {
 
         // Get glyph index based on display size
         uint8_t GLF_EN_IDX;
-        GLF_EN_IDX = Display::GLF_EN;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_EN_IDX = Glyphs5x5::GlyphIndex::GLF_EN;
+        } else {
+            GLF_EN_IDX = Glyphs8x8::GlyphIndex::GLF_EN;
+        }
 
         const uint8_t* centerBlank = glyphManager->getGlyph(GLF_EN_IDX);
 
@@ -687,8 +730,14 @@ namespace Application {
         using namespace Config::Timing;
 
         // Get glyph indices based on display size
-        uint8_t GLF_C_IDX = Display::GLF_C;
-        uint8_t GLF_T_IDX = Display::GLF_T;
+        uint8_t GLF_C_IDX, GLF_T_IDX;
+        if constexpr (GLYPH_SIZE == 5) {
+            GLF_C_IDX = Glyphs5x5::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs5x5::GlyphIndex::GLF_T;
+        } else {
+            GLF_C_IDX = Glyphs8x8::GlyphIndex::GLF_C;
+            GLF_T_IDX = Glyphs8x8::GlyphIndex::GLF_T;
+        }
 
         bool originalMode = currentMode;
         unsigned long timeout = millis() + OP_MODE_TIMEOUT_MS;

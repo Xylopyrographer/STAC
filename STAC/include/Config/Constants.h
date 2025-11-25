@@ -35,15 +35,19 @@
             constexpr uint8_t MATRIX_HEIGHT = DISPLAY_MATRIX_HEIGHT;
             constexpr uint8_t MATRIX_SIZE = DISPLAY_TOTAL_LEDS;
             constexpr uint8_t POWER_LED_PIXEL = DISPLAY_POWER_LED_PIXEL;
-            constexpr uint8_t BRIGHTNESS_MIN = DISPLAY_BRIGHTNESS_MIN;
-            constexpr uint8_t BRIGHTNESS_MAX = DISPLAY_BRIGHTNESS_MAX;
-            constexpr uint8_t BRIGHTNESS_DEFAULT = DISPLAY_BRIGHTNESS_DEFAULT;
             
-            // Brightness level maps (index 0 is unused, levels 1-6 for 5x5, 1-8 for 8x8)
-            constexpr uint8_t BRIGHTNESS_MAP_5X5[] = { 0, 10, 20, 30, 40, 50, 60 };
-            constexpr uint8_t BRIGHTNESS_MAP_8X8[] = { 0, 5, 10, 15, 20, 25, 30, 35, 40 };
-            constexpr uint8_t BRIGHTNESS_LEVELS_5X5 = 6;
-            constexpr uint8_t BRIGHTNESS_LEVELS_8X8 = 8;
+            // Board-specific brightness map (from board config)
+            constexpr uint8_t BRIGHTNESS_MAP[] = BOARD_BRIGHTNESS_MAP;
+            constexpr uint8_t BRIGHTNESS_LEVELS = (sizeof(BRIGHTNESS_MAP) / sizeof(uint8_t)) - 1;
+            
+            // Compile-time validation of brightness map
+            static_assert(sizeof(BRIGHTNESS_MAP) >= 2, "Brightness map must have at least 2 entries");
+            static_assert(sizeof(BRIGHTNESS_MAP) <= 10, "Brightness map must have no more than 10 entries");
+            static_assert(BRIGHTNESS_MAP[0] == 0, "First brightness entry must be 0");
+
+            // Display update control
+            constexpr bool SHOW = true;
+            constexpr bool NO_SHOW = false;
         }
 
         // ============================================================================
@@ -88,6 +92,7 @@
 
         namespace Peripheral {
             constexpr uint8_t PM_CHECK_COUNT = PM_CHECK_TOGGLE_COUNT;
+            constexpr uint8_t INVALID_STATE = 0xFF;
         }
 
         // ============================================================================
@@ -95,8 +100,18 @@
         // ============================================================================
 
         namespace NVS {
+            // @Claude: These two version numbers should be defined elsewhere as they are not user settable. 
             constexpr uint8_t NOM_PREFS_VERSION = NVS_NOM_PREFS_VERSION;
             constexpr uint8_t PM_PREFS_VERSION = NVS_PM_PREFS_VERSION;
+        };
+
+        // ============================================================================
+        // STORAGE ACCESS MODES
+        // ============================================================================
+
+        namespace Storage {
+            constexpr bool READ_ONLY = true;
+            constexpr bool READ_WRITE = false;
         }
 
         // ============================================================================

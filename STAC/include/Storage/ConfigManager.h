@@ -53,6 +53,12 @@
             bool hasWiFiCredentials();
 
             /**
+             * @brief Check if device is provisioned (has complete configuration)
+             * @return true if device has WiFi credentials and switch configuration
+             */
+            bool isProvisioned();
+
+            /**
              * @brief Clear WiFi credentials
              */
             void clearWiFiCredentials();
@@ -61,6 +67,7 @@
             // Switch Configuration
             // ========================================================================
 
+            // @Claude: Should the model be an enum instead of a string for better type safety and performance?
             /**
              * @brief Save switch configuration
              * @param model Switch model ("V-60HD" or "V-160HD")
@@ -193,8 +200,20 @@
             uint8_t getConfigVersion();
 
           private:
+
+            /*
+            * @Claude: We only have a single Preferences namespace defined, not separate ones for 
+            * each config area as we discussed. This setup doesn't give us the separation we wanted.
+            * It creates all keys in the same namespace, not dynamically as needed.
+            * Managing each makes it a bit more work though for sure.
+            * To simplify clearing NVS later for factory reset we should use the esp-idf functions:
+            *   nvs_flash_erase(void)
+            *   nvs_flash_init(void)
+            */
+
             Preferences prefs;
 
+            // @Claude: Again, these aren't separate namespaces? They all exist in the same 'prefs' instance?
             // Namespace names for different config areas
             static constexpr const char *NS_WIFI = "wifi";
             static constexpr const char *NS_SWITCH = "switch";

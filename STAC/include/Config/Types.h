@@ -71,6 +71,8 @@
      * @brief Operating parameters for STAC
      */
     struct StacOperations {
+        // @Claude: switchModel should be an enum instead of a string for better type safety and performance.
+        // @Claude: we discussd detangling V-60HD and V-160HD specific parameters. Is this a case where we should consider an alternate implementation?
         String switchModel;             ///< Roland switch model ("V-60HD" or "V-160HD")
         uint8_t tallyChannel;           ///< Channel being monitored (1-based)
         uint8_t maxChannelCount;        ///< Max channels for V-60HD
@@ -86,7 +88,7 @@
         StacOperations()
             : switchModel( "NO_MODEL" )
             , tallyChannel( 1 )
-            , maxChannelCount( 8 )
+            , maxChannelCount( 6 )
             , channelBank( "NO_BANK" )
             , maxHDMIChannel( 8 )
             , maxSDIChannel( 8 )
@@ -95,6 +97,19 @@
             , displayBrightnessLevel( 1 )
             , statusPollInterval( 300 )
         {}
+
+        // Helper methods for switch model type checking
+        /**
+         * @brief Check if switch is V-60HD model
+         * @return true if switchModel is "V-60HD"
+         */
+        bool isV60HD() const { return switchModel == "V-60HD"; }
+
+        /**
+         * @brief Check if switch is V-160HD model
+         * @return true if switchModel is "V-160HD"
+         */
+        bool isV160HD() const { return switchModel == "V-160HD"; }
     };
 
     /**
@@ -107,6 +122,7 @@
         bool junkReply;                 ///< Received garbage response
         uint8_t junkReplyCount;         ///< Consecutive junk replies
         uint8_t noReplyCount;           ///< Consecutive no-replies
+        // @Claude: we discussd detangling V-60HD and V-160HD specific parameters. Is this a case where we should consider an alternate implementation? lan credentials are specific to certain protocols/switch models and happen at the network link level, not the application level.
         String lanUserID;               ///< LAN control user ID (V-160HD)
         String lanPassword;             ///< LAN control password (V-160HD)
         String lastTallyState;          ///< Previous tally state
@@ -155,6 +171,8 @@
      * @brief Provisioning data from web configuration
      */
     struct ProvisioningData {
+        // @Claude: if we make the switch model an enum, we'll need to change the HTML provisioning page to match.
+        // @Claude: is there a way to detangle the V-60 and V-160 specific parameters here? Woud mean a big revamp in the HTML provisioning pages?
         String switchModel;             ///< Roland switch model
         String wifiSSID;                ///< WiFi network SSID
         String wifiPassword;            ///< WiFi network password

@@ -1,10 +1,10 @@
 # STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 22, 2025  
+**Date:** November 24, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Ready for testing - Code quality improvements and build system finalized  
-**Last Session:** Glyph-based refactoring (corners) + color management + custom build script
+**Status:** Hardware tested - Startup sequence improvements complete  
+**Last Session:** Pre-release code quality improvements (Phases 1-4)
 
 ---
 
@@ -144,6 +144,115 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### Pre-Release Code Quality Improvements (November 24, 2025)
+
+**Startup Sequence Refinements (Phases 1-4)**
+
+**Phase 1: Quick Wins**
+- **isProvisioned() Helper Method**
+  - Centralized provisioning check in ConfigManager
+  - Returns true only if both WiFi (ssid) and switch (model) configured
+  - Eliminates multiple hasWiFiCredentials() && hasSwitchConfig() checks
+  - Files: `include/Storage/ConfigManager.h`, `src/Storage/ConfigManager.cpp`
+- **Storage Constants**
+  - Added READ_ONLY/READ_WRITE constants for prefs.begin() clarity
+  - Added SHOW/NO_SHOW constants for web server display settings
+  - Files: `include/Config/Constants.h`
+- **Redundant yield() Removal**
+  - Removed 5 unnecessary yield() calls in favor of delay()
+  - Files: `src/Application/STACApp.cpp`
+- **Peripheral Mode Constant**
+  - Added PERIPHERAL_INVALID_STATE = -1 for error detection
+  - Files: `include/Config/Constants.h`
+- **prefs.begin() Consistency**
+  - Updated 28 prefs.begin() calls to use READ_ONLY/READ_WRITE constants
+  - Files: `src/Storage/ConfigManager.cpp`
+- **Impact**: ~50 LOC reduction, improved code clarity
+
+**Phase 2: Display System**
+- **Brightness Maps to Board Configs**
+  - Moved brightness arrays from Constants.h to board-specific configs
+  - AtomMatrix_Config.h: 13-level map optimized for 5×5 display
+  - WaveshareS3_Config.h: 13-level map optimized for 8×8 display
+  - Added compile-time validation (static_assert for array sizes)
+  - Files: `include/BoardConfigs/AtomMatrix_Config.h`, `include/BoardConfigs/WaveshareS3_Config.h`
+- **Unified BRIGHTNESS_MAP**
+  - Single BRIGHTNESS_MAP array defined in Constants.h (pulls from board config)
+  - Auto-calculated BRIGHTNESS_LEVELS from array size
+  - Eliminated #ifdef GLYPH_SIZE_5X5 conditionals for brightness access
+  - Files: `include/Config/Constants.h`
+- **GLF_MID → GLF_PO Rename**
+  - Renamed middle position glyph to GLF_PO (power-on) for clarity
+  - Updated 9 references across codebase
+  - Files: `include/Hardware/Display/Glyphs5x5.h`, `include/Hardware/Display/Glyphs8x8.h`, `include/Hardware/Display/GlyphManager.h`, `src/Hardware/Display/GlyphManager5x5.cpp`, `src/Hardware/Display/GlyphManager8x8.cpp`
+- **Impact**: ~60 LOC reduction, board-specific optimization
+
+**Phase 2b: Glyph Header Separation** (User-suggested improvement)
+- **Separate Glyph Files**
+  - Created Glyphs5x5.h and Glyphs8x8.h (separate files for each display size)
+  - Moved from namespace wrappers to direct Display:: namespace inclusion
+  - Board configs include size-appropriate glyph header
+  - Files: `include/Hardware/Display/Glyphs5x5.h`, `include/Hardware/Display/Glyphs8x8.h`
+- **Eliminated Conditionals**
+  - Removed all #ifdef GLYPH_SIZE_5X5 / #ifdef GLYPH_SIZE_8X8 blocks
+  - Removed namespace qualifiers (Glyphs5x5::, Glyphs8x8::)
+  - All glyph references now use Display::GLF_* pattern
+  - Files: `include/Application/StartupConfig.tpp`, `src/Application/STACApp.cpp`
+- **Board Config Integration**
+  - AtomMatrix_Config.h includes Glyphs5x5.h
+  - WaveshareS3_Config.h includes Glyphs8x8.h
+  - Single decision point for display-dependent code
+  - Files: `include/BoardConfigs/AtomMatrix_Config.h`, `include/BoardConfigs/WaveshareS3_Config.h`
+- **Impact**: ~30 LOC reduction, eliminated conditional compilation for glyphs
+
+**Phase 3: Architecture**
+- **Provisioning Check Centralization**
+  - Consolidated provisioning logic in determineOperatingMode()
+  - Uses new isProvisioned() method instead of scattered checks
+  - Files: `src/Application/STACApp.cpp`
+- **Boot Button Sequence Simplification**
+  - Always starts at PROVISIONING_PENDING state (matches User's Guide)
+  - Unconfigured devices skip factory reset option (no-op)
+  - Cleaner state machine logic
+  - Files: `src/Application/STACApp.cpp`
+- **Autostart Corner Redraw Fix**
+  - Only pulse corner LEDs (don't redraw full channel glyph)
+  - Eliminates unnecessary display updates
+  - Files: `src/Application/STACApp.cpp`
+- **Variable Rename**
+  - startupConfigDone → interactiveConfigDone (better clarity)
+  - Files: `src/Application/STACApp.cpp`
+- **Impact**: ~40 LOC reduction, cleaner architecture
+
+**Phase 4: Switch Model Helpers**
+- **Helper Methods**
+  - Added isV60HD() and isV160HD() methods to StacOperations struct
+  - Encapsulates string comparison logic: `switchModel == "V-60HD"`
+  - Type-safe, self-documenting method calls
+  - Files: `include/Config/Types.h`
+- **String Comparison Elimination**
+  - Replaced 20 string literal comparisons with helper method calls
+  - StartupConfig.tpp: 13 replacements
+  - STACApp.cpp: 6 replacements (1 provData check intentionally kept)
+  - InfoPrinter.h: 1 replacement
+  - Files: `include/Application/StartupConfig.tpp`, `src/Application/STACApp.cpp`, `include/Utils/InfoPrinter.h`
+- **Impact**: Improved maintainability, type safety, code readability
+
+**Total Code Quality Improvements (Phases 1-4):**
+- Lines removed: ~180 LOC (exceeded ~155 estimate)
+- Magic numbers eliminated: Board-specific brightness values, display conditionals
+- String comparisons replaced: 20 locations now use helper methods
+- Architecture: Centralized provisioning, unified brightness access, glyph separation
+- Maintainability: Single source of truth for board configs, cleaner state machine
+
+**Testing Results:**
+- ✅ Both platforms compile successfully (atom-matrix, waveshare-s3)
+- ✅ ATOM Matrix hardware tested in peripheral mode
+- ✅ All startup sequences verified
+- ✅ Provisioning flow validated
+- ✅ Helper methods functional
+- ✅ Ready for release
 
 ### Glyph-Based Refactoring and Build System (November 22, 2025)
 

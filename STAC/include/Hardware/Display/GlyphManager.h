@@ -5,8 +5,7 @@
 #include <array>
 #include "Config/Types.h"
 #include "Device_Config.h"
-#include "Hardware/Display/Glyphs5x5.h"
-#include "Hardware/Display/Glyphs8x8.h"
+// Glyph definitions included via board config (AtomMatrix_Config.h or WaveshareS3_Config.h)
 
 namespace Display {
 
@@ -24,8 +23,8 @@ namespace Display {
         class GlyphManager {
           public:
             static constexpr uint8_t GLYPH_SIZE = SIZE * SIZE;
-            // Get GLYPH_COUNT from the appropriate glyph header
-            static constexpr uint8_t GLYPH_COUNT = ( SIZE == 5 ) ? Glyphs5x5::GLYPH_COUNT : Glyphs8x8::GLYPH_COUNT;
+            // GLYPH_COUNT comes from the included glyph header
+            static constexpr uint8_t GLYPH_COUNT = Display::GLYPH_COUNT;
 
             /**
              * @brief Construct GlyphManager with initial orientation

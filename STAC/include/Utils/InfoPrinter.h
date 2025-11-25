@@ -148,7 +148,7 @@ public:
         Serial.println(ops.switchModel);
         Serial.print("    Active Tally Channel: ");
         
-        if (ops.switchModel == "V-60HD") {
+        if (ops.isV60HD()) {
             Serial.println(ops.tallyChannel);
             Serial.print("    Max Tally Channel: ");
             Serial.println(ops.maxChannelCount);
