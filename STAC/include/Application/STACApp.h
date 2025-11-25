@@ -66,6 +66,7 @@ namespace Application {
         std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
         std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
 
+// @Claude: No longer need these conditionals since we have GLYPH_SIZE_ defined in board config
         // Glyph management
 #ifdef GLYPH_SIZE_5X5
         std::unique_ptr<Display::GlyphManager5x5> glyphManager;
@@ -81,6 +82,7 @@ namespace Application {
         // State
         std::unique_ptr<State::SystemState> systemState;
 
+ // @Claude: No longer need these conditionals since we have GLYPH_SIZE_ defined in board config
         // Startup configuration
 #ifdef GLYPH_SIZE_5X5
         std::unique_ptr<StartupConfig5x5> startupConfig;
@@ -91,7 +93,6 @@ namespace Application {
         // Application state
         bool initialized;
         String stacID;
-        Orientation lastOrientation;
 
         // Roland polling state
         unsigned long lastRolandPoll;
@@ -122,11 +123,6 @@ namespace Application {
         void handleButton();
 
         /**
-         * @brief Handle IMU orientation changes
-         */
-        void handleOrientation();
-
-        /**
          * @brief Update display based on current state
          */
         void updateDisplay();
@@ -143,10 +139,15 @@ namespace Application {
         void displayWiFiStatus( Net::WiFiState state );
 
         /**
-         * @brief Initialize Roland client based on stored configuration
+         * @brief Initialize Roland client with provided configuration
+         * @param switchIP IP address of the Roland switch
+         * @param switchPort Port number of the Roland switch
+         * @param username LAN username for the switch
+         * @param password LAN password for the switch
          * @return true if initialization successful
          */
-        bool initializeRolandClient();
+        bool initializeRolandClient( const IPAddress& switchIP, uint16_t switchPort,
+                                     const String& username, const String& password );
 
         /**
          * @brief Poll Roland switch for tally status
@@ -186,15 +187,10 @@ namespace Application {
          * - Medium hold: Factory reset
          * - Long hold: OTA update mode
          *
-         * @return Operating mode to enter (NORMAL, PROVISIONING, or special)
+         * @return Operating mode to enter (NORMAL, PROVISIONING, or DFU)
          */
         OperatingMode checkBootButtonSequence();
 
-        /**
-         * @brief Show error on display
-         * @param errorCode Error code to display
-         */
-        void showError( uint8_t errorCode );
     };
 
 } // namespace Application

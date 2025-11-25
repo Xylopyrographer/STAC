@@ -1,21 +1,26 @@
 #ifndef ATOM_MATRIX_CONFIG_H
     #define ATOM_MATRIX_CONFIG_H
 
-    // Include glyph definitions for this display size
-    #include "Hardware/Display/Glyphs5x5.h"
-
     // ============================================================================
     // M5STACK ATOM MATRIX CONFIGURATION
     // ============================================================================
 
     // Board identification
     #define STAC_BOARD_NAME "M5Stack ATOM Matrix"   // @Claude: is this used anywhere? Remove if not.
-    #define STAC_ID_PREFIX "STAC"                   // @Claude: this is a global prefic for all instances of the STAC. Doesn't need to be defined board by board.
-    // #define BOARD_M5STACK_ATOM_MATRIX // @Claude: put this heare for each board?
+    #define STAC_ID_PREFIX "STAC"                   // @Claude: this is a global prefix for all instances of the STAC. Doesn't need to be defined board by board.
+    // #define BOARD_M5STACK_ATOM_MATRIX // @Claude: put this here for each board?
 
     // ============================================================================
     // DISPLAY CONFIGURATION
     // ============================================================================
+    // Include glyph definitions for this display size
+    #include "Hardware/Display/Glyphs5x5.h"
+
+    // ============================================================================
+    // DISPLAY SIZE (for DisplayFactory)
+    // ============================================================================
+
+    #define GLYPH_SIZE_5X5      // @Claude: Is there a way to make this automatic based on the board config?
 
     #define DISPLAY_TYPE_LED_MATRIX
     #define DISPLAY_MATRIX_WIDTH 5
@@ -60,7 +65,6 @@
     // @Claude: If there is no IMU, should exclude all the following IMU config lines
     #define IMU_TYPE_MPU6886
 
-
     // I2C pins
     #define PIN_IMU_SCL 21
     #define PIN_IMU_SDA 25
@@ -79,29 +83,29 @@
     // @Claude: I added the following line as as conditional to include the peripheral mode pins only if needed. Make the following lines conditional on this
     #define HAS_PERIPHERAL_MODE_CAPABILITY true
     #if HAS_PERIPHERAL_MODE_CAPABILITY
-    #define PIN_PM_CHECK_OUT 22
-    #define PIN_PM_CHECK_IN 33
-    #define PM_CHECK_TOGGLE_COUNT 5
+        #define PIN_PM_CHECK_OUT 22
+        #define PIN_PM_CHECK_IN 33
+        #define PM_CHECK_TOGGLE_COUNT 5
 
-    // GROVE/Tally output pins
-    #define PIN_TALLY_STATUS_0 32
-    #define PIN_TALLY_STATUS_1 26
+        // GROVE/Tally output pins
+        #define PIN_TALLY_STATUS_0 32
+        #define PIN_TALLY_STATUS_1 26
 
     #endif // HAS_PERIPHERAL_MODE_CAPABILITY
 
     // Status LED (ATOM doesn't have one)
     #define HAS_STATUS_LED false
     #if HAS_STATUS_LED
-    #define PIN_STATUS_LED 13
-    #define STATUS_LED_TYPE LED_STRIP_WS2812  // GRB color order (default WS2812)
-    #define STATUS_LED_IS_RGBW false
+        #define PIN_STATUS_LED 13
+        #define STATUS_LED_TYPE LED_STRIP_WS2812  // GRB color order (default WS2812)
+        #define STATUS_LED_IS_RGBW false
     #endif // HAS_STATUS_LED
 
     /**
-     * @Claude: Not sure on the place or organization of the TIMING and NETWORK constants.
-     * What if the device connects via Ethernet or Bluetooth and has no WiFi for example?
-     * Probably not much to do now but your input is welcome.
-     */
+    * @Claude: Not sure on the place or organization of the TIMING and NETWORK constants.
+    * What if the device connects via Ethernet or Bluetooth and has no WiFi for example?
+    * Probably not much to do now but your input is welcome.
+    */
 
     // ============================================================================
     // TIMING CONSTANTS (milliseconds)
@@ -131,11 +135,6 @@
     #define NVS_NOM_PREFS_VERSION 4    // Normal operating mode version
     #define NVS_PM_PREFS_VERSION 2     // Peripheral mode version
 
-    // ============================================================================
-    // DISPLAY SIZE (for DisplayFactory)
-    // ============================================================================
-
-    #define GLYPH_SIZE_5X5      // @Claude: Is there a way to make this automatic based on the board config?
 
 #endif // ATOM_MATRIX_CONFIG_H
 

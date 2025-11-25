@@ -1,10 +1,10 @@
 # STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 24, 2025  
+**Date:** November 25, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Hardware tested - Pre-release code quality complete  
-**Last Session:** NVS factory reset optimization + code quality improvements (Phases 1-4)
+**Status:** Hardware tested - Pre-release code cleanup complete  
+**Last Session:** Code quality improvements (Phases 1-6) - 25 identified issues resolved
 
 ---
 
@@ -49,12 +49,14 @@
   - Automatic version extraction from Device_Config.h
   - PlatformIO targets: `pio run -e <env> -t merged -t ota`
   - Documentation: Building Firmware Binaries.md
-- **Pre-Release Code Quality** (November 24, 2025): ~180 LOC reduction across 4 phases
+- **Pre-Release Code Quality** (November 24-25, 2025): ~200 LOC reduction across 6 phases
   - Phase 1: Helper methods (isProvisioned), storage constants, yield removal
   - Phase 2: Board-specific brightness maps, glyph rename (GLF_PO)
   - Phase 2b: Separate glyph headers per display size
   - Phase 3: Centralized provisioning, simplified boot sequence, autostart fix
   - Phase 4: Switch model helpers (isV60HD, isV160HD)
+  - Phase 5: Comment cleanup, outdated code removal
+  - Phase 6: Duplicate NVS reads eliminated, configuration parameter passing
 - **NVS Factory Reset Optimization**: Simplified using esp-idf functions
   - Replaced 30+ lines of manual namespace clearing with nvs_flash_erase/init
   - Single source of truth in ConfigManager::clearAll()
@@ -276,6 +278,98 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 - String comparisons replaced: 20 locations now use helper methods
 - Architecture: Centralized provisioning, unified brightness access, glyph separation
 - Maintainability: Single source of truth for board configs, cleaner state machine
+
+**Phase 5: Comment Cleanup (November 25, 2025)**
+
+**Removed Outdated Comments:**
+- **Dead GLYPH_SIZE conditionals** (11 instances removed)
+  - Remnants from pre-Phase 2b glyph separation
+  - Files: `include/Application/StartupConfig.tpp` (8), `src/Application/STACApp.cpp` (3)
+- **Dead showError() calls** (11 instances commented out)
+  - Function removed in earlier cleanup, calls already non-functional
+  - Files: `src/Application/STACApp.cpp` lines 641, 660, 680, 691, 702, 712, 721, 730, 740, 762, 773
+- **Outdated @Claude architectural notes** (2 instances)
+  - Line 438: Single provisioning check (addressed by Phase 3)
+  - Line 441: Load config before startupConfig sequence (good practice, clarified)
+
+**Clarified Active Comments:**
+- **Line 432**: Enum for switch models (future enhancement suggestion - kept)
+- **Line 438**: Single provisioning check location (addressed by Phase 3 - removed)
+- **Line 441**: Config loading before startup sequence (clarified importance - kept)
+- **Line 470**: Enum-to-string helper for printing (future enhancement - kept)
+
+**Impact:**
+- ~130+ lines of dead code/comments removed
+- Cleaner codebase, easier navigation
+- Remaining @Claude comments are valuable architectural notes for future work
+
+**Phase 6: Duplicate NVS Reads Elimination (November 25, 2025)**
+
+**Architecture Validation:**
+- **Single Source of Truth**: StacOperations struct in SystemState confirmed as authoritative config cache
+- **Dual-Update Pattern**: Verified systemState->setOperations() + configManager->save*Config() execute concurrently
+- **Configuration Flow**:
+  1. Startup: Load protocol config from NVS into StacOperations → SystemState
+  2. Runtime changes: Update SystemState + persist to NVS
+  3. Usage: Access via systemState->getOperations() throughout application lifecycle
+
+**Problem Identified:**
+- `handleNormalMode()` loaded switch config from NVS (lines 537-547)
+- `initializeRolandClient()` re-read same data from NVS (duplicate loadSwitchConfig, loadV*HDConfig)
+- Log analysis showed single config load at startup, but code had multiple read paths
+- Inefficient: 2+ NVS reads for data already in memory
+
+**Solution Implemented:**
+- Added static cache variables in `handleNormalMode()` scope:
+  - `switchIP`, `switchPort`, `username`, `passwordSwitch`, `switchConfigLoaded` flag
+- Load switch config once at startup (line 470), set flag
+- Pass cached values as parameters to `initializeRolandClient()`
+- Updated `initializeRolandClient()` signature to accept 4 parameters (IP, port, username, password)
+- Get operations from SystemState (already loaded) instead of re-reading from NVS
+
+**Changes Made:**
+1. **STACApp.cpp - handleNormalMode()** (lines 424-588):
+   - Added static switch config cache variables (lines 424-429)
+   - Line 470: Load config once, set `switchConfigLoaded` flag (CRITICAL FIX)
+   - Line 587: Check flag before initializing Roland client
+   - Line 588: Pass cached config as parameters
+
+2. **STACApp.cpp - initializeRolandClient()** (lines 937-975):
+   - Changed signature: Added 4 parameters for switch config
+   - Line 933: Get operations from SystemState (no NVS read)
+   - Lines 945-953: Build RolandConfig using passed parameters
+   - Eliminated duplicate `loadSwitchConfig()` and `loadV*HDConfig()` calls
+
+3. **STACApp.h** (line ~158):
+   - Updated function declaration to match new signature
+
+**Critical Bug Fix:**
+- Initial implementation compiled but device stopped after WiFi connection (no polling)
+- Root cause: `switchConfigLoaded` flag never set to `true`
+- Fix: Line 470 changed from `configManager->loadSwitchConfig(...)` to `switchConfigLoaded = configManager->loadSwitchConfig(...)`
+- Result: Flag properly set, Roland client initialized, tally polling functional
+
+**Testing Results:**
+- ✅ Compilation: Clean build (1,290,911 bytes)
+- ✅ Hardware test: ATOM Matrix #1 (94:b9:7e:a8:f8:00)
+- ✅ Config load: Single switch config read at startup (log line 1684)
+- ✅ Roland client: Initialized successfully with cached values (log line 24714)
+- ✅ Tally polling: Active at 300ms intervals, state changes working
+- ✅ Autostart: Tested and confirmed working after reset
+- ✅ No duplicate NVS reads in serial logs
+
+**Impact:**
+- Eliminated 2+ redundant NVS reads per startup
+- Binary size: 1,290,911 bytes (slight increase vs 1,290,479 due to parameter passing overhead)
+- Runtime efficiency: Faster startup, reduced flash wear
+- Code clarity: Explicit parameter passing shows data flow
+- Architecture: Reinforced StacOperations as single source of truth
+
+**Total Code Quality Improvements (Phases 1-6):**
+- Lines removed: ~200 LOC (Phases 1-4: ~180, Phase 5: ~20 net with comment cleanup)
+- Duplicate NVS reads eliminated: 2+ per startup (Phase 6)
+- Architecture validated: StacOperations single source of truth, dual-update pattern confirmed
+- Code maintainability: Cleaner comments, explicit data flow, reduced coupling to NVS
 
 **Testing Results:**
 - ✅ Both platforms compile successfully (atom-matrix, waveshare-s3)

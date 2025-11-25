@@ -20,7 +20,6 @@ namespace Application {
     STACApp::STACApp()
         : initialized( false )
         , stacID( "" )
-        , lastOrientation( Orientation::UNKNOWN )
         , lastRolandPoll( 0 )
         , rolandPollInterval( 300 )
         , rolandClientInitialized( false ) {
@@ -31,14 +30,12 @@ namespace Application {
         // Initialize hardware
         if ( !initializeHardware() ) {
             log_e( "Hardware initialization failed" );
-            showError( 1 );
             return false;
         }
 
         // Initialize network and storage
         if ( !initializeNetworkAndStorage() ) {
             log_e( "Network/Storage initialization failed" );
-            showError( 2 );
             return false;
         }
 
@@ -46,7 +43,6 @@ namespace Application {
         systemState = std::make_unique<State::SystemState>();
         if ( !systemState->begin() ) {
             log_e( "System state initialization failed" );
-            showError( 3 );
             return false;
         }
 
@@ -121,11 +117,6 @@ namespace Application {
         // Handle button input
         handleButton();
 
-        // Handle IMU orientation
-        if ( imu->isAvailable() ) {
-            handleOrientation();
-        }
-
         // Update managers
         wifiManager->update();
         systemState->update();
@@ -156,22 +147,20 @@ namespace Application {
         log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
 
         // Clear display buffer and set initial brightness to remove power-up artifacts
-        display->clear( false );  // Clear buffer without showing
-        display->setBrightness( Config::Display::BRIGHTNESS_MAP[ 1 ], false ); // Set to level 1, no show
+        display->clear( Config::Display::NO_SHOW );  // Clear buffer without showing
+        display->setBrightness( Config::Display::BRIGHTNESS_MAP[ 1 ], Config::Display::NO_SHOW ); // Set to level 1, no show
 
         // Show power pixel immediately using BASE_GLYPHS (before orientation detection)
         const uint8_t *earlyPowerGlyph = Display::BASE_GLYPHS[ Display::GLF_PO ];
-        display->drawGlyphOverlay( earlyPowerGlyph, Display::StandardColors::ORANGE, true );
+        display->drawGlyphOverlay( earlyPowerGlyph, Display::StandardColors::ORANGE, Config::Display::SHOW );
 
-        // IMU
-        // imu = Hardware::IMUFactory::create();
-        // @Claude: if we define in the board_config.h if the device has an IMU, this gets simpler. Also, haven't we defined an IMU enum elsewhere? Why here again?
+        // IMU - only read orientation once at startup for glyph rotation
         imu = IMUFactory::create();
         if ( imu->begin() ) {
             log_i( "✓ IMU (%s)", imu->getType() );
-            lastOrientation = imu->getOrientation();
+            Orientation detectedOrientation = imu->getOrientation();
             const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-            log_i( "  Initial orientation: %s", orientationNames[ static_cast<int>( lastOrientation ) ] );
+            log_i( "  Initial orientation: %s", orientationNames[ static_cast<int>( detectedOrientation ) ] );
         }
         else {
             log_w( "⚠ IMU unavailable" );
@@ -199,12 +188,12 @@ namespace Application {
                 initialOrientation = detectedOrientation;
             }
         }
+        // Compile-time selection of GlyphManager based on board configuration
 #ifdef GLYPH_SIZE_5X5
         glyphManager = std::make_unique<Display::GlyphManager5x5>( initialOrientation );
 #else
         glyphManager = std::make_unique<Display::GlyphManager8x8>( initialOrientation );
 #endif
-        lastOrientation = initialOrientation;  // Track for future updates
         log_i( "✓ GlyphManager" );
 
         // Peripheral mode detector
@@ -272,14 +261,6 @@ namespace Application {
         }
         // Note: Factory reset and OTA modes restart the device, so we never return from them
 
-        /*
-         * @Claude: If you review in detail the startup sequence of the baseline code you'll see there is an entry in NVS that is an "is provisioned" flag.
-         * This is used to determine if the device should enter provisioning mode load the operating parametrs from NVS.
-         * That check needs only to be done if we're not operating in peripheral mode.
-         * Might ease the startup logic if we do the same here.
-         * We don't need to check if each thing is provisioned. It's binary. Either we are provisioned or we are not.
-        */
-
         // Check if device is provisioned (has WiFi credentials AND switch configuration)
         if ( !configManager->isProvisioned() ) {
             log_i( "Device not provisioned, entering provisioning mode" );
@@ -339,36 +320,13 @@ namespace Application {
         if ( button->isReleased() && longPressHandled ) {
             longPressHandled = false;
         }
-
         // Note: Short press not used in normal operation
-        // Tally state is controlled by Roland switch polling, not button presses
-    }
 
-    void STACApp::handleOrientation() {
-        Orientation currentOrientation = imu->getOrientation();
-
-        if ( currentOrientation != lastOrientation &&
-                currentOrientation != Orientation::UNKNOWN ) {
-
-            lastOrientation = currentOrientation;
-
-            // Update glyph manager orientation
-            if ( glyphManager ) {
-                glyphManager->updateOrientation( currentOrientation );
-            }
-
-            // Orientation tracking active (logging disabled for normal operation)
-        }
     }
 
     /**
-     * @Claude: For all display routines, can we use an expression or a #define that reads
-     * "SHOW" (true) or "NO_SHOW" (false) for the parameter that pushes the buffer to the display.
-     * For the display routines, if we only compile in one set of glyphs and if the nmemonic 
-     * is the same for that glyph (using 'GLF_DF' for example) then we can simplify the code 
-     * and won't need the '#ifdef GLYPH_SIZE_nXn' structure.
+     * @brief Update display based on current tally state
      */
-    
     void STACApp::updateDisplay() {
         TallyState currentState = systemState->getTallyState().getCurrentState();
         StacOperations ops = systemState->getOperations();
@@ -377,7 +335,7 @@ namespace Application {
         if ( currentState == TallyState::UNSELECTED ) {
             if ( ops.cameraOperatorMode ) {
                 // Camera Operator mode: Show dotted frame glyph
-using namespace Display;
+                using namespace Display;
                 const uint8_t *glyphData = glyphManager->getGlyph( Display::GLF_DF );
                 display->drawGlyph( glyphData,
                                     Display::StandardColors::PURPLE,
@@ -386,19 +344,19 @@ using namespace Display;
             }
             else {
                 // Talent mode: Show solid green
-                display->fill( Display::StandardColors::GREEN, false );  // Don't show yet
+                display->fill( Display::StandardColors::GREEN, Config::Display::NO_SHOW );  // Don't show yet
             }
         }
         else {
             // All other states: Fill with state color
             Display::color_t color = systemState->getTallyState().getStateColor();
-            display->fill( color, false );  // Don't show yet
+            display->fill( color, Config::Display::NO_SHOW );  // Don't show yet
         }
 
-        // Overlay power-on indicator (center pixel for 5x5, center 4 pixels for 8x8)
+        // Overlay power-on indicator glyph
         // After orientation is determined, use rotated glyphs from GlyphManager
         const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-        display->drawGlyphOverlay( powerGlyph, Display::StandardColors::ORANGE, false );
+        display->drawGlyphOverlay( powerGlyph, Display::StandardColors::ORANGE, Config::Display::NO_SHOW );
 
         // Now show the complete display
         display->show();
@@ -408,23 +366,19 @@ using namespace Display;
         using namespace Config::Timing;
         using namespace Display;
 
-#ifdef GLYPH_SIZE_5X5
         const uint8_t *wifiGlyph = glyphManager->getGlyph( Display::GLF_WIFI );
-#else
-        const uint8_t *wifiGlyph = glyphManager->getGlyph( Display::GLF_WIFI );
-#endif
 
         switch ( state ) {
             case Net::WiFiState::CONNECTING: {
                 // Show orange WiFi glyph while attempting connection
-                display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, Config::Display::SHOW );
                 log_i( "WiFi: Attempting connection (orange glyph displayed)" );
                 break;
             }
 
             case Net::WiFiState::CONNECTED: {
                 // Show green WiFi glyph on successful connection
-                display->drawGlyph( wifiGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
+                display->drawGlyph( wifiGlyph, StandardColors::GREEN, StandardColors::BLACK, Config::Display::SHOW );
                 log_i( "WiFi: Connected (green glyph displayed)" );
 
                 // Print WiFi connected status to serial
@@ -434,27 +388,23 @@ using namespace Display;
 
                 // Clear display and show power pixel
                 // After orientation is determined, use rotated glyphs from GlyphManager
-                display->fill( StandardColors::BLACK, false );
-// @Claude: We created a new glyph for the "power on" pixel. Can we not use that here? See also the note above on using a single glyph map
-#ifdef GLYPH_SIZE_5X5
+                display->fill( StandardColors::BLACK, Config::Display::NO_SHOW );
+
                 const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, false );
+                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::NO_SHOW );
                 display->show();
                 break;
             }
 
             case Net::WiFiState::FAILED: {
                 // Flash red WiFi glyph on timeout
-                display->drawGlyph( wifiGlyph, StandardColors::RED, StandardColors::BLACK, true );
+                display->drawGlyph( wifiGlyph, StandardColors::RED, StandardColors::BLACK, Config::Display::SHOW );
                 log_e( "WiFi: Connection timeout (flashing red glyph)" );
                 display->flash( 8, 300, display->getBrightness() );  // Flash 8 times at 300ms intervals
                 delay( GUI_PAUSE_MS );
 
                 // Show orange glyph again for retry attempt
-                display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                display->drawGlyph( wifiGlyph, StandardColors::ORANGE, StandardColors::BLACK, Config::Display::SHOW );
                 break;
             }
 
@@ -467,6 +417,13 @@ using namespace Display;
         // Ensure WiFi is connected
         static bool wifiAttempted = false;
         static bool interactiveConfigDone = false;
+        
+        // Switch configuration - loaded once and reused for Roland client initialization
+        static IPAddress switchIP;
+        static uint16_t switchPort = 0;
+        static String username;
+        static String passwordSwitch;
+        static bool switchConfigLoaded = false;
 
         // Run startup configuration sequence (once)
         if ( !interactiveConfigDone ) {
@@ -501,18 +458,17 @@ using namespace Display;
             // Apply the stored brightness level to the display hardware
             {
                 uint8_t absoluteBrightness = Config::Display::BRIGHTNESS_MAP[ ops.displayBrightnessLevel ];
-                display->setBrightness( absoluteBrightness, true );
+                display->setBrightness( absoluteBrightness, Config::Display::SHOW );
                 log_i( "Applied brightness level %d", ops.displayBrightnessLevel );
             }
 
-            // Print configuration summary to serial (always, before autostart check)
+            // Load switch configuration for printing and Roland client initialization
             // @Claude: I guess using an enum for the switch models can be problematic if we want to print the model name. Maybe we can have a function that converts from enum to string for printing purposes?
             String ssid, password;
-            IPAddress switchIP;
-            uint16_t switchPort;
-            String username, passwordSwitch;
-            if ( configManager->loadWiFiCredentials( ssid, password ) &&
-                    configManager->loadSwitchConfig( ops.switchModel, switchIP, switchPort, username, passwordSwitch ) ) {
+            switchConfigLoaded = configManager->loadSwitchConfig( ops.switchModel, switchIP, switchPort, username, passwordSwitch );
+            
+            // Print configuration summary to serial (always, before autostart check)
+            if ( switchConfigLoaded && configManager->loadWiFiCredentials( ssid, password ) ) {
                 Utils::InfoPrinter::printFooter( ops, switchIP, switchPort, ssid );
             }
 
@@ -539,10 +495,10 @@ using namespace Display;
                 autostartColor = Display::StandardColors::BRIGHT_GREEN;
             }
 
-            display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, true );
+            display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
             // Wait for button release before proceeding
-                while ( button->read() ) {
+            while ( button->read() ) {
                 // Button read is non-blocking, no yield needed
             }            // Check if autostart is enabled
             bool autoStartBypass = false;
@@ -555,7 +511,7 @@ using namespace Display;
                 using namespace Display;
 
                 // Turn on corner pixels (color based on channel bank) - channel already displayed above
-using namespace Display;
+                using namespace Display;
                 const uint8_t *cornersGlyph = glyphManager->getGlyph( Display::GLF_CORNERS );
                 display->pulseCorners( cornersGlyph, true, autostartColor );
 
@@ -628,8 +584,8 @@ using namespace Display;
         }
 
         // Initialize Roland client if WiFi connected and not yet initialized
-        if ( wifiManager->isConnected() && !rolandClientInitialized ) {
-            if ( initializeRolandClient() ) {
+        if ( wifiManager->isConnected() && !rolandClientInitialized && switchConfigLoaded ) {
+            if ( initializeRolandClient( switchIP, switchPort, username, passwordSwitch ) ) {
                 rolandClientInitialized = true;
                 log_i( "Roland client initialized" );
                 // Don't update display yet - wait for first valid tally response
@@ -648,7 +604,7 @@ using namespace Display;
         using namespace Config::Timing;
 
         // Get glyph indices based on display size
-using namespace Display;
+        using namespace Display;
 
         log_i( "Entering Peripheral Mode" );
 
@@ -668,7 +624,7 @@ using namespace Display;
 
         // Apply brightness
         uint8_t absoluteBrightness = Config::Display::BRIGHTNESS_MAP[ brightnessLevel ];
-        display->setBrightness( absoluteBrightness, false );
+        display->setBrightness( absoluteBrightness, Config::Display::NO_SHOW );
 
         // Print peripheral mode status to serial
         Utils::InfoPrinter::printPeripheral( cameraMode, brightnessLevel );
@@ -676,31 +632,28 @@ using namespace Display;
         // ===== Startup animation =====
         // Show "P" glyph in green (perifmodecolor)
         const uint8_t *pGlyph = glyphManager->getGlyph( Display::GLF_P );
-        display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
+        display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, Config::Display::SHOW );
 
         // Flash display 4 times
         for ( int i = 0; i < 4; i++ ) {
             delay( 250 );
-            display->clear( true );
+            display->clear( Config::Display::SHOW );
             delay( 250 );
-            display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
+            display->drawGlyph( pGlyph, StandardColors::GREEN, StandardColors::BLACK, Config::Display::SHOW );
         }
 
         delay( GUI_PAUSE_MS );
 
         // Show checkmark confirmation
         const uint8_t *checkGlyph = glyphManager->getGlyph( Display::GLF_CK );
-        display->drawGlyph( checkGlyph, StandardColors::GREEN, StandardColors::BLACK, true );
+        display->drawGlyph( checkGlyph, StandardColors::GREEN, StandardColors::BLACK, Config::Display::SHOW );
         delay( GUI_PAUSE_MS );
 
         // Clear and show power-on glyph
-        display->clear( false );
-#ifdef GLYPH_SIZE_5X5
+        display->clear( Config::Display::NO_SHOW );
+
         const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-        const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-        display->drawGlyph( powerGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+        display->drawGlyph( powerGlyph, StandardColors::ORANGE, StandardColors::BLACK, Config::Display::SHOW );
 
         // Wait for button release
         while ( button->read() );
@@ -743,25 +696,19 @@ using namespace Display;
                     switch ( receivedState ) {
                         case TallyState::PROGRAM: {
                             // Red (program)
-                            display->fill( StandardColors::RED, false );
-#ifdef GLYPH_SIZE_5X5
+                            display->fill( StandardColors::RED, Config::Display::NO_SHOW );
+
                             const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
+                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::SHOW );
                             break;
                         }
 
                         case TallyState::PREVIEW: {
                             // Green (preview)
-                            display->fill( StandardColors::GREEN, false );
-#ifdef GLYPH_SIZE_5X5
+                            display->fill( StandardColors::GREEN, Config::Display::NO_SHOW );
+
                             const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
+                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::SHOW );
                             break;
                         }
 
@@ -769,18 +716,14 @@ using namespace Display;
                             if ( cameraMode ) {
                                 // Camera mode: Show dark frame glyph in purple
                                 const uint8_t *dfGlyph = glyphManager->getGlyph( Display::GLF_DF );
-                                display->drawGlyph( dfGlyph, StandardColors::PURPLE, StandardColors::BLACK, false );
+                                display->drawGlyph( dfGlyph, StandardColors::PURPLE, StandardColors::BLACK, Config::Display::NO_SHOW );
                             }
                             else {
                                 // Talent mode: Show green
-                                display->fill( StandardColors::GREEN, false );
+                                display->fill( StandardColors::GREEN, Config::Display::NO_SHOW );
                             }
-#ifdef GLYPH_SIZE_5X5
                             const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                            const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
+                            display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::SHOW );
                             break;
                         }
 
@@ -789,23 +732,17 @@ using namespace Display;
                             if ( cameraMode ) {
                                 // Camera mode: Show orange X
                                 const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
-                                display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, false );
-#ifdef GLYPH_SIZE_5X5
+                                display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, Config::Display::NO_SHOW );
+
                                 const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
+                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::SHOW );
                             }
                             else {
                                 // Talent mode: Show green with power glyph
-                                display->fill( StandardColors::GREEN, false );
-#ifdef GLYPH_SIZE_5X5
+                                display->fill( StandardColors::GREEN, Config::Display::NO_SHOW );
+
                                 const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#else
-                                const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
-#endif
-                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, true );
+                                display->drawGlyphOverlay( powerGlyph, StandardColors::ORANGE, Config::Display::SHOW );
                             }
                             break;
                         }
@@ -820,19 +757,15 @@ using namespace Display;
                 // User wants to change peripheral mode settings
 
                 // Show brightness selection screen
-                display->fill( StandardColors::WHITE, false );
+                display->fill( StandardColors::WHITE, Config::Display::NO_SHOW );
 
                 // Blank center columns
-#ifdef GLYPH_SIZE_5X5
                 const uint8_t *centerBlank = glyphManager->getGlyph( Display::GLF_EN );
-#else
-                const uint8_t *centerBlank = glyphManager->getGlyph( Display::GLF_EN );
-#endif
-                display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
+                display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, Config::Display::NO_SHOW );
 
                 // Show current brightness level
                 const uint8_t *levelGlyph = glyphManager->getDigitGlyph( brightnessLevel );
-                display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, true );
+                display->drawGlyphOverlay( levelGlyph, StandardColors::ORANGE, Config::Display::SHOW );
 
                 // State machine: brightness adjustment or mode change
                 // Wait for release (brightness) or keep holding (mode change)
@@ -845,33 +778,20 @@ using namespace Display;
                     // Released before timeout: Enter brightness adjustment
                     if ( button->isReleased() && ( modeChangeTimeout >= millis() ) ) {
                         // Use shared changeBrightness with peripheral save callback
-#ifdef GLYPH_SIZE_5X5
+
                         brightnessLevel = startupConfig->changeBrightness( brightnessLevel,
                         [ this, &cameraMode ]( uint8_t newBrightness ) {
                             configManager->savePeripheralSettings( cameraMode, newBrightness );
                         } );
-#else
-                        brightnessLevel = startupConfig->changeBrightness( brightnessLevel,
-                        [ this, &cameraMode ]( uint8_t newBrightness ) {
-                            configManager->savePeripheralSettings( cameraMode, newBrightness );
-                        } );
-#endif
                         exitSettings = true;
                     }
                     // Still pressed after timeout: Enter mode change
                     else if ( button->isPressed() && ( modeChangeTimeout < millis() ) ) {
                         // Use shared changeCameraTalentMode with peripheral save callback
-#ifdef GLYPH_SIZE_5X5
                         cameraMode = startupConfig->changeCameraTalentMode( cameraMode,
                         [ this, &brightnessLevel ]( bool newMode ) {
                             configManager->savePeripheralSettings( newMode, brightnessLevel );
                         } );
-#else
-                        cameraMode = startupConfig->changeCameraTalentMode( cameraMode,
-                        [ this, &brightnessLevel ]( bool newMode ) {
-                            configManager->savePeripheralSettings( newMode, brightnessLevel );
-                        } );
-#endif
                         exitSettings = true;
                     }
 
@@ -892,26 +812,25 @@ using namespace Display;
 
         if ( !configServer.begin() ) {
             log_e( "Failed to start configuration server" );
-            showError( 2 ); // Show error code 2
             return;
         }
 
         // Get glyph indices
-using namespace Display;
+        using namespace Display;
 
         // Show GLF_CFG in red (matching baseline alertcolor for provisioning)
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t normalBrightness = display->getBrightness();
         const uint8_t dimBrightness = normalBrightness / 2;
 
-        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
 
         // Flash 4 times at 500ms (matching baseline)
         for ( int i = 0; i < 4; i++ ) {
             delay( 500 );
-            display->clear( true );
+            display->clear( Config::Display::SHOW );
             delay( 500 );
-            display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+            display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
         }
 
         // Set up pulsing config glyph display callback using brightness modulation
@@ -922,15 +841,15 @@ using namespace Display;
         } );
 
         // Initial config glyph display at normal brightness
-        display->setBrightness( normalBrightness, false );
-        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+        display->setBrightness( normalBrightness, Config::Display::NO_SHOW );
+        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
 
         // Wait for configuration
         ProvisioningData provData = configServer.waitForConfiguration();
 
         // Show green checkmark to confirm receipt (matching baseline)
         const uint8_t *checkmarkGlyph = glyphManager->getGlyph( Display::GLF_CK );
-        display->drawGlyph( checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, true );
+        display->drawGlyph( checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
         delay( 1000 );
 
         // Stop the web server
@@ -942,7 +861,6 @@ using namespace Display;
         // Save WiFi credentials
         if ( !configManager->saveWiFiCredentials( provData.wifiSSID, provData.wifiPassword ) ) {
             log_e( "Failed to save WiFi credentials" );
-            showError( 3 );
             return;
         }
 
@@ -950,7 +868,6 @@ using namespace Display;
         IPAddress switchIP;
         if ( !switchIP.fromString( provData.switchIPString ) ) {
             log_e( "Invalid IP address: %s", provData.switchIPString.c_str() );
-            showError( 4 );
             return;
         }
 
@@ -965,7 +882,6 @@ using namespace Display;
                     username,
                     password ) ) {
             log_e( "Failed to save switch configuration" );
-            showError( 5 );
             return;
         }
 
@@ -1002,7 +918,6 @@ using namespace Display;
         }
         if ( !saved ) {
             log_e( "Failed to save protocol configuration" );
-            showError( 6 );
             return;
         }
 
@@ -1019,53 +934,18 @@ using namespace Display;
         ESP.restart();
     }
 
-    void STACApp::showError( uint8_t errorCode ) {
-        // @Claude: The display should flash with the glyph corresponding to the code number. The color should be red for errors that halt execution, orange for warnings, and yellow for informational messages. If the error halts execution, it should remain flashing.
-        // Flash red with error code
-        for ( uint8_t i = 0; i < errorCode; i++ ) {
-            display->fill( Display::StandardColors::RED, true );
-            delay( 300 );
-            display->clear( true );
-            delay( 300 );
-        }
-    }
-
-    bool STACApp::initializeRolandClient() {
-        // Load switch configuration from storage
-        String model;
-        IPAddress switchIP;
-        uint16_t switchPort;
-        String username, password;
-
-        if ( !configManager->loadSwitchConfig( model, switchIP, switchPort, username, password ) ) {
-            log_w( "No switch configuration found" );
-            return false;
-        }
-
-        // Load operations (for tally channel and bank)
-        StacOperations ops;
-        bool loaded = false;
-
-        // Try loading from protocol-specific namespace based on switch model
-        if ( model == "V-60HD" ) {
-            loaded = configManager->loadV60HDConfig( ops );
-        }
-        else if ( model == "V-160HD" ) {
-            loaded = configManager->loadV160HDConfig( ops );
-        }
-
-        if ( !loaded ) {
-            log_w( "No protocol configuration found" );
-            return false;
-        }
+    bool STACApp::initializeRolandClient( const IPAddress& switchIP, uint16_t switchPort,
+                                          const String& username, const String& password ) {
+        // Get operations from system state (already loaded during startup)
+        StacOperations ops = systemState->getOperations();
 
         // Cache poll interval to avoid repeated NVS reads
         rolandPollInterval = ops.statusPollInterval;
 
-        // Create Roland client based on switch model
-        rolandClient = Net::RolandClientFactory::createFromString( model );
+        // Create Roland client based on switch model from operations
+        rolandClient = Net::RolandClientFactory::createFromString( ops.switchModel );
         if ( !rolandClient ) {
-            log_e( "Failed to create Roland client for model: %s", model.c_str() );
+            log_e( "Failed to create Roland client for model: %s", ops.switchModel.c_str() );
             return false;
         }
 
@@ -1087,7 +967,7 @@ using namespace Display;
         }
 
         log_i( "Roland client ready: %s @ %s:%d (ch %d)",
-               model.c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
+               ops.switchModel.c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
 
         return true;
     }
@@ -1098,7 +978,7 @@ using namespace Display;
         using namespace Config::Net;
 
         // Get glyph indices based on display size
-using namespace Display;
+        using namespace Display;
 
         // Check if it's time to poll
         unsigned long now = millis();
@@ -1197,7 +1077,7 @@ using namespace Display;
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple question mark
                         const uint8_t *qmGlyph = glyphManager->getGlyph( Display::GLF_QM );
-                        display->drawGlyph( qmGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
+                        display->drawGlyph( qmGlyph, StandardColors::PURPLE, StandardColors::BLACK, Config::Display::SHOW );
                         log_e( "Junk reply error - showing purple '?'" );
                     }
                     else {
@@ -1226,7 +1106,7 @@ using namespace Display;
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show orange X
                     const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
-                    display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, true );
+                    display->drawGlyph( xGlyph, StandardColors::ORANGE, StandardColors::BLACK, Config::Display::SHOW );
                     log_e( "Connection timeout - showing orange 'X'" );
                 }
                 else {
@@ -1256,7 +1136,7 @@ using namespace Display;
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple X (big purple X)
                         const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
-                        display->drawGlyph( xGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
+                        display->drawGlyph( xGlyph, StandardColors::PURPLE, StandardColors::BLACK, Config::Display::SHOW );
                         log_e( "No reply error - showing purple 'X'" );
                     }
                     else {
@@ -1277,7 +1157,7 @@ using namespace Display;
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show red X
                     const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_BX );
-                    display->drawGlyph( xGlyph, StandardColors::RED, StandardColors::BLACK, true );
+                    display->drawGlyph( xGlyph, StandardColors::RED, StandardColors::BLACK, Config::Display::SHOW );
                     log_e( "Unknown error - showing red 'X'" );
                 }
                 else {
@@ -1298,7 +1178,7 @@ using namespace Display;
         // (matching baseline behavior which doesn't change display on OTA entry)
 
         // Get glyph for pulsing display
-using namespace Display;
+        using namespace Display;
 
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
         const uint8_t normalBrightness = display->getBrightness();
@@ -1309,7 +1189,6 @@ using namespace Display;
 
         if ( !otaServer.begin() ) {
             log_e( "Failed to start OTA update server" );
-            showError( 8 ); // Show error code 8
             ESP.restart(); // Restart on error
             return;
         }
@@ -1331,7 +1210,6 @@ using namespace Display;
 
         if ( !result.success ) {
             log_e( "OTA update failed: %s", result.statusMessage.c_str() );
-            showError( 9 ); // Show error code 9
             delay( 3000 );
         }
 
@@ -1392,21 +1270,21 @@ using namespace Display;
         OperatingMode resultMode = OperatingMode::NORMAL;
 
         // Get glyph indices
-using namespace Display;
+        using namespace Display;
 
         // Get all glyphs we'll need
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
 
         // Show provisioning glyph (orange) - always start here
-        display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true );
+        display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
         delay( 250 );
 
         // Flash to confirm we're in button sequence mode
         for ( int i = 0; i < 4; i++ ) {
-            display->clear( true );
+            display->clear( Config::Display::SHOW );
             delay( 125 );
-            display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, true );
+            display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 125 );
         }
 
@@ -1429,16 +1307,16 @@ using namespace Display;
                         // GLF_FM (solid frame) in red with GLF_CK (checkmark) in green overlay
                         const uint8_t *fmGlyph = glyphManager->getGlyph( Display::GLF_FM );
                         const uint8_t *ckGlyph = glyphManager->getGlyph( Display::GLF_CK );
-                        display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, false );
-                        display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, true );
+                        display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::NO_SHOW );
+                        display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, Config::Display::SHOW );
                         delay( 250 );
 
                         // Flash to show state change
                         for ( int i = 0; i < 4; i++ ) {
-                            display->clear( true );
+                            display->clear( Config::Display::SHOW );
                             delay( 125 );
-                            display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, false );
-                            display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, true );
+                            display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::NO_SHOW );
+                            display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, Config::Display::SHOW );
                             delay( 125 );
                         }
 
@@ -1459,19 +1337,19 @@ using namespace Display;
                         log_v( "Advancing to OTA_UPDATE_PENDING state" );
 
                         // GLF_UD (firmware update icon) in red
-                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
                         delay( 250 );
 
                         // Flash to show state change
                         for ( int i = 0; i < 4; i++ ) {
-                            display->clear( true );
+                            display->clear( Config::Display::SHOW );
                             delay( 125 );
-                            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+                            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
                             delay( 125 );
                         }
 
                         // Show static OTA glyph after flash sequence
-                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, true );
+                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
 
                         // Start OTA server immediately (don't wait for button release)
                         log_i( "Boot button sequence: OTA UPDATE selected - starting server" );
