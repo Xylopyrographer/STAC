@@ -57,6 +57,12 @@
   - Phase 4: Switch model helpers (isV60HD, isV160HD)
   - Phase 5: Comment cleanup, outdated code removal
   - Phase 6: Duplicate NVS reads eliminated, configuration parameter passing
+- **Architectural Refactoring** (November 25, 2025): Eliminated `#ifdef` blocks
+  - Consolidated rotation LUTs into glyph headers (Glyphs5x5.h, Glyphs8x8.h)
+  - Added dimension-agnostic type aliases (GlyphManagerType, StartupConfigType)
+  - Eliminated all conditional compilation in application code
+  - Board config selection automatically provides correct types via included glyph header
+  - Template-based design enables future display sizes without application code changes
 - **NVS Factory Reset Optimization**: Simplified using esp-idf functions
   - Replaced 30+ lines of manual namespace clearing with nvs_flash_erase/init
   - Single source of truth in ConfigManager::clearAll()
@@ -370,6 +376,75 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 - Duplicate NVS reads eliminated: 2+ per startup (Phase 6)
 - Architecture validated: StacOperations single source of truth, dual-update pattern confirmed
 - Code maintainability: Cleaner comments, explicit data flow, reduced coupling to NVS
+
+### Architectural Refactoring: `#ifdef` Block Elimination (November 25, 2025)
+
+**Problem:**
+- Application code had `#ifdef GLYPH_SIZE_5X5` blocks in two locations:
+  - `STACApp.cpp` line 93-96: StartupConfig creation
+  - `STACApp.cpp` line 192-196: GlyphManager creation
+- Rotation LUTs were in `GlyphManager.cpp`, separate from glyph data
+- Not maintainable: Adding new display sizes required changes across multiple files
+
+**Solution - Data Consolidation:**
+- **Moved rotation LUTs into glyph headers**:
+  - `Glyphs5x5.h` now contains: base glyphs + 5×5 rotation LUTs + dimensions
+  - `Glyphs8x8.h` now contains: base glyphs + 8×8 rotation LUTs + dimensions
+  - LUTs in `Display::Rotation` namespace (was `Rotation5x5`/`Rotation8x8` in .cpp)
+- **Added dimension-agnostic type aliases** (in glyph headers):
+  ```cpp
+  namespace Display {
+      using GlyphManagerType = GlyphManager<GLYPH_WIDTH>;
+  }
+  namespace Application {
+      using StartupConfigType = StartupConfig<Display::GLYPH_WIDTH>;
+  }
+  ```
+
+**Solution - Code Simplification:**
+- **Updated `GlyphManager.cpp`**:
+  - Removed local rotation LUT namespaces (~90 lines)
+  - Simplified `getRotationLUT()` to reference `Display::Rotation::LUT_*` from headers
+  - Eliminated `constexpr if` size selection logic
+- **Updated `STACApp.h`**:
+  - Replaced conditional `#ifdef` blocks with single type alias declarations:
+    ```cpp
+    std::unique_ptr<Display::GlyphManagerType> glyphManager;
+    std::unique_ptr<Application::StartupConfigType> startupConfig;
+    ```
+- **Updated `STACApp.cpp`**:
+  - Line 93: `std::make_unique<Application::StartupConfigType>(...)` 
+  - Line 187: `std::make_unique<Display::GlyphManagerType>(...)`
+  - No conditional compilation needed
+
+**Architecture Benefits:**
+- **Self-contained glyph files**: Each header contains all data for that display size
+- **Zero conditional compilation**: Board config includes correct header → automatic type selection
+- **Template-based extensibility**: Adding 7×7 or 16×16 displays:
+  1. Create `Glyphs7x7.h` with data + LUTs + type aliases
+  2. Add board config that includes the new header
+  3. No changes to application code needed
+- **Single decision point**: Board config file controls all dimension-dependent code
+
+**Files Modified:**
+- `include/Hardware/Display/Glyphs5x5.h` - Added rotation LUTs, type aliases (~50 lines added)
+- `include/Hardware/Display/Glyphs8x8.h` - Added rotation LUTs, type aliases (~50 lines added)
+- `src/Hardware/Display/GlyphManager.cpp` - Removed local LUTs, simplified getRotationLUT() (~90 lines removed)
+- `include/Application/STACApp.h` - Eliminated 2 `#ifdef` blocks (~6 lines → 2 lines)
+- `src/Application/STACApp.cpp` - Eliminated 2 `#ifdef` blocks (~10 lines → 4 lines)
+
+**Testing Results:**
+- ✅ ATOM Matrix (5×5): Builds successfully, all functionality working
+- ✅ Waveshare S3 (8×8): Builds successfully, all functionality working
+- ✅ No compilation errors or warnings (1 expected LiteLED warning unrelated to changes)
+- ✅ GlyphManager rotation working correctly on both display sizes
+- ✅ StartupConfig interactive menus functional on both platforms
+
+**Impact:**
+- Net code reduction: ~12 lines (added type aliases, removed conditionals and duplicate LUTs)
+- Eliminated: 4 `#ifdef` blocks in application layer
+- Architecture: Cleaner separation, better encapsulation, easier maintenance
+- Extensibility: Future display sizes require zero application code changes
 
 **Testing Results:**
 - ✅ Both platforms compile successfully (atom-matrix, waveshare-s3)

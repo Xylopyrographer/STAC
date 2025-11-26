@@ -9,7 +9,7 @@
 #include "Network/Protocol/RolandClientFactory.h"
 #include "Utils/InfoPrinter.h"
 
-// Add these using declarations
+// Add these 'using' declarations
 using Display::DisplayFactory;
 using Hardware::IMUFactory;
 using Hardware::ButtonFactory;
@@ -89,12 +89,8 @@ namespace Application {
             log_i( "GROVE port initialized to UNKNOWN state" );
         }
 
-        // Create startup config handler
-#ifdef GLYPH_SIZE_5X5
-        startupConfig = std::make_unique<StartupConfig5x5>(
-#else
-        startupConfig = std::make_unique<StartupConfig8x8>(
-#endif
+        // Create startup config handler (dimension-agnostic using type alias)
+        startupConfig = std::make_unique<Application::StartupConfigType>(
                             button,
                             display.get(),
                             glyphManager.get(),
@@ -188,12 +184,8 @@ namespace Application {
                 initialOrientation = detectedOrientation;
             }
         }
-        // Compile-time selection of GlyphManager based on board configuration
-#ifdef GLYPH_SIZE_5X5
-        glyphManager = std::make_unique<Display::GlyphManager5x5>( initialOrientation );
-#else
-        glyphManager = std::make_unique<Display::GlyphManager8x8>( initialOrientation );
-#endif
+        // GlyphManager - initialize with current orientation from IMU (dimension-agnostic using type alias)
+        glyphManager = std::make_unique<Display::GlyphManagerType>( initialOrientation );
         log_i( "✓ GlyphManager" );
 
         // Peripheral mode detector

@@ -66,13 +66,8 @@ namespace Application {
         std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
         std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
 
-// @Claude: No longer need these conditionals since we have GLYPH_SIZE_ defined in board config
-        // Glyph management
-#ifdef GLYPH_SIZE_5X5
-        std::unique_ptr<Display::GlyphManager5x5> glyphManager;
-#else
-        std::unique_ptr<Display::GlyphManager8x8> glyphManager;
-#endif
+        // Glyph management - dimension-agnostic using type alias from glyph header
+        std::unique_ptr<Display::GlyphManagerType> glyphManager;
 
         // Network & Storage
         std::unique_ptr<Net::WiFiManager> wifiManager;
@@ -82,13 +77,8 @@ namespace Application {
         // State
         std::unique_ptr<State::SystemState> systemState;
 
- // @Claude: No longer need these conditionals since we have GLYPH_SIZE_ defined in board config
-        // Startup configuration
-#ifdef GLYPH_SIZE_5X5
-        std::unique_ptr<StartupConfig5x5> startupConfig;
-#else
-        std::unique_ptr<StartupConfig8x8> startupConfig;
-#endif
+        // Startup configuration - dimension-agnostic using type alias from glyph header
+        std::unique_ptr<Application::StartupConfigType> startupConfig;
 
         // Application state
         bool initialized;

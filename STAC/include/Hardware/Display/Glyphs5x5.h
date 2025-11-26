@@ -137,7 +137,79 @@ namespace Display {
     // Derive glyph count from array size at compile time
     constexpr uint8_t GLYPH_COUNT = sizeof(BASE_GLYPHS) / sizeof(BASE_GLYPHS[0]);
 
+    // ========================================================================
+    // ROTATION LOOKUP TABLES
+    // ========================================================================
+
+    /**
+     * @brief 5×5 rotation lookup tables
+     *
+     * These arrays map source pixel positions to destination positions
+     * for each 90° rotation. Format: destPixel = sourceLUT[sourcePixel]
+     */
+    namespace Rotation {
+        // No rotation (UP orientation)
+        constexpr uint8_t LUT_UP[25] = {
+            0,1,2,3,4,
+            5,6,7,8,9,
+            10,11,12,13,14,
+            15,16,17,18,19,
+            20,21,22,23,24
+        };
+
+        // 90° clockwise (RIGHT orientation)
+        constexpr uint8_t LUT_RIGHT[25] = {
+            20,15,10,5,0,
+            21,16,11,6,1,
+            22,17,12,7,2,
+            23,18,13,8,3,
+            24,19,14,9,4
+        };
+
+        // 180° (DOWN orientation)
+        constexpr uint8_t LUT_DOWN[25] = {
+            24,23,22,21,20,
+            19,18,17,16,15,
+            14,13,12,11,10,
+            9,8,7,6,5,
+            4,3,2,1,0
+        };
+
+        // 270° clockwise / 90° counter-clockwise (LEFT orientation)
+        constexpr uint8_t LUT_LEFT[25] = {
+            4,9,14,19,24,
+            3,8,13,18,23,
+            2,7,12,17,22,
+            1,6,11,16,21,
+            0,5,10,15,20
+        };
+    }
+
 } // namespace Display
+
+// Forward declare template classes (defined in GlyphManager.h)
+namespace Display {
+    template<uint8_t SIZE>
+    class GlyphManager;
+}
+
+// Forward declare template classes (defined in StartupConfig.h)
+namespace Application {
+    template<uint8_t GLYPH_SIZE>
+    class StartupConfig;
+}
+
+// ========================================================================
+// TYPE ALIASES - Automatically select correct template based on display size
+// ========================================================================
+namespace Display {
+    // Type aliases for dimension-agnostic code
+    using GlyphManagerType = GlyphManager<GLYPH_WIDTH>;
+}
+
+namespace Application {
+    using StartupConfigType = StartupConfig<Display::GLYPH_WIDTH>;
+}
 
 #endif // STAC_GLYPHS_5X5_H
 
