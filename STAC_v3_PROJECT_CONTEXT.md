@@ -3,8 +3,8 @@
 **Date:** November 25, 2025  
 **Branch:** `v3_RC`  
 **Version:** v3.0.0-RC.9  
-**Status:** Hardware tested - Pre-release code cleanup complete  
-**Last Session:** Code quality improvements (Phases 1-6) - 25 identified issues resolved
+**Status:** Hardware tested - Major architectural refactoring complete  
+**Last Session:** NVS version simplification + Board config cleanup - Verified on hardware
 
 ---
 
@@ -67,14 +67,39 @@
   - Replaced 30+ lines of manual namespace clearing with nvs_flash_erase/init
   - Single source of truth in ConfigManager::clearAll()
   - Future-proof and more reliable
+- **NVS Version Management Refactoring** (November 25, 2025): Simplified to baseline v2.x approach
+  - Single global `NOM_PREFS_VERSION` stored only in wifi namespace
+  - Separate `PM_PREFS_VERSION` for peripheral mode
+  - Simple version check with warning (no auto-migration)
+  - Removed ~150 LOC of complex migration logic
+  - Manual factory reset required for schema changes (clear contract)
+- **Board Configuration Cleanup** (November 25, 2025): Centralized global constants
+  - Removed 6 redundant defines from board configs (STAC_ID_PREFIX, GLYPH_SIZE_*, NVS version defines, etc.)
+  - Moved global constants to Constants.h (ID_PREFIX, MATRIX_SIZE, version numbers)
+  - Changed DisplayFactory to detect from GLYPH_WIDTH_* defines
+  - Wrapped IMU config in conditional blocks (#if IMU_HAS_IMU)
+  - Changed IMU_ORIENTATION_OFFSET to use OrientationOffset enum
+  - Created comprehensive template files (TEMPLATE_NewBoard_Config.h, TEMPLATE_GlyphsMxN.h)
+- **Hardware Verification** (November 25, 2025): All refactoring tested
+  - ATOM Matrix #1: Normal mode, V-160HD client operational
+  - ATOM Matrix #2: Peripheral mode fully functional
+  - NVS schema version check: "NVS schema version OK: 4"
+  - All tally states working correctly
+  - Committed (20571b4), pushed to GitHub, hardware verified
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)
 - **v3.0.0-RC.9** tested on all hardware:
-  - ATOM Matrix #1 (94:b9:7e:a8:f8:00) - Normal mode
-  - ATOM Matrix #2 (4c:75:25:c5:53:c4) - Peripheral mode
+  - ATOM Matrix #1 (94:b9:7e:a8:f8:00) - Normal mode (V-160HD client verified)
+  - ATOM Matrix #2 (4c:75:25:c5:53:c4) - Peripheral mode (fully operational)
   - Waveshare ESP32-S3 (f0:f5:bd:6e:31:fc) - Normal mode with 8x8 display
-- Major refactoring complete:
+- Major refactoring complete (November 25, 2025):
+  - NVS version management simplified (baseline v2.x approach, ~150 LOC removed)
+  - Board configs cleaned up (6 redundant defines removed, global constants centralized)
+  - Template files created for hardware extensibility
+  - All changes committed (20571b4) and pushed to GitHub
+  - Hardware verification: Both normal mode and peripheral mode fully functional
+- Earlier refactoring (November 21-24, 2025):
   - DisplayBase class eliminates ~180 lines per display type
   - RolandClientBase class eliminates ~100 lines between protocols
   - StateManagerBase<T> template eliminates ~140 lines of state management code
@@ -162,6 +187,114 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 ---
 
 ## Recent Changes (v3.0 Development)
+
+### NVS Version Management Refactoring (November 25, 2025)
+
+**Simplified NVS Schema Version Handling**
+- **Problem**: Complex migration logic (~150 LOC) attempted to auto-migrate between schema versions
+  - Fragile - migration code paths hard to test
+  - Version numbers scattered across 5 NVS namespaces
+  - Not maintainable - adding namespaces required updating migration logic
+- **Solution**: Adopted baseline v2.x approach with simple version check
+  - Single global `NOM_PREFS_VERSION = 4` stored only in wifi namespace
+  - Separate `PM_PREFS_VERSION = 2` for peripheral mode
+  - `checkSchemaVersion()` reads wifi namespace version, compares, logs warning if mismatch
+  - No auto-migration - user must factory reset after schema changes
+  - Clear contract: schema change = factory reset required
+- **Impact**:
+  - Removed ~150 LOC of migration code
+  - Single source of truth for version number (Constants.h)
+  - Simpler, more maintainable, matches baseline v2.x behavior
+  - Future schema changes: bump version number, users factory reset
+- **Files Modified**:
+  - `include/Config/Constants.h` - Added `NOM_PREFS_VERSION = 4`, `PM_PREFS_VERSION = 2`
+  - `include/Storage/ConfigManager.h` - Replaced `checkAndMigrateConfig()` with `checkSchemaVersion()`
+  - `src/Storage/ConfigManager.cpp` - Removed migration logic, simplified version check
+  - All protocol namespaces (switch, v60hd, v160hd, identity) no longer store version
+
+### Board Configuration Cleanup (November 25, 2025)
+
+**Centralized Global Constants**
+- **Problem**: Board config files had redundant defines that were actually global constants
+  - `STAC_ID_PREFIX` - Always "STAC", not board-specific
+  - `GLYPH_SIZE_5X5`/`GLYPH_SIZE_8X8` - Confusing define names
+  - `DISPLAY_TOTAL_LEDS` - Calculated from width×height
+  - `DISPLAY_POWER_LED_PIXEL` - Always 0 (first pixel)
+  - `TIMING_NEXT_STATE_MS` - Global startup timing constant
+  - `NVS_*_PREFS_VERSION` - Moved to Constants.h
+- **Solution**: Removed redundant defines, centralized globals, improved clarity
+  - Removed `STAC_ID_PREFIX` → `ID_PREFIX = "STAC"` in Constants.h
+  - Changed `GLYPH_SIZE_*` → `GLYPH_WIDTH_5` or `GLYPH_WIDTH_8` (clearer naming)
+  - Removed `DISPLAY_TOTAL_LEDS` → `MATRIX_SIZE = WIDTH × HEIGHT` calculated in Constants.h
+  - Removed `DISPLAY_POWER_LED_PIXEL` → Always pixel 0
+  - Removed `TIMING_NEXT_STATE_MS` → Not referenced anywhere
+  - Moved NVS version constants to Constants.h (single source of truth)
+- **DisplayFactory Update**:
+  - Changed from `#if defined(GLYPH_SIZE_5X5)` to `#if defined(GLYPH_WIDTH_5)`
+  - More intuitive: width determines display size selection
+- **IMU Configuration Cleanup**:
+  - Wrapped IMU config sections in `#if IMU_HAS_IMU` blocks
+  - Changed `IMU_ORIENTATION_OFFSET` from raw integer to `OrientationOffset::OFFSET_90` enum
+  - Clearer intent, type-safe
+- **Peripheral Mode Cleanup**:
+  - Wrapped peripheral pins in `#if HAS_PERIPHERAL_MODE_CAPABILITY` blocks
+  - Only define pins when feature is available
+- **Impact**:
+  - Removed 6 redundant defines from each board config (~30 lines)
+  - Global constants in one place (Constants.h)
+  - Less user confusion when creating new board configs
+  - Type-safe enums instead of magic numbers
+- **Files Modified**:
+  - `include/Config/Constants.h` - Added global constants
+  - `include/BoardConfigs/AtomMatrix_Config.h` - Removed redundant defines, cleaned up
+  - `include/BoardConfigs/WaveshareS3_Config.h` - Removed redundant defines, cleaned up
+  - `include/Hardware/Display/DisplayFactory.h` - Changed size detection to GLYPH_WIDTH_*
+
+### Template Files for Hardware Extensibility (November 25, 2025)
+
+**Comprehensive Templates Created**
+- **TEMPLATE_NewBoard_Config.h** (212 lines):
+  - Complete board configuration template with instructions
+  - Sections: Display, Button, IMU (optional), Peripheral Mode (optional)
+  - Usage instructions at top of file
+  - Comprehensive checklist at bottom
+  - Updated to match cleanup changes (no GLYPH_SIZE_MXN, enum-based offsets)
+- **TEMPLATE_GlyphsMxN.h** (comprehensive):
+  - Complete glyph definition template
+  - Rotation LUT generation formulas
+  - Example glyph data structures
+  - Testing checklist
+  - Guidance for creating new display sizes
+- **Purpose**: Enable future hardware additions without guessing
+- **Files Created**:
+  - `include/BoardConfigs/TEMPLATE_NewBoard_Config.h`
+  - `include/Hardware/Display/TEMPLATE_GlyphsMxN.h`
+
+### Hardware Verification (November 25, 2025)
+
+**Testing Results:**
+- ✅ **ATOM Matrix #1** (94:b9:7e:a8:f8:00) - Normal mode
+  - NVS schema version check: "NVS schema version OK: 4"
+  - WiFi connected: 192.168.2.27
+  - Roland V-160HD client: 192.168.2.58:8080 (channel 6)
+  - Tally states: UNSELECTED → PREVIEW → PROGRAM → UNSELECTED (all working)
+  - Memory: RAM 15.7%, Flash 66.3%
+- ✅ **ATOM Matrix #2** (4c:75:25:c5:53:c4) - Peripheral mode
+  - Peripheral mode detected (10/10 tests passed)
+  - GROVE port configured as inputs (TS_0=32, TS_1=26)
+  - Peripheral settings loaded: Talent mode, brightness 1
+  - NVS schema version check: passed
+- ✅ **Commits**:
+  - 20571b4: "Refactor NVS version handling and clean up board configurations"
+  - Pushed to GitHub (branch: v3_RC)
+  - 8 files changed, 741 insertions(+), 178 deletions(-)
+
+**Summary:**
+- All refactoring changes verified working on hardware
+- Both normal mode and peripheral mode fully functional
+- NVS version management simplified and operational
+- Board config cleanup preserves all functionality
+- Template files ready for future hardware additions
 
 ### NVS Factory Reset Optimization (November 24, 2025)
 
