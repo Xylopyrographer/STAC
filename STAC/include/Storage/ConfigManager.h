@@ -214,7 +214,7 @@
             static constexpr const char *NS_PERIPHERAL = "peripheral";
 
             // Key names - WiFi
-            static constexpr const char *KEY_VERSION = "version";
+            static constexpr const char *KEY_VERSION = "version";  // Global NOM version (stored in wifi namespace only)
             static constexpr const char *KEY_SSID = "ssid";
             static constexpr const char *KEY_PASSWORD = "password";
             
@@ -247,10 +247,10 @@
             static constexpr const char *KEY_PM_BRIGHTNESS = "pmBrightness";
 
             /**
-             * @brief Check and migrate configuration if needed
-             * @return true if migration successful or not needed
+             * @brief Check NVS schema version compatibility
+             * @return true if version matches or no config exists, false if mismatch detected
              */
-            bool checkAndMigrateConfig();
+            bool checkSchemaVersion();
         };
 
     } // namespace Storage

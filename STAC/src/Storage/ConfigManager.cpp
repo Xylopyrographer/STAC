@@ -12,9 +12,10 @@ using namespace Config::Storage;
         bool ConfigManager::begin() {
             log_i( "Config Manager initialized" );
 
-            // Check and migrate configuration if needed
-            // @Claude: We don't need the migration functionality. If the NVS layout changes, wipe the NVS partition and set it so the user has to provision the device again. Check how the baseline code does this.
-            return checkAndMigrateConfig();
+            // Check NVS schema version
+            checkSchemaVersion();
+            
+            return true;
         }
 
         bool ConfigManager::saveWiFiCredentials( const String &ssid, const String &password ) {
@@ -142,11 +143,10 @@ using namespace Config::Storage;
 
             prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
             prefs.putUChar( KEY_MAX_CHANNEL, ops.maxChannelCount );
-            prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+            prefs.putUChar( KEY_AUTO_START, ops.autoStartEnabled );
             prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
             prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
             prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
-            prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
             prefs.end();
 
             log_i( "V-60HD configuration saved" );
@@ -198,7 +198,6 @@ using namespace Config::Storage;
             prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
             prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
             prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
-            prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
             prefs.end();
 
             log_i( "V-160HD configuration saved" );
@@ -321,7 +320,7 @@ using namespace Config::Storage;
 
             prefs.putBool( KEY_PM_CAMERA_MODE, cameraMode );
             prefs.putUChar( KEY_PM_BRIGHTNESS, brightnessLevel );
-            prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
+            prefs.putUChar( KEY_VERSION, Config::NVS::PM_PREFS_VERSION );
             prefs.end();
 
             log_i( "Peripheral settings saved: mode=%s, brightness=%d",
@@ -372,82 +371,36 @@ using namespace Config::Storage;
         }
 
         uint8_t ConfigManager::getConfigVersion() {
-            // Check both protocol namespaces and return the one that exists
-            if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
-                uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
-                prefs.end();
-                if ( version > 0 ) return version;
-            }
-
-            if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
+            // Read global NOM version from wifi namespace
+            if ( prefs.begin( NS_WIFI, READ_ONLY ) ) {
                 uint8_t version = prefs.getUChar( KEY_VERSION, 0 );
                 prefs.end();
                 return version;
             }
-
-            return 0;
+            return 0;  // No config exists
         }
 
-        // @Claude: Don't need the whole migration functionality, Confirm with how the baseline code deals with prefernces version number mismatches
-        bool ConfigManager::checkAndMigrateConfig() {
-            // Check if old "operations" namespace exists (pre-protocol-refactor)
-            bool hasOldOperations = false;
-            StacOperations oldOps;
-            String oldModel;
+        bool ConfigManager::checkSchemaVersion() {
+            uint8_t storedVersion = getConfigVersion();
             
-            if ( prefs.begin( "operations", READ_ONLY ) ) {
-                hasOldOperations = prefs.isKey( "switchModel" );
-                if ( hasOldOperations ) {
-                    // Load old operations data
-                    oldModel = prefs.getString( "switchModel", "V-60HD" );
-                    oldOps.switchModel = oldModel;
-                    oldOps.tallyChannel = prefs.getUChar( "tallyChannel", 1 );
-                    oldOps.maxChannelCount = prefs.getUChar( "maxChannelCount", 8 );
-                    oldOps.channelBank = prefs.getString( "channelBank", "hdmi_" );
-                    oldOps.maxHDMIChannel = prefs.getUChar( "maxHDMI", 8 );
-                    oldOps.maxSDIChannel = prefs.getUChar( "maxSDI", 8 );
-                    oldOps.autoStartEnabled = prefs.getBool( "autoStart", false );
-                    oldOps.cameraOperatorMode = prefs.getBool( "camOpMode", true );
-                    oldOps.displayBrightnessLevel = prefs.getUChar( "brightness", 1 );
-                    oldOps.statusPollInterval = prefs.getULong( "pollInterval", 300 );
-                    
-                    log_i( "Found old operations namespace, migrating to %s protocol namespace", oldModel.c_str() );
-                }
-                prefs.end();
+            if ( storedVersion == 0 ) {
+                log_i( "No existing NVS configuration found" );
+                return true;  // Fresh device, no mismatch
             }
             
-            // Migrate old operations to new protocol-specific namespace
-            if ( hasOldOperations ) {
-                if ( oldModel == "V-60HD" ) {
-                    saveV60HDConfig( oldOps );
-                    log_i( "Migrated configuration to v60hd namespace" );
-                } else if ( oldModel == "V-160HD" ) {
-                    saveV160HDConfig( oldOps );
-                    log_i( "Migrated configuration to v160hd namespace" );
-                }
-                
-                // Clear old operations namespace after successful migration
-                prefs.begin( "operations", READ_WRITE );
-                prefs.clear();
-                prefs.end();
-                log_i( "Cleared old operations namespace" );
+            if ( storedVersion != Config::NVS::NOM_PREFS_VERSION ) {
+                log_w( "========================================" );
+                log_w( "NVS SCHEMA VERSION MISMATCH" );
+                log_w( "Stored version: %d", storedVersion );
+                log_w( "Expected version: %d", Config::NVS::NOM_PREFS_VERSION );
+                log_w( "Configuration may be incompatible" );
+                log_w( "Factory reset recommended" );
+                log_w( "========================================" );
+                return false;  // Version mismatch detected
             }
             
-            uint8_t currentVersion = getConfigVersion();
-
-            if ( currentVersion == 0 ) {
-                log_i( "No existing configuration found" );
-                return true;
-            }
-
-            if ( currentVersion < Config::NVS::NOM_PREFS_VERSION ) {
-                log_i( "Configuration version %d is older than current %d",
-                       currentVersion, Config::NVS::NOM_PREFS_VERSION );
-                log_i( "Migration may be needed (not implemented yet)" );
-                // TODO: Implement additional migration logic if needed
-            }
-
-            return true;
+            log_i( "NVS schema version OK: %d", storedVersion );
+            return true;  // Version matches
         }
 
     } // namespace Storage

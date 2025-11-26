@@ -33,8 +33,7 @@
         namespace Display {
             constexpr uint8_t MATRIX_WIDTH = DISPLAY_MATRIX_WIDTH;
             constexpr uint8_t MATRIX_HEIGHT = DISPLAY_MATRIX_HEIGHT;
-            constexpr uint8_t MATRIX_SIZE = DISPLAY_TOTAL_LEDS;
-            constexpr uint8_t POWER_LED_PIXEL = DISPLAY_POWER_LED_PIXEL;
+            constexpr uint8_t MATRIX_SIZE = MATRIX_WIDTH * MATRIX_HEIGHT;  // Calculated from dimensions
             
             // Board-specific brightness map (from board config)
             constexpr uint8_t BRIGHTNESS_MAP[] = BOARD_BRIGHTNESS_MAP;
@@ -64,7 +63,6 @@
             constexpr unsigned long ERROR_REPOLL_MS = TIMING_ERROR_REPOLL_MS;
             constexpr unsigned long PM_POLL_INTERVAL_MS = TIMING_PM_POLL_INTERVAL_MS;
             constexpr unsigned long OP_MODE_TIMEOUT_MS = TIMING_OP_MODE_TIMEOUT_MS;
-            constexpr unsigned long NEXT_STATE_MS = TIMING_NEXT_STATE_MS;
         }
 
         // ============================================================================
@@ -96,13 +94,25 @@
         }
 
         // ============================================================================
-        // NVS (from Device_Config.h)
+        // NVS SCHEMA VERSIONS
         // ============================================================================
-
+        /**
+         * @brief NVS schema version numbers
+         * 
+         * These version numbers track the structure of data stored in NVS.
+         * Increment when making schema changes that are incompatible with previous versions.
+         * 
+         * NOM_PREFS_VERSION: Normal Operating Mode schema (wifi, switch, v60hd, v160hd, identity namespaces)
+         *   - Stored in 'wifi' namespace only
+         *   - Checked on boot, mismatch triggers warning and requires factory reset
+         * 
+         * PM_PREFS_VERSION: Peripheral Mode schema (peripheral namespace)
+         *   - Stored in 'peripheral' namespace
+         *   - Independent versioning from NOM
+         */
         namespace NVS {
-            // @Claude: These two version numbers should be defined elsewhere as they are not user settable. 
-            constexpr uint8_t NOM_PREFS_VERSION = NVS_NOM_PREFS_VERSION;
-            constexpr uint8_t PM_PREFS_VERSION = NVS_PM_PREFS_VERSION;
+            constexpr uint8_t NOM_PREFS_VERSION = 4;  ///< Normal operating mode schema version
+            constexpr uint8_t PM_PREFS_VERSION = 2;   ///< Peripheral mode schema version
         };
 
         // ============================================================================
@@ -119,8 +129,8 @@
         // ============================================================================
 
         namespace Strings {
+            constexpr const char *ID_PREFIX = "STAC";  ///< Global prefix for all STAC instances
             constexpr const char *BOARD_NAME = STAC_BOARD_NAME;
-            constexpr const char *ID_PREFIX = STAC_ID_PREFIX;
             constexpr const char *SOFTWARE_VERSION = STAC_SOFTWARE_VERSION;
         }
 
