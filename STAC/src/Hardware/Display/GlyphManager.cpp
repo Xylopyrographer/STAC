@@ -91,6 +91,7 @@
 
         template class GlyphManager<5>;
         template class GlyphManager<8>;
+        template class GlyphManager<1>;  // TFT stub glyphs (for compatibility layer)
 
     } // namespace Display
 

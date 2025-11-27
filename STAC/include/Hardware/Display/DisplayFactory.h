@@ -6,13 +6,18 @@
 #include "../../Config/Constants.h"
 #include <memory>
 
-// Include the appropriate display implementation based on glyph width define
-#if defined(GLYPH_WIDTH_5)
+// Include the appropriate display implementation based on display type
+#if defined(DISPLAY_TYPE_TFT)
+    // TFT display (M5StickC Plus, etc.)
+    #include "TFT/DisplayTFT.h"
+#elif defined(GLYPH_WIDTH_5)
+    // 5x5 LED Matrix (ATOM Matrix, etc.)
     #include "Matrix5x5/Display5x5.h"
 #elif defined(GLYPH_WIDTH_8)
+    // 8x8 LED Matrix (Waveshare S3, etc.)
     #include "Matrix8x8/Display8x8.h"
 #else
-    #error "No GLYPH_WIDTH_* defined in board configuration!"
+    #error "No display type defined in board configuration! Define DISPLAY_TYPE_TFT or GLYPH_WIDTH_*"
 #endif
 
 
@@ -31,7 +36,12 @@
              * @return Unique pointer to IDisplay implementation
              */
             static std::unique_ptr<IDisplay> create() {
-#if defined(GLYPH_WIDTH_5)
+#if defined(DISPLAY_TYPE_TFT)
+                return std::make_unique<DisplayTFT>(
+                           DISPLAY_WIDTH,
+                           DISPLAY_HEIGHT
+                       );
+#elif defined(GLYPH_WIDTH_5)
                 return std::make_unique<Display5x5>(
                            Config::Pins::DISPLAY_DATA,
                            Config::Display::MATRIX_SIZE,
@@ -53,9 +63,11 @@
              * @return Display type description
              */
             static const char *getDisplayType() {
-#if defined(GLYPH_SIZE_5X5)
+#if defined(DISPLAY_TYPE_TFT)
+                return "TFT LCD";
+#elif defined(GLYPH_WIDTH_5)
                 return "5x5 LED Matrix";
-#elif defined(GLYPH_SIZE_8X8)
+#elif defined(GLYPH_WIDTH_8)
                 return "8x8 LED Matrix";
 #else
                 return "Unknown";
