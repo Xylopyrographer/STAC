@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "Application/STACApp.h"
+#include "Device_Config.h"  // For STAC_BOARD_NAME
 
 using namespace Application;
 
@@ -35,7 +36,7 @@ void setup() {
     }
     #endif
     
-    Serial.println("\n\n=== STAC M5StickC Plus Boot ===");
+    Serial.println("\n\n=== STAC " STAC_BOARD_NAME " Boot ===");
     
     delay( 1000 );
 
