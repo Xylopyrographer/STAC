@@ -88,6 +88,18 @@
     #define BUTTON_NEEDS_EXTERNAL_PULLUP false  // <OPTIONAL: Set to true for input-only pins>
 
     // ============================================================================
+    // SECONDARY RESET BUTTON (Optional)
+    // ============================================================================
+    // If your board has a second button that should trigger an immediate software
+    // reset when pressed, define BUTTON_B_PIN. When pressed, the device will
+    // restart - useful for M5StickC Plus side button or similar hardware.
+    // If not defined, no reset button functionality is compiled in.
+    
+    // #define BUTTON_B_PIN <GPIO_NUMBER>           // Uncomment and set GPIO if reset button exists
+    // #define BUTTON_B_ACTIVE_LOW true             // true = button connects to GND when pressed
+    // #define BUTTON_B_NEEDS_EXTERNAL_PULLUP false // true if GPIO is input-only (no internal pullup)
+
+    // ============================================================================
     // IMU CONFIGURATION (Optional - for orientation detection)
     // ============================================================================
     
@@ -196,12 +208,14 @@
  * [ ] Customize BOARD_BRIGHTNESS_MAP for your display
  * [ ] Adjust IMU_ORIENTATION_OFFSET if IMU is rotated on board
  * [ ] Set BUTTON_NEEDS_EXTERNAL_PULLUP if using input-only GPIO
+ * [ ] Configure BUTTON_B_PIN if board has a secondary reset button
  * [ ] Configure HAS_STATUS_LED if separate status LED present
  * 
  * Testing:
  * [ ] Verify compilation succeeds with no errors
  * [ ] Test all display orientations (if IMU present)
  * [ ] Test button functionality (short press, long press, boot sequences)
+ * [ ] Test reset button if configured (BUTTON_B_PIN)
  * [ ] Test peripheral mode (if enabled)
  * [ ] Verify brightness levels are safe (no LED overheating)
  * [ ] Verify all glyphs render correctly at all orientations

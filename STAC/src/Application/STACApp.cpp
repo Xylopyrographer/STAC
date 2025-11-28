@@ -351,13 +351,13 @@ namespace Application {
     }
 
     /**
-     * @brief Handle Button B events - reset on short press (M5StickC Plus only)
+     * @brief Handle Button B events - reset on press (M5StickC Plus only)
+     * Note: buttonB->read() must be called before this in the loop
      */
     void STACApp::handleButtonB() {
         #if defined(BUTTON_B_PIN)
-            buttonB->read();  // Poll button state
-            // Short press on Button B triggers a restart
-            if ( buttonB->wasReleased() ) {
+            // Button B press triggers immediate restart (after debounce)
+            if ( buttonB->wasPressed() ) {
                 log_i( "Button B pressed - Restarting..." );
                 Serial.println( "\n*** Button B pressed - Restarting... ***" );
                 delay( 100 );  // Allow serial to flush
@@ -563,6 +563,9 @@ namespace Application {
 
                 while ( millis() < autostartTimeout ) {
                     button->read();
+                    #if defined(BUTTON_B_PIN)
+                        buttonB->read();
+                    #endif
                     handleButtonB();  // Check for Button B reset
 
                     // Button pressed: Cancel autostart
@@ -795,6 +798,9 @@ namespace Application {
 
             // Handle button for settings adjustment
             button->read();
+            #if defined(BUTTON_B_PIN)
+                buttonB->read();
+            #endif
             handleButtonB();  // Check for Button B reset
 
             if ( button->pressedFor( BUTTON_SELECT_MS ) ) {
@@ -818,6 +824,9 @@ namespace Application {
 
                 do {
                     button->read();
+                    #if defined(BUTTON_B_PIN)
+                        buttonB->read();
+                    #endif
                     handleButtonB();  // Check for Button B reset
 
                     // Released before timeout: Enter brightness adjustment

@@ -1,10 +1,10 @@
 # STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 27, 2025  
+**Date:** November 28, 2025  
 **Branch:** `feature/tft-display-support`  
 **Version:** v3.0.0-RC.9  
 **Status:** M5StickC Plus TFT display port in progress  
-**Last Session:** TFT display implementation - Button B reset, brightness fixes, factory reset icon
+**Last Session:** TFT display - Button B reset fix, template update
 
 ---
 
@@ -108,11 +108,16 @@
 - ✅ Sprite-based double buffering for flicker-free updates
 - ✅ Peripheral mode detection via HAT header (GPIO 25/26 pin sharing handled)
 - ✅ Tally state display with colored backgrounds and frames
-- ✅ Button B support for reset functionality
-  - Added buttonB member to STACApp
-  - Button B reset works in main loop, peripheral mode, autostart mode
-  - Button B reset works in all startup config edit modes (channel, mode, brightness)
-  - Button B reset callback for OTA and provisioning modes
+- ✅ Button B support for reset functionality (XP_Button polling)
+  - Added buttonB member to STACApp (uses XP_Button library like main button)
+  - Reset triggers on press (wasPressed) not release - immediate response after debounce
+  - Fixed double-read bug: buttonB->read() in loop(), handleButtonB() checks wasPressed()
+  - Works in main loop, peripheral mode, autostart mode
+  - Works in all startup config edit modes (channel, mode, brightness)
+  - Reset callback for OTA and provisioning modes
+  - ISR approach abandoned (watchdog timeout issues, GPIO 39 noise during boot)
+  - Backups preserved: `.backup_buttonB_polling/`, `.backup_buttonB_ISR/`
+- ✅ TEMPLATE_NewBoard_Config.h updated with optional BUTTON_B_PIN section
 - ✅ Factory reset icon (GLF_FR) - circular arrow (↺) in yellow on red
 - ✅ 4-level brightness map: { 0, 100, 152, 203, 255 }
 - ✅ Pulse brightness fix for OTA/provisioning modes
