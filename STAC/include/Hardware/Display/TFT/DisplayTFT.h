@@ -11,31 +11,33 @@
  * - Icons drawn with graphics primitives (WiFi, config, update, etc.)
  * 
  * Power Management:
- * - Backlight controlled via AXP192 PMU (LDO2)
- * - LCD panel power via AXP192 LDO3
+ * - M5StickC Plus: Backlight controlled via AXP192 PMU (LDO2)
+ * - LilyGo T-Display: Backlight controlled via PWM (GPIO 4)
+ * - Other boards: May use LGFX built-in backlight or none
  */
 
 #pragma once
 
 #include "../IDisplay.h"
-#include "Hardware/Power/AXP192.h"
 #include "Config/Types.h"  // For Orientation enum
 #include <LovyanGFX.hpp>
 
+// Conditionally include AXP192 PMU for boards that use it
+#if defined(BOARD_M5STICKC_PLUS)
+    #include "Hardware/Power/AXP192.h"
+#endif
+
 namespace Display {
 
-    // Forward declaration of the LovyanGFX configuration class
-    class LGFX_M5StickCPlus;
-
     /**
-     * @brief TFT display implementation for M5StickC Plus and similar devices
+     * @brief TFT display implementation for M5StickC Plus, LilyGo T-Display, etc.
      * 
      * This class adapts the LED matrix-oriented IDisplay interface to work
      * with TFT displays. Key differences from LED matrix:
      * 
      * - Glyphs are rendered as large graphics, not individual pixels
      * - Background patterns indicate tally status (fills, gradients, frames)
-     * - Brightness controlled via PMU backlight, not LED current
+     * - Brightness controlled via PMU or PWM backlight, not LED current
      * - Uses sprite buffering for flicker-free updates
      */
     class DisplayTFT : public IDisplay {
@@ -175,11 +177,13 @@ namespace Display {
 
     private:
         // LovyanGFX display and sprite objects
-        LGFX_M5StickCPlus* _lcd;
-        LGFX_Sprite* _sprite;  // Off-screen buffer for flicker-free updates
+        lgfx::LGFX_Device* _lcd;   // Generic pointer - actual type set in .cpp
+        LGFX_Sprite* _sprite;      // Off-screen buffer for flicker-free updates
         
-        // Power management (backlight control)
-        Hardware::AXP192 _pmu;
+        // Power management (backlight control) - only for boards with AXP192
+        #if defined(BOARD_M5STICKC_PLUS)
+            Hardware::AXP192 _pmu;
+        #endif
 
         // Display properties
         uint16_t _width;

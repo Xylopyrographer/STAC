@@ -33,19 +33,26 @@
  * Display type selection
  * For TFT displays, we use LovyanGFX library instead of LED matrix
  */
-#define DISPLAY_TYPE_TFT 1
+#define DISPLAY_TYPE_TFT
+
+// ============================================================================
+// TFT Panel Configuration
+// ============================================================================
+
+// Panel driver type (used by LGFX_STAC.h)
+#define TFT_PANEL_ST7789
 
 // Display dimensions
 #define DISPLAY_WIDTH 135
 #define DISPLAY_HEIGHT 240
 
-// TFT doesn't use matrix dimensions, but Constants.h expects them
-// Use 1x1 as placeholder for compatibility
-#define DISPLAY_MATRIX_WIDTH 1
-#define DISPLAY_MATRIX_HEIGHT 1
+// Panel offsets (for ST7789 135x240 centering in 240x320 memory)
+#define TFT_OFFSET_X 52
+#define TFT_OFFSET_Y 40
 
-// Display driver
-#define DISPLAY_DRIVER_ST7789
+// Color settings
+#define TFT_INVERT true       // ST7789 needs color inversion
+#define TFT_RGB_ORDER false   // BGR order
 
 // SPI pins for TFT
 #define TFT_MOSI 15
@@ -54,11 +61,19 @@
 #define TFT_DC   23
 #define TFT_RST  18
 
-// TFT doesn't use display data pin like LED matrix, but Constants.h expects it
+// TFT doesn't use matrix dimensions, but some code expects them
+#define DISPLAY_MATRIX_WIDTH 1
+#define DISPLAY_MATRIX_HEIGHT 1
+
+// TFT doesn't use display data pin like LED matrix
 #define PIN_DISPLAY_DATA 0  // Not used for TFT
 
-// Backlight is controlled via AXP192 PMU, not direct GPIO
-#define DISPLAY_BACKLIGHT_VIA_PMU 1
+// ============================================================================
+// Backlight Configuration
+// ============================================================================
+
+// Backlight is controlled via AXP192 PMU, not direct GPIO PWM
+#define DISPLAY_BACKLIGHT_PMU
 
 /**
  * Brightness mapping for TFT backlight

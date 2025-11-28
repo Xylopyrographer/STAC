@@ -2,31 +2,54 @@
 
 **Branch:** `feature/tft-display-support`  
 **Created:** November 27, 2025  
+**Updated:** November 28, 2025  
 **Status:** In Development
 
 ## Overview
 
-This branch adds TFT display support for the M5StickC Plus to STAC v3, extending the existing LED matrix display system with a full-color TFT implementation using the LovyanGFX library.
+This branch adds TFT display support to STAC v3, extending the existing LED matrix display system with full-color TFT implementations using the LovyanGFX library. The architecture uses a **unified configuration approach** where all TFT-specific settings are defined in board configuration files.
 
-## Hardware Target
+## Supported Hardware
 
-### M5StickC Plus Specifications
+### M5StickC Plus
 - **MCU:** ESP32-PICO-D4 (same as ATOM Matrix)
 - **Display:** ST7789V2 TFT, 135×240 pixels, 16-bit color (RGB565)
 - **PMU:** AXP192 (controls power rails and backlight)
 - **IMU:** MPU6886 (same as ATOM Matrix)
-- **Button:** GPIO 37 (active low)
+- **Primary Button:** GPIO 37 (active low)
+- **Reset Button:** GPIO 39 (active low, side button)
 - **LED:** GPIO 10 (active low, used for debug)
 - **I2C:** GPIO 21 (SDA), GPIO 22 (SCL)
+- **Backlight Control:** Via AXP192 LDO2
 
-### Display Interface (SPI)
-| Signal | GPIO |
-|--------|------|
-| MOSI   | 15   |
-| CLK    | 13   |
-| CS     | 5    |
-| DC     | 23   |
-| RST    | 18   |
+| TFT Signal | GPIO |
+|------------|------|
+| MOSI       | 15   |
+| CLK        | 13   |
+| CS         | 5    |
+| DC         | 23   |
+| RST        | 18   |
+
+### LilyGo T-Display (TTGO T-Display)
+- **MCU:** ESP32 (ESP32-D0WDQ6)
+- **Display:** ST7789V TFT, 135×240 pixels, 16-bit color (RGB565)
+- **PMU:** None (direct GPIO control)
+- **IMU:** None (external IMU required if orientation detection needed)
+- **Primary Button:** GPIO 35 (input-only, needs external pullup, active low)
+- **Boot Button:** GPIO 0 (for boot mode selection, not used as software input)
+- **Hardware Reset:** Dedicated EN button (physical reset, not software-triggered)
+- **Backlight Control:** GPIO 4 (PWM via LGFX Light_PWM)
+
+| TFT Signal | GPIO |
+|------------|------|
+| MOSI       | 19   |
+| CLK        | 18   |
+| CS         | 5    |
+| DC         | 16   |
+| RST        | 23   |
+| BL         | 4    |
+
+**Note:** The T-Display has a dedicated hardware reset button tied to the ESP32 EN pin, so no software reset button (Button B) is needed.
 
 ## Files Created/Modified
 
@@ -34,10 +57,21 @@ This branch adds TFT display support for the M5StickC Plus to STAC v3, extending
 
 #### `include/BoardConfigs/M5StickCPlus_Config.h`
 Board configuration with:
-- `DISPLAY_TYPE_TFT` define
-- Pin assignments for TFT display
-- PMU configuration (AXP192)
+- `DISPLAY_TYPE_TFT` and `USE_AXP192_PMU` defines
+- TFT pin assignments (`TFT_SCLK`, `TFT_MOSI`, `TFT_CS`, `TFT_DC`, `TFT_RST`)
+- `TFT_PANEL_ST7789` panel type selection
+- `DISPLAY_BACKLIGHT_PMU` for AXP192-controlled backlight
 - Brightness map optimized for TFT: `{ 0, 200, 210, 220, 230, 240, 250, 255, 255 }`
+- Button B (GPIO 39) for software reset
+
+#### `include/BoardConfigs/LilygoTDisplay_Config.h`
+Board configuration with:
+- `DISPLAY_TYPE_TFT` define (no PMU)
+- TFT pin assignments including `TFT_BL` (GPIO 4) for backlight
+- `TFT_PANEL_ST7789` panel type selection
+- `DISPLAY_BACKLIGHT_PWM` for GPIO PWM backlight control
+- Brightness map optimized for TFT: `{ 0, 200, 210, 220, 230, 240, 250, 255, 255 }`
+- No Button B (hardware reset via EN button)
 
 #### `include/Hardware/Display/TFT/DisplayTFT.h`
 TFT display class header implementing `IDisplay` interface.
@@ -45,12 +79,17 @@ TFT display class header implementing `IDisplay` interface.
 #### `src/Hardware/Display/TFT/DisplayTFT.cpp`
 Full TFT display implementation with:
 - LovyanGFX sprite-based double buffering
-- AXP192 PMU integration for backlight control
+- Conditional AXP192 PMU integration (when `USE_AXP192_PMU` defined)
+- PWM backlight fallback (via LGFX Light_PWM)
 - Vector graphics rendering for all glyphs
 - Font rendering using FreeSansBold24pt7b
 
-#### `include/Hardware/Display/TFT/LGFX_M5StickCPlus.h`
-LovyanGFX display configuration class for ST7789V2.
+#### `include/Hardware/Display/TFT/LGFX_STAC.h`
+**Unified** LovyanGFX display configuration class that:
+- Uses `TFT_*` defines from board config for all pin assignments
+- Selects panel driver via `TFT_PANEL_*` defines
+- Configures backlight via `DISPLAY_BACKLIGHT_PWM` or `DISPLAY_BACKLIGHT_PMU`
+- Supports all common TFT panels: ST7789, ST7735, ILI9341, ILI9342, ILI9163, GC9A01, ST7796, ILI9481/86/88, R61529, HX8357D
 
 #### `include/Hardware/Display/TFT/GlyphsTFT.h`
 Glyph index definitions compatible with LED matrix system:
@@ -63,17 +102,77 @@ AXP192 PMU driver for M5StickC Plus:
 - Backlight brightness control (0-255)
 - Development mode: Battery power output disabled for USB-only operation
 
+### Deprecated Files (can be removed)
+
+#### `include/Hardware/Display/TFT/LGFX_M5StickCPlus.h`
+Per-board LGFX config, superseded by unified `LGFX_STAC.h`.
+
+#### `include/Hardware/Display/TFT/LGFX_LilygoTDisplay.h`
+Per-board LGFX config, superseded by unified `LGFX_STAC.h`.
+
 ### Modified Files
 
 #### `platformio.ini`
-Added `m5stickc-plus` environment with:
-- LovyanGFX library dependency
-- Build flags for TFT display type
+Added environments with LovyanGFX library dependency:
+- `m5stickc-plus` - M5StickC Plus with AXP192 PMU
+- `lilygo-t-display` - LilyGo T-Display with PWM backlight
+
+#### `include/Device_Config.h`
+Added board detection for `BOARD_LILYGO_T_DISPLAY`.
 
 #### `src/main.cpp`
 Added debug LED blinks for boot tracing (M5StickC Plus specific).
 
 ## Implementation Details
+
+### Unified TFT Architecture
+
+All TFT configuration is defined in board config files (`*_Config.h`), with a single unified LGFX configuration class:
+
+```
+Board Config (M5StickCPlus_Config.h, LilygoTDisplay_Config.h)
+    │
+    ├── TFT Pin Defines (TFT_SCLK, TFT_MOSI, TFT_CS, TFT_DC, TFT_RST, TFT_BL)
+    ├── Panel Type (TFT_PANEL_ST7789, TFT_PANEL_ILI9341, etc.)
+    ├── Backlight Control (DISPLAY_BACKLIGHT_PWM or DISPLAY_BACKLIGHT_PMU)
+    └── Display Dimensions (TFT_WIDTH, TFT_HEIGHT, TFT_OFFSET_X, TFT_OFFSET_Y)
+            │
+            ▼
+LGFX_STAC (unified configuration class)
+    │
+    └── Uses preprocessor defines to configure:
+        - Panel driver selection
+        - Pin assignments
+        - Backlight control method
+        - Display geometry
+            │
+            ▼
+DisplayTFT (display implementation)
+    │
+    ├── Uses LGFX_STAC for display
+    ├── Conditional AXP192 PMU (when USE_AXP192_PMU defined)
+    └── Falls back to LGFX backlight control otherwise
+```
+
+### Supported TFT Panels
+
+| Define | Panel Driver | Common Displays |
+|--------|-------------|-----------------|
+| `TFT_PANEL_ST7789` | ST7789 | M5StickC Plus, T-Display |
+| `TFT_PANEL_ST7735` | ST7735 | Many small TFTs |
+| `TFT_PANEL_ILI9341` | ILI9341 | 2.4" TFT modules |
+| `TFT_PANEL_ILI9342` | ILI9342 | M5Stack Core |
+| `TFT_PANEL_ILI9163` | ILI9163 | 1.44" TFT modules |
+| `TFT_PANEL_GC9A01` | GC9A01 | Round TFT displays |
+| `TFT_PANEL_ST7796` | ST7796 | 4" TFT modules |
+
+### Backlight Control Methods
+
+| Method | Define | Implementation | Use Case |
+|--------|--------|----------------|----------|
+| PMU | `DISPLAY_BACKLIGHT_PMU` | AXP192 LDO2 voltage | M5StickC Plus |
+| PWM | `DISPLAY_BACKLIGHT_PWM` | LGFX Light_PWM on `TFT_BL` pin | T-Display, most modules |
+| None | Neither defined | No backlight control | Always-on displays |
 
 ### Display Architecture
 
@@ -203,14 +302,24 @@ For easier debugging, the AXP192 driver includes a "dev mode" that:
 ## Build Commands
 
 ```bash
-# Build only
+# Build M5StickC Plus
 pio run -e m5stickc-plus
 
-# Build and upload
+# Build LilyGo T-Display
+pio run -e lilygo-t-display
+
+# Build both TFT targets
+pio run -e m5stickc-plus -e lilygo-t-display
+
+# Build and upload M5StickC Plus
 pio run -e m5stickc-plus -t upload
+
+# Build and upload LilyGo T-Display
+pio run -e lilygo-t-display -t upload
 
 # Monitor serial output
 pio device monitor -e m5stickc-plus
+pio device monitor -e lilygo-t-display
 ```
 
 ## Notes

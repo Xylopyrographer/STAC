@@ -4,9 +4,17 @@
  */
 
 #include "Hardware/Display/TFT/DisplayTFT.h"
-#include "Hardware/Display/TFT/LGFX_M5StickCPlus.h"
+#include "Hardware/Display/TFT/LGFX_STAC.h"
 #include "Hardware/Display/TFT/GlyphsTFT.h"
 #include <cmath>
+
+// Backlight control method selection based on board config
+#if defined(DISPLAY_BACKLIGHT_PMU)
+    #define USE_AXP192_PMU
+#elif defined(DISPLAY_BACKLIGHT_PWM)
+    #define USE_LGFX_BACKLIGHT
+#endif
+// If neither defined, no software backlight control (DISPLAY_BACKLIGHT_NONE)
 
 // Debug LED helper for M5StickC Plus
 #if defined(BOARD_M5STICKC_PLUS)
@@ -30,7 +38,9 @@ namespace Display {
     DisplayTFT::DisplayTFT(uint16_t width, uint16_t height)
         : _lcd(nullptr)
         , _sprite(nullptr)
+        #if defined(USE_AXP192_PMU)
         , _pmu()
+        #endif
         , _width(width)
         , _height(height)
         , _brightness(128)
@@ -49,25 +59,28 @@ namespace Display {
     }
 
     bool DisplayTFT::begin() {
-        log_i("DisplayTFT::begin() - starting PMU init...");
-        dbgBlink(1);  // 1 blink = starting PMU
+        log_i("DisplayTFT::begin() - starting initialization...");
+        dbgBlink(1);  // 1 blink = starting init
         
-        // Initialize the AXP192 PMU first (controls LCD power and backlight)
-        if (!_pmu.begin()) {
-            log_e("Failed to initialize AXP192 PMU");
-            return false;
-        }
-        log_i("AXP192 PMU initialized");
-        dbgBlink(2);  // 2 blinks = PMU done
-        
-        // Small delay for power rail stabilization
-        delay(50);
+        #if defined(USE_AXP192_PMU)
+            // Initialize the AXP192 PMU first (controls LCD power and backlight)
+            log_i("Initializing AXP192 PMU...");
+            if (!_pmu.begin()) {
+                log_e("Failed to initialize AXP192 PMU");
+                return false;
+            }
+            log_i("AXP192 PMU initialized");
+            dbgBlink(2);  // 2 blinks = PMU done
+            
+            // Small delay for power rail stabilization
+            delay(50);
+        #endif
         
         log_i("Creating LGFX display...");
         dbgBlink(3);  // 3 blinks = creating LCD
         
-        // Create and initialize the display
-        _lcd = new LGFX_M5StickCPlus();
+        // Create and initialize the display (unified LGFX class configured via board defines)
+        _lcd = new LGFX_STAC();
         if (!_lcd) {
             return false;
         }
@@ -94,7 +107,7 @@ namespace Display {
         _sprite->createSprite(_width, _height);
         _sprite->setSwapBytes(true);  // For correct RGB565 byte order
         
-        // Initialize backlight via PMU (full brightness for now)
+        // Initialize backlight (full brightness for now)
         _brightness = 255;
         updateBacklight();
         
@@ -843,8 +856,15 @@ namespace Display {
     }
 
     void DisplayTFT::updateBacklight() {
-        // Use AXP192 PMU to control backlight brightness via LDO2
-        _pmu.setBacklight(_brightness);
+        #if defined(USE_AXP192_PMU)
+            // Use AXP192 PMU to control backlight brightness via LDO2
+            _pmu.setBacklight(_brightness);
+        #elif defined(USE_LGFX_BACKLIGHT)
+            // Use LovyanGFX built-in backlight control (PWM)
+            if (_lcd) {
+                _lcd->setBrightness(_brightness);
+            }
+        #endif
         log_d("Backlight set to: %d", _brightness);
     }
 

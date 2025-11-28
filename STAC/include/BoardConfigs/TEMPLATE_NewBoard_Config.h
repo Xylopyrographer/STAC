@@ -29,29 +29,31 @@
     #define STAC_BOARD_NAME "<REQUIRED: Board Name>"   // Example: "MyCustom ESP32-C3 Board"
 
     // ============================================================================
-    // DISPLAY CONFIGURATION
+    // DISPLAY CONFIGURATION - LED MATRIX
     // ============================================================================
+    // Use this section for LED matrix displays (ATOM Matrix, Waveshare S3, etc.)
+    // Comment out this entire section if using TFT display instead.
     
+    /*
     // Include the appropriate glyph header for your display size
     // The glyph header automatically provides dimension constants and type aliases
     // Choose ONE of the following:
-    #include "Hardware/Display/GlyphsMxN.h"   // <REQUIRED: Replace MxN with your size, e.g., Glyphs5x5.h or Glyphs8x8.h>
-    // #include "Hardware/Display/Glyphs5x5.h"  // For 5×5 displays (ATOM Matrix)
+    #include "Hardware/Display/Glyphs5x5.h"  // For 5×5 displays (ATOM Matrix)
     // #include "Hardware/Display/Glyphs8x8.h"  // For 8×8 displays (Waveshare S3)
     
-    // Display type (currently only LED matrix supported)
+    // Display type
     #define DISPLAY_TYPE_LED_MATRIX
     
     // Display dimensions (must match your physical LED matrix and glyph header)
-    #define DISPLAY_MATRIX_WIDTH <REQUIRED>    // Example: 5 for 5×5, 8 for 8×8
-    #define DISPLAY_MATRIX_HEIGHT <REQUIRED>   // Example: 5 for 5×5, 8 for 8×8
+    #define DISPLAY_MATRIX_WIDTH 5     // Example: 5 for 5×5, 8 for 8×8
+    #define DISPLAY_MATRIX_HEIGHT 5    // Example: 5 for 5×5, 8 for 8×8
     
     // LED type and color order configuration
     // Common options:
     //   LED_STRIP_WS2812     - GRB color order (most WS2812 LEDs)
     //   LED_STRIP_WS2812_RGB - RGB color order (some variants)
     //   LED_STRIP_SK6812     - GRBW for RGBW LEDs
-    #define DISPLAY_LED_TYPE LED_STRIP_WS2812  // <REQUIRED: Choose appropriate type>
+    #define DISPLAY_LED_TYPE LED_STRIP_WS2812
     #define DISPLAY_LED_IS_RGBW false          // Set to true for RGBW (4-color) LEDs
     
     // Display wiring pattern
@@ -60,16 +62,105 @@
     // #define DISPLAY_WIRING_SERPENTINE  // Snake/zigzag pattern (alternate rows reverse)
     
     // Display data pin (GPIO connected to LED matrix DIN)
-    #define PIN_DISPLAY_DATA <REQUIRED>  // Example: 27 for ATOM Matrix, 14 for Waveshare S3
+    #define PIN_DISPLAY_DATA 27  // Example: 27 for ATOM Matrix, 14 for Waveshare S3
     
-    // Brightness configuration
+    // Brightness configuration for LED matrix
     // Map: index 0 unused, indices 1-N are user-selectable levels (0-255 range)
     // Default brightness is always map[1] (second entry)
     // IMPORTANT: Keep maximum around 60 or less to prevent LED heat damage
-    // Adjust number of levels and values based on your display size and power supply
-    #define BOARD_BRIGHTNESS_MAP { 0, 10, 20, 30, 40, 50, 60 }  // <OPTIONAL: Customize brightness levels>
-    // Example for 8×8 (more LEDs, more levels):
-    // #define BOARD_BRIGHTNESS_MAP { 0, 5, 10, 15, 20, 25, 30, 35, 40 }
+    #define BOARD_BRIGHTNESS_MAP { 0, 10, 20, 30, 40, 50, 60 }
+    */
+
+    // ============================================================================
+    // DISPLAY CONFIGURATION - TFT
+    // ============================================================================
+    // Use this section for TFT displays (M5StickC Plus, LilyGo T-Display, etc.)
+    // Comment out this entire section if using LED matrix instead.
+    
+    // Display type
+    #define DISPLAY_TYPE_TFT
+    
+    // -------------------------------------------------------------------------
+    // TFT Panel Driver - Uncomment ONE that matches your display controller
+    // -------------------------------------------------------------------------
+    // Small/Medium TFT panels (most common):
+    #define TFT_PANEL_ST7789       // 135x240, 240x240, 240x320 (M5StickC Plus, LilyGo T-Display)
+    // #define TFT_PANEL_ST7735    // 128x128, 128x160, 80x160 (many small displays)
+    // #define TFT_PANEL_ILI9341   // 240x320 (very common, Adafruit, many shields)
+    // #define TFT_PANEL_ILI9342   // 320x240 (landscape variant of ILI9341)
+    // #define TFT_PANEL_ILI9163   // 128x128 (small TFTs)
+    // #define TFT_PANEL_GC9A01    // 240x240 round TFT displays
+    //
+    // Larger TFT panels:
+    // #define TFT_PANEL_ST7796    // 320x480
+    // #define TFT_PANEL_ILI9481   // 320x480
+    // #define TFT_PANEL_ILI9486   // 320x480
+    // #define TFT_PANEL_ILI9488   // 320x480
+    // #define TFT_PANEL_R61529    // 320x480
+    // #define TFT_PANEL_HX8357D   // 320x480
+    
+    // -------------------------------------------------------------------------
+    // Display Dimensions (pixels)
+    // -------------------------------------------------------------------------
+    #define DISPLAY_WIDTH 135      // Panel width in pixels
+    #define DISPLAY_HEIGHT 240     // Panel height in pixels
+    
+    // TFT doesn't use matrix dimensions, but some code expects them
+    #define DISPLAY_MATRIX_WIDTH 1
+    #define DISPLAY_MATRIX_HEIGHT 1
+    
+    // -------------------------------------------------------------------------
+    // SPI Pins (board-specific - check your schematic)
+    // -------------------------------------------------------------------------
+    #define TFT_SCLK <REQUIRED>    // SPI clock pin
+    #define TFT_MOSI <REQUIRED>    // SPI data pin (MOSI)
+    #define TFT_CS   <REQUIRED>    // Chip select pin
+    #define TFT_DC   <REQUIRED>    // Data/Command pin
+    #define TFT_RST  <REQUIRED>    // Reset pin (-1 if not connected)
+    #define TFT_BL   <REQUIRED>    // Backlight pin (-1 if not controllable)
+    
+    // -------------------------------------------------------------------------
+    // Panel Offset (for displays smaller than controller memory)
+    // -------------------------------------------------------------------------
+    // ST7789 135x240 typically needs offset_x=52, offset_y=40
+    // Most other panels use 0,0
+    #define TFT_OFFSET_X 52        // X offset for centering (default 0)
+    #define TFT_OFFSET_Y 40        // Y offset for centering (default 0)
+    
+    // -------------------------------------------------------------------------
+    // Panel Color Settings (usually leave as defaults)
+    // -------------------------------------------------------------------------
+    // #define TFT_INVERT true     // Color inversion (ST7789 default: true)
+    // #define TFT_RGB_ORDER false // true=RGB, false=BGR (default: false/BGR)
+    
+    // TFT doesn't use display data pin like LED matrix
+    #define PIN_DISPLAY_DATA 0     // Not used for TFT, placeholder
+
+    // ============================================================================
+    // TFT BACKLIGHT CONTROL
+    // ============================================================================
+    // Choose ONE of the following backlight control methods:
+    
+    // Option 1: PWM-controlled backlight (most common for standalone TFTs)
+    // Use when backlight is directly connected to a GPIO pin
+    #define DISPLAY_BACKLIGHT_PWM
+    
+    // Option 2: PMU-controlled backlight (M5StickC Plus with AXP192)
+    // Use when backlight is controlled via power management unit
+    // #define DISPLAY_BACKLIGHT_PMU
+    
+    // Option 3: No backlight control (always on, or hardware-only control)
+    // Use when backlight cannot be software controlled
+    // #define DISPLAY_BACKLIGHT_NONE
+    
+    // Option 3: No backlight control (always on, or hardware-only control)
+    // Use when backlight cannot be software controlled
+    // #define DISPLAY_BACKLIGHT_NONE
+    
+    // Brightness configuration for TFT backlight
+    // Values 0-255 map to PWM duty cycle or PMU voltage level
+    // Index 0 = off, indices 1-N = user selectable levels
+    #define BOARD_BRIGHTNESS_MAP { 0, 128, 170, 212, 255 }
 
     // ============================================================================
     // BUTTON CONFIGURATION

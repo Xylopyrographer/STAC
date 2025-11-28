@@ -22,13 +22,16 @@
     #ifndef BOARD_M5STACK_ATOM_MATRIX
     #ifndef BOARD_WAVESHARE_ESP32_S3_MATRIX
     #ifndef BOARD_M5STICKC_PLUS
+    #ifndef BOARD_LILYGO_T_DISPLAY
     #ifndef BOARD_CUSTOM_5X5
     #ifndef BOARD_CUSTOM_8X8
     #define BOARD_M5STACK_ATOM_MATRIX
     // #define BOARD_WAVESHARE_ESP32_S3_MATRIX
     // #define BOARD_M5STICKC_PLUS
+    // #define BOARD_LILYGO_T_DISPLAY
     // #define BOARD_CUSTOM_5X5
     // #define BOARD_CUSTOM_8X8
+    #endif
     #endif
     #endif
     #endif
@@ -47,6 +50,9 @@
 
     #elif defined(BOARD_M5STICKC_PLUS)
         #include "BoardConfigs/M5StickCPlus_Config.h"
+
+    #elif defined(BOARD_LILYGO_T_DISPLAY)
+        #include "BoardConfigs/LilygoTDisplay_Config.h"
 
     #elif defined(BOARD_CUSTOM_5X5)
         #include "BoardConfigs/Custom5x5_Config.h"
