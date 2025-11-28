@@ -19,6 +19,7 @@
 
 #include "../IDisplay.h"
 #include "Hardware/Power/AXP192.h"
+#include "Config/Types.h"  // For Orientation enum
 #include <LovyanGFX.hpp>
 
 namespace Display {
@@ -140,6 +141,14 @@ namespace Display {
         void drawQuestionIcon(int16_t x, int16_t y, color_t color);
 
         /**
+         * @brief Draw factory reset icon (circular arrow) using primitives
+         * @param x Center X position
+         * @param y Center Y position
+         * @param color Icon color
+         */
+        void drawResetIcon(int16_t x, int16_t y, color_t color);
+
+        /**
          * @brief Draw a tally status frame (for UNSELECTED state in camera mode)
          * @param color Frame color
          * @param thickness Frame thickness in pixels
@@ -147,16 +156,22 @@ namespace Display {
         void drawTallyFrame(color_t color, uint8_t thickness = 8);
 
         /**
-         * @brief Set display rotation
+         * @brief Set display rotation (overrides IDisplay)
          * @param rotation Rotation value (0-3, each step is 90 degrees)
          */
-        void setRotation(uint8_t rotation);
+        void setRotation(uint8_t rotation) override;
 
         /**
-         * @brief Get current rotation
+         * @brief Get current rotation (overrides IDisplay)
          * @return Current rotation value (0-3)
          */
-        uint8_t getRotation() const;
+        uint8_t getRotation() const override;
+
+        /**
+         * @brief Set rotation based on IMU orientation (overrides IDisplay)
+         * @param orientation IMU orientation value
+         */
+        void setOrientationRotation(Orientation orientation) override;
 
     private:
         // LovyanGFX display and sprite objects
@@ -175,6 +190,10 @@ namespace Display {
         // Internal helpers
         uint16_t colorToRGB565(color_t color) const;
         void updateBacklight();
+        
+        // Rotation-aware dimension helpers
+        inline uint16_t currentWidth() const;
+        inline uint16_t currentHeight() const;
         
         // Icon drawing helpers (primitives)
         void drawArc(int16_t cx, int16_t cy, int16_t r, float startAngle, float endAngle, 

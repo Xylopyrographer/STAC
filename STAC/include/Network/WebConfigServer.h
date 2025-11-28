@@ -49,6 +49,12 @@ namespace Net {
         using DisplayUpdateCallback = std::function<void()>;
 
         /**
+         * @brief Callback function type for polling reset button during wait
+         * Should return true if reset was requested
+         */
+        using ResetCheckCallback = std::function<bool()>;
+
+        /**
          * @brief Constructor
          * @param deviceID Unique STAC device identifier (used as AP SSID)
          */
@@ -78,6 +84,14 @@ namespace Net {
          */
         void setDisplayUpdateCallback(DisplayUpdateCallback callback) {
             displayCallback = callback;
+        }
+
+        /**
+         * @brief Set callback for checking reset button during wait
+         * @param callback Function that polls button and returns true if reset requested
+         */
+        void setResetCheckCallback(ResetCheckCallback callback) {
+            resetCheckCallback = callback;
         }
 
         /**
@@ -129,6 +143,7 @@ namespace Net {
         bool configReceived;
         bool serverRunning;
         DisplayUpdateCallback displayCallback;
+        ResetCheckCallback resetCheckCallback;
 
         /**
          * @brief Register all HTTP endpoint handlers

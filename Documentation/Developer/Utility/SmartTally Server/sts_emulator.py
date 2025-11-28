@@ -523,8 +523,8 @@ def tally_control_menu(config: EmulatorConfig):
         choice = flush_input("Select option: ").strip()
         
         if choice == '1':
-            config.auto_cycle = not config.auto_cycle
-            print(f"✓ Auto-cycle {'enabled' if config.auto_cycle else 'disabled'}")
+            config.auto_cycle_enabled = not config.auto_cycle_enabled
+            print(f"✓ Auto-cycle {'enabled' if config.auto_cycle_enabled else 'disabled'}")
         
         elif choice == '2':
             try:

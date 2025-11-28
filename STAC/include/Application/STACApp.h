@@ -32,10 +32,13 @@ namespace Application {
         STACApp();
 
         /**
-         * @brief Destructor - cleanup button
+         * @brief Destructor - cleanup buttons
          */
         ~STACApp() {
             delete button;
+            #if defined(BUTTON_B_PIN)
+                delete buttonB;
+            #endif
             // @Claude: should the other hardware objects be released too? Display?
         }
 
@@ -62,7 +65,10 @@ namespace Application {
         // Hardware - use correct namespaces!
         std::unique_ptr<Display::IDisplay> display;              // Display namespace
         std::unique_ptr<Hardware::IIMU> imu;                     // Hardware namespace
-        Button *button;                                          // XP_Button library
+        Button *button;                                          // XP_Button library - primary button (A)
+        #if defined(BUTTON_B_PIN)
+            Button *buttonB;                                     // XP_Button library - secondary button (B) for reset
+        #endif
         std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
         std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
 
@@ -111,6 +117,11 @@ namespace Application {
          * @brief Handle button events
          */
         void handleButton();
+
+        /**
+         * @brief Handle Button B events (reset on M5StickC Plus)
+         */
+        void handleButtonB();
 
         /**
          * @brief Update display based on current state

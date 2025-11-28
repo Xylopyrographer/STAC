@@ -113,6 +113,12 @@ namespace Net {
          */
         void setDisplayUpdateCallback(std::function<void()> callback);
 
+        /**
+         * @brief Set callback for checking reset button during wait
+         * @param callback Function that polls button and returns true if reset requested
+         */
+        void setResetCheckCallback(std::function<bool()> callback);
+
     private:
         // WiFi Access Point configuration
         static constexpr const char* AP_HOSTNAME = "update";
@@ -137,6 +143,9 @@ namespace Net {
         std::function<void()> displayUpdateCallback;
         static constexpr unsigned long DISPLAY_UPDATE_INTERVAL = 1000; // ms (matches provisioning pulse rate)
         unsigned long lastDisplayUpdate;
+
+        // Reset check callback
+        std::function<bool()> resetCheckCallback;
 
         /**
          * @brief Register all HTTP endpoint handlers

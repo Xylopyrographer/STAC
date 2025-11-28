@@ -13,9 +13,11 @@ namespace Application {
         Button* btn,
         Display::IDisplay* disp,
         Display::GlyphManager<GLYPH_SIZE>* glyphs,
-        Storage::ConfigManager* cfg
+        Storage::ConfigManager* cfg,
+        Button* btnB
     )
         : button(btn)
+        , buttonB(btnB)
         , display(disp)
         , glyphManager(glyphs)
         , configManager(cfg)
@@ -39,6 +41,7 @@ namespace Application {
         bool continueSequence = true;
         while (continueSequence) {
             button->read();
+            checkButtonBReset();
             
             if (button->wasReleased()) {
                 // Advance to tally mode
@@ -61,6 +64,7 @@ namespace Application {
         continueSequence = true;
         while (continueSequence) {
             button->read();
+            checkButtonBReset();
             
             if (button->wasReleased()) {
                 // Advance to startup mode
@@ -83,6 +87,7 @@ namespace Application {
         continueSequence = true;
         while (continueSequence) {
             button->read();
+            checkButtonBReset();
             
             if (button->wasReleased()) {
                 // Advance to brightness
@@ -105,6 +110,7 @@ namespace Application {
         continueSequence = true;
         while (continueSequence) {
             button->read();
+            checkButtonBReset();
             
             if (button->wasReleased()) {
                 // Exit to WiFi connect
@@ -217,6 +223,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Advance to next channel
             if (button->wasReleased()) {
@@ -331,6 +338,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Toggle mode
             if (button->wasReleased()) {
@@ -407,6 +415,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Toggle mode
             if (button->wasReleased()) {
@@ -508,6 +517,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Cycle brightness
             if (button->wasReleased()) {
@@ -635,6 +645,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Cycle brightness
             if (button->wasReleased()) {
@@ -702,6 +713,7 @@ namespace Application {
 
         while (millis() < timeout) {
             button->read();
+            checkButtonBReset();
             
             // Click: Toggle mode
             if (button->wasReleased()) {
@@ -730,6 +742,17 @@ namespace Application {
 
         // Timeout: Revert to original mode
         return originalMode;
+    }
+
+    template<uint8_t GLYPH_SIZE>
+    void StartupConfig<GLYPH_SIZE>::checkButtonBReset() {
+        if (buttonB) {
+            buttonB->read();
+            if (buttonB->wasReleased()) {
+                log_i("Button B pressed during startup config - restarting");
+                ESP.restart();
+            }
+        }
     }
 
 } // namespace Application

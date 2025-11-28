@@ -77,6 +77,7 @@ namespace Display {
     constexpr uint8_t GLF_UD  = 31;  ///< Firmware update icon
     constexpr uint8_t GLF_PO  = 32;  ///< Power-on pixel (center)
     constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
+    constexpr uint8_t GLF_FR  = 34;  ///< Factory reset icon (circular arrow)
 
     // ========================================================================
     // Stub Glyph Data (for GlyphManager compatibility)
@@ -92,7 +93,7 @@ namespace Display {
         {GLF_RA}, {GLF_LA}, {GLF_HF}, {GLF_BX}, {GLF_FM},
         {GLF_DF}, {GLF_QM}, {GLF_CBD}, {GLF_CK}, {GLF_EN},
         {GLF_EM}, {GLF_DOT}, {GLF_CFG}, {GLF_A}, {GLF_S},
-        {GLF_P}, {GLF_UD}, {GLF_PO}, {GLF_CORNERS}
+        {GLF_P}, {GLF_UD}, {GLF_PO}, {GLF_CORNERS}, {GLF_FR}
     };
 
     constexpr uint8_t GLYPH_COUNT = sizeof(BASE_GLYPHS) / sizeof(BASE_GLYPHS[0]);

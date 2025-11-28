@@ -68,6 +68,7 @@ void setup() {
     #if defined(DEBUG_LED_PIN)
         digitalWrite(DEBUG_LED_PIN, DEBUG_LED_OFF);
     #endif
+    
     Serial.println("Setup complete!");
 }
 

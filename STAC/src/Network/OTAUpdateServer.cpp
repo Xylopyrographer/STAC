@@ -96,6 +96,12 @@ namespace Net {
         while (!updateComplete) {
             server->handleClient();
             
+            // Check for reset button via callback
+            if (resetCheckCallback && resetCheckCallback()) {
+                log_i("Reset requested during OTA wait - restarting");
+                ESP.restart();
+            }
+            
             // Call display update callback if set and interval elapsed
             if (displayUpdateCallback && (millis() - lastDisplayUpdate >= DISPLAY_UPDATE_INTERVAL)) {
                 displayUpdateCallback();
@@ -149,6 +155,10 @@ namespace Net {
 
     void OTAUpdateServer::setDisplayUpdateCallback(std::function<void()> callback) {
         displayUpdateCallback = callback;
+    }
+
+    void OTAUpdateServer::setResetCheckCallback(std::function<bool()> callback) {
+        resetCheckCallback = callback;
     }
 
     void OTAUpdateServer::registerEndpoints() {

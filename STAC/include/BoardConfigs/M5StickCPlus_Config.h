@@ -64,9 +64,10 @@
  * Brightness mapping for TFT backlight
  * AXP192 LDO2 voltage controls backlight brightness
  * Values 0-255 map to LDO2 voltage (higher = brighter)
- * TFT backlight needs high values - all levels now bright
+ * 4 levels: Min=100, Max=255, evenly distributed
+ * Index 0 = off, indices 1-4 = user selectable levels
  */
-#define BOARD_BRIGHTNESS_MAP { 0, 200, 210, 220, 230, 240, 250, 255, 255 }
+#define BOARD_BRIGHTNESS_MAP { 0, 100, 152, 203, 255 }
 
 // ============================================================================
 // Button Configuration
@@ -99,9 +100,9 @@
 
     /**
      * Orientation offset for this board
-     * TBD - needs testing with actual hardware to determine correct offset
+     * M5StickC Plus IMU is mounted such that raw orientation needs +90 degree correction
      */
-    #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_0
+    #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
 #endif // IMU_HAS_IMU
 
 // ============================================================================
@@ -127,11 +128,11 @@
 
 #if HAS_PERIPHERAL_MODE_CAPABILITY
 
-    // Peripheral mode detection
-    // Unlike ATOM Matrix, M5StickC Plus doesn't have a jumper detection circuit
-    // Could use a HAT header pin or software configuration
-    // For now, use HAT header GPIO 0 for peripheral mode detection
-    #define PIN_PM_CHECK_OUT 0    // HAT header pin 4 (GPIO 0)
+    // Peripheral mode detection using HAT header pins
+    // Note: GPIO 25 and 26 share the same physical pin on the HAT connector
+    // GPIO 25 must be set to floating (INPUT with no pullup) before using GPIO 26
+    #define PIN_PM_FLOAT_FIRST 25 // Must float this pin before using GPIO 26
+    #define PIN_PM_CHECK_OUT 26   // HAT header pin 6 (GPIO 26)
     #define PIN_PM_CHECK_IN  36   // HAT header pin 5B (GPIO 36, input-only)
     #define PM_CHECK_TOGGLE_COUNT 5
 

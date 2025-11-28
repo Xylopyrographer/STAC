@@ -106,6 +106,12 @@ namespace Net {
         while (!configReceived) {
             server->handleClient();
             
+            // Check for reset button via callback
+            if (resetCheckCallback && resetCheckCallback()) {
+                log_i("Reset requested during provisioning - restarting");
+                ESP.restart();
+            }
+            
             // Update pulsing display via callback
             unsigned long now = millis();
             if (displayCallback && (now - lastPulse >= pulseInterval)) {

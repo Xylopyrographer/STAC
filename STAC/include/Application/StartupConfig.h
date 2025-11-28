@@ -42,12 +42,14 @@ namespace Application {
          * @param disp Display interface for visual feedback
          * @param glyphs Glyph manager for rendering text/icons
          * @param cfg Configuration manager for persistence
+         * @param btnB Optional secondary button for reset (M5StickC Plus)
          */
         StartupConfig(
             Button* btn,
             Display::IDisplay* disp,
             Display::GlyphManager<GLYPH_SIZE>* glyphs,
-            Storage::ConfigManager* cfg
+            Storage::ConfigManager* cfg,
+            Button* btnB = nullptr
         );
 
         /**
@@ -88,6 +90,7 @@ namespace Application {
 
     private:
         Button* button;
+        Button* buttonB;  // Optional secondary button for reset (nullptr if not available)
         Display::IDisplay* display;
         Display::GlyphManager<GLYPH_SIZE>* glyphManager;
         Storage::ConfigManager* configManager;
@@ -109,6 +112,12 @@ namespace Application {
         bool checkForButtonClick();
         bool checkForLongPress();
         bool waitForSelectInput(unsigned long timeoutMs);
+        
+        /**
+         * @brief Check if Button B was pressed and restart if so
+         * Polls buttonB and calls ESP.restart() if released
+         */
+        void checkButtonBReset();
     };
 
     // Type aliases for convenience

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include "Colors.h"
+#include "Config/Types.h"  // For Orientation enum
 
 
     namespace Display {
@@ -137,6 +138,26 @@
              * @return Total number of pixels
              */
             virtual uint8_t getPixelCount() const = 0;
+
+            /**
+             * @brief Set display rotation/orientation
+             * @param rotation Rotation value (implementation-specific)
+             * @note Default implementation does nothing (for displays that don't support rotation)
+             */
+            virtual void setRotation(uint8_t rotation) { (void)rotation; }
+
+            /**
+             * @brief Get current rotation
+             * @return Current rotation value
+             */
+            virtual uint8_t getRotation() const { return 0; }
+
+            /**
+             * @brief Set rotation based on IMU orientation
+             * @param orientation IMU orientation value
+             * @note Default implementation does nothing (for displays that don't support rotation)
+             */
+            virtual void setOrientationRotation(Orientation orientation) { (void)orientation; }
         };
 
     } // namespace Display

@@ -1,10 +1,10 @@
 # STAC v3.0.0-RC.9 Project Context
 
-**Date:** November 25, 2025  
-**Branch:** `v3_RC`  
+**Date:** November 27, 2025  
+**Branch:** `feature/tft-display-support`  
 **Version:** v3.0.0-RC.9  
-**Status:** Hardware tested - Major architectural refactoring complete  
-**Last Session:** NVS version simplification + Board config cleanup - Verified on hardware
+**Status:** M5StickC Plus TFT display port in progress  
+**Last Session:** TFT display implementation - Button B reset, brightness fixes, factory reset icon
 
 ---
 
@@ -86,6 +86,58 @@
   - NVS schema version check: "NVS schema version OK: 4"
   - All tally states working correctly
   - Committed (20571b4), pushed to GitHub, hardware verified
+
+### 🔄 In Progress: M5StickC Plus TFT Display Port (November 26-27, 2025)
+
+**Hardware Target:** M5StickC Plus
+- MCU: ESP32-PICO-D4 (same as ATOM Matrix)
+- Display: 135×240 ST7789V2 TFT (SPI interface)
+- IMU: MPU6886 (I2C, address 0x68)
+- PMU: AXP192 (I2C, address 0x34) - handles power and TFT backlight
+- Buttons: A (GPIO 37), B (GPIO 39)
+- GROVE Port: GPIO 32/33 (bottom)
+- HAT Header: GPIO 0/25/26/36 (top)
+
+**Completed TFT Work:**
+- ✅ Board configuration: `M5StickCPlus_Config.h`
+- ✅ LovyanGFX display driver: `LGFX_M5StickCPlus.h`
+- ✅ AXP192 PMU driver for backlight control
+- ✅ DisplayTFT class implementing IDisplay interface
+- ✅ All vector glyph rendering (digits, WiFi, config, update, check, error, question icons)
+- ✅ Display rotation based on IMU orientation (portrait/landscape)
+- ✅ Sprite-based double buffering for flicker-free updates
+- ✅ Peripheral mode detection via HAT header (GPIO 25/26 pin sharing handled)
+- ✅ Tally state display with colored backgrounds and frames
+- ✅ Button B support for reset functionality
+  - Added buttonB member to STACApp
+  - Button B reset works in main loop, peripheral mode, autostart mode
+  - Button B reset works in all startup config edit modes (channel, mode, brightness)
+  - Button B reset callback for OTA and provisioning modes
+- ✅ Factory reset icon (GLF_FR) - circular arrow (↺) in yellow on red
+- ✅ 4-level brightness map: { 0, 100, 152, 203, 255 }
+- ✅ Pulse brightness fix for OTA/provisioning modes
+  - Changed from `normalBrightness / 2` to using adjacent brightness levels
+  - Prevents display appearing to "flash off" when pulsing
+- ✅ IMU orientation offset: +90° correction for M5StickC Plus mounting
+
+**Files Created/Modified for TFT Port:**
+- `include/BoardConfigs/M5StickCPlus_Config.h` - Board configuration
+- `include/Hardware/Display/TFT/DisplayTFT.h` - TFT display class
+- `include/Hardware/Display/TFT/GlyphsTFT.h` - Glyph index definitions
+- `include/Hardware/Display/TFT/LGFX_M5StickCPlus.h` - LovyanGFX config
+- `include/Hardware/Power/AXP192.h` - PMU driver header
+- `src/Hardware/Display/TFT/DisplayTFT.cpp` - TFT implementation
+- `src/Hardware/Power/AXP192.cpp` - PMU driver implementation
+- `include/Hardware/Display/IDisplay.h` - Added rotation methods
+- `include/Hardware/Interface/InterfaceFactory.h` - GPIO 25/26 pin handling
+- `include/Application/STACApp.h` - Button B member and handler
+- `include/Application/StartupConfig.h` - Button B parameter
+- `include/Application/StartupConfig.tpp` - Button B reset checks
+- `src/Application/STACApp.cpp` - Button B initialization and handling
+- `include/Network/OTAUpdateServer.h` - Reset check callback
+- `include/Network/WebConfigServer.h` - Reset check callback
+- `src/Network/OTAUpdateServer.cpp` - Reset callback implementation
+- `src/Network/WebConfigServer.cpp` - Reset callback implementation
 
 ### 🎯 Current State
 - All code compiles cleanly (one expected warning: RMT DMA on ESP32-PICO)

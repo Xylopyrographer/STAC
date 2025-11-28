@@ -90,12 +90,22 @@ namespace Application {
         }
 
         // Create startup config handler (dimension-agnostic using type alias)
-        startupConfig = std::make_unique<Application::StartupConfigType>(
-                            button,
-                            display.get(),
-                            glyphManager.get(),
-                            configManager.get()
-                        );
+        #if defined(BUTTON_B_PIN)
+            startupConfig = std::make_unique<Application::StartupConfigType>(
+                                button,
+                                display.get(),
+                                glyphManager.get(),
+                                configManager.get(),
+                                buttonB
+                            );
+        #else
+            startupConfig = std::make_unique<Application::StartupConfigType>(
+                                button,
+                                display.get(),
+                                glyphManager.get(),
+                                configManager.get()
+                            );
+        #endif
 
         // Note: Don't call updateDisplay() here - display shows only power pixel until WiFi connects
 
@@ -107,8 +117,12 @@ namespace Application {
             return;
         }
 
-        // Update hardware - read button state
+        // Update hardware - read button state(s)
         button->read();
+        #if defined(BUTTON_B_PIN)
+            buttonB->read();
+            handleButtonB();
+        #endif
 
         // Handle button input
         handleButton();
@@ -176,6 +190,22 @@ namespace Application {
         } while ( !button->isStable() );
         log_i( "✓ Button" );
 
+        // Button B (secondary) - for reset on M5StickC Plus
+        #if defined(BUTTON_B_PIN)
+            buttonB = new Button(
+                BUTTON_B_PIN,
+                Config::Button::DEBOUNCE_MS,
+                BUTTON_B_ACTIVE_LOW,    // puEnable: true for active low (needs pullup)
+                BUTTON_B_ACTIVE_LOW     // invert: true for active low
+            );
+            buttonB->begin();
+            // Wait for button to stabilize
+            do {
+                buttonB->read();
+            } while ( !buttonB->isStable() );
+            log_i( "✓ Button B (reset)" );
+        #endif
+
         // GlyphManager - initialize with current orientation from IMU
         Orientation initialOrientation = Orientation::UP;  // Default if IMU unavailable
         if ( imu ) {
@@ -184,6 +214,10 @@ namespace Application {
                 initialOrientation = detectedOrientation;
             }
         }
+
+        // Set display rotation based on detected orientation (TFT displays rotate, LED matrix uses rotated glyphs)
+        display->setOrientationRotation( initialOrientation );
+
         // GlyphManager - initialize with current orientation from IMU (dimension-agnostic using type alias)
         glyphManager = std::make_unique<Display::GlyphManagerType>( initialOrientation );
         log_i( "✓ GlyphManager" );
@@ -314,6 +348,22 @@ namespace Application {
         }
         // Note: Short press not used in normal operation
 
+    }
+
+    /**
+     * @brief Handle Button B events - reset on short press (M5StickC Plus only)
+     */
+    void STACApp::handleButtonB() {
+        #if defined(BUTTON_B_PIN)
+            buttonB->read();  // Poll button state
+            // Short press on Button B triggers a restart
+            if ( buttonB->wasReleased() ) {
+                log_i( "Button B pressed - Restarting..." );
+                Serial.println( "\n*** Button B pressed - Restarting... ***" );
+                delay( 100 );  // Allow serial to flush
+                ESP.restart();
+            }
+        #endif
     }
 
     /**
@@ -513,6 +563,7 @@ namespace Application {
 
                 while ( millis() < autostartTimeout ) {
                     button->read();
+                    handleButtonB();  // Check for Button B reset
 
                     // Button pressed: Cancel autostart
                     if ( button->isPressed() ) {
@@ -744,6 +795,7 @@ namespace Application {
 
             // Handle button for settings adjustment
             button->read();
+            handleButtonB();  // Check for Button B reset
 
             if ( button->pressedFor( BUTTON_SELECT_MS ) ) {
                 // User wants to change peripheral mode settings
@@ -766,6 +818,7 @@ namespace Application {
 
                 do {
                     button->read();
+                    handleButtonB();  // Check for Button B reset
 
                     // Released before timeout: Enter brightness adjustment
                     if ( button->isReleased() && ( modeChangeTimeout >= millis() ) ) {
@@ -813,7 +866,20 @@ namespace Application {
         // Show GLF_CFG in red (matching baseline alertcolor for provisioning)
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t normalBrightness = display->getBrightness();
-        const uint8_t dimBrightness = normalBrightness / 2;
+        
+        // Calculate dim brightness using adjacent brightness levels from the map
+        // Find current level index in brightness map
+        uint8_t currentLevel = 1;
+        for ( uint8_t i = 1; i <= Config::Display::BRIGHTNESS_LEVELS; i++ ) {
+            if ( Config::Display::BRIGHTNESS_MAP[ i ] == normalBrightness ) {
+                currentLevel = i;
+                break;
+            }
+        }
+        // Pulse to adjacent level: down one level, or up one if already at minimum
+        const uint8_t dimBrightness = ( currentLevel > 1 ) 
+            ? Config::Display::BRIGHTNESS_MAP[ currentLevel - 1 ]
+            : Config::Display::BRIGHTNESS_MAP[ 2 ];
 
         display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
 
@@ -831,6 +897,14 @@ namespace Application {
             display->pulseDisplay( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
                                    pulseState, normalBrightness, dimBrightness );
         } );
+
+        // Set up Button B reset check callback (for M5StickC Plus)
+        #if defined(BUTTON_B_PIN)
+            configServer.setResetCheckCallback( [ this ]() {
+                buttonB->read();
+                return buttonB->wasReleased();
+            } );
+        #endif
 
         // Initial config glyph display at normal brightness
         display->setBrightness( normalBrightness, Config::Display::NO_SHOW );
@@ -1174,7 +1248,20 @@ namespace Application {
 
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
         const uint8_t normalBrightness = display->getBrightness();
-        const uint8_t dimBrightness = normalBrightness / 2;
+        
+        // Calculate dim brightness using adjacent brightness levels from the map
+        // Find current level index in brightness map
+        uint8_t currentLevel = 1;
+        for ( uint8_t i = 1; i <= Config::Display::BRIGHTNESS_LEVELS; i++ ) {
+            if ( Config::Display::BRIGHTNESS_MAP[ i ] == normalBrightness ) {
+                currentLevel = i;
+                break;
+            }
+        }
+        // Pulse to adjacent level: down one level, or up one if already at minimum
+        const uint8_t dimBrightness = ( currentLevel > 1 ) 
+            ? Config::Display::BRIGHTNESS_MAP[ currentLevel - 1 ]
+            : Config::Display::BRIGHTNESS_MAP[ 2 ];
 
         // Create and start OTA update server
         Net::OTAUpdateServer otaServer( stacID );
@@ -1191,6 +1278,14 @@ namespace Application {
             display->pulseDisplay( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
                                    pulseState, normalBrightness, dimBrightness );
         } );
+
+        // Set up Button B reset check callback (for M5StickC Plus)
+        #if defined(BUTTON_B_PIN)
+            otaServer.setResetCheckCallback( [ this ]() {
+                buttonB->read();
+                return buttonB->wasReleased();
+            } );
+        #endif
 
         // Wait for firmware upload and update
         // This will either restart the ESP32 (success) or return (failure)
@@ -1234,6 +1329,13 @@ namespace Application {
         // Park here forever showing the factory reset glyph (baseline behavior)
         // User must power cycle or press reset button to restart
         while ( true ) {
+            #if defined(BUTTON_B_PIN)
+                buttonB->read();
+                if ( buttonB->wasReleased() ) {
+                    log_i( "Button B pressed after factory reset - restarting" );
+                    ESP.restart();
+                }
+            #endif
             yield();
         }
     }
@@ -1296,19 +1398,16 @@ namespace Application {
                         // Held long enough - advance to factory reset state
                         log_v( "Advancing to FACTORY_RESET_PENDING state" );
 
-                        // GLF_FM (solid frame) in red with GLF_CK (checkmark) in green overlay
-                        const uint8_t *fmGlyph = glyphManager->getGlyph( Display::GLF_FM );
-                        const uint8_t *ckGlyph = glyphManager->getGlyph( Display::GLF_CK );
-                        display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::NO_SHOW );
-                        display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, Config::Display::SHOW );
+                        // GLF_FR (factory reset / circular arrow) in yellow on red background
+                        const uint8_t *frGlyph = glyphManager->getGlyph( Display::GLF_FR );
+                        display->drawGlyph( frGlyph, Display::StandardColors::YELLOW, Display::StandardColors::RED, Config::Display::SHOW );
                         delay( 250 );
 
                         // Flash to show state change
                         for ( int i = 0; i < 4; i++ ) {
                             display->clear( Config::Display::SHOW );
                             delay( 125 );
-                            display->drawGlyph( fmGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::NO_SHOW );
-                            display->drawGlyphOverlay( ckGlyph, Display::StandardColors::GREEN, Config::Display::SHOW );
+                            display->drawGlyph( frGlyph, Display::StandardColors::YELLOW, Display::StandardColors::RED, Config::Display::SHOW );
                             delay( 125 );
                         }
 

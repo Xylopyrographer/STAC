@@ -117,13 +117,14 @@ namespace Display {
     void DisplayTFT::setPixel(uint8_t position, color_t color, bool doShow) {
         // For TFT, we don't typically use single-pixel operations
         // Map position to x,y for compatibility
-        uint8_t x = position % _width;
-        uint8_t y = position / _width;
+        uint16_t w = currentWidth();
+        uint8_t x = position % w;
+        uint8_t y = position / w;
         setPixelXY(x, y, color, doShow);
     }
 
     void DisplayTFT::setPixelXY(uint8_t x, uint8_t y, color_t color, bool doShow) {
-        if (_sprite && x < _width && y < _height) {
+        if (_sprite && x < currentWidth() && y < currentHeight()) {
             _sprite->drawPixel(x, y, colorToRGB565(color));
             if (doShow) {
                 show();
@@ -152,9 +153,9 @@ namespace Display {
         // Fill background first
         fill(background, false);
         
-        // Center coordinates for icon drawing
-        int16_t cx = _width / 2;
-        int16_t cy = _height / 2;
+        // Center coordinates for icon drawing (use rotated dimensions)
+        int16_t cx = currentWidth() / 2;
+        int16_t cy = currentHeight() / 2;
         
         // Render based on glyph index
         switch (glyphIndex) {
@@ -198,10 +199,38 @@ namespace Display {
                 break;
                 
             case Display::GLF_FM:
-            case Display::GLF_DF:
-                // Frame glyphs - draw a border
+                // Frame glyph - draw a border
                 drawTallyFrame(foreground, 8);
                 return;  // drawTallyFrame calls show()
+                
+            case Display::GLF_DF:
+                // Dotted frame (unselected tally) - purple on black checkerboard
+                // Dynamically sized based on current orientation
+                {
+                    uint16_t fg = colorToRGB565(foreground);
+                    uint16_t bg = colorToRGB565(background);
+                    const uint8_t blockSize = 24;
+                    uint16_t w = currentWidth();
+                    uint16_t h = currentHeight();
+                    // Calculate grid dimensions to fill display
+                    uint8_t cols = w / blockSize;  // e.g., 135/24=5 or 240/24=10
+                    uint8_t rows = h / blockSize;  // e.g., 240/24=10 or 135/24=5
+                    // Center the grid
+                    int xOffset = (w - (cols * blockSize)) / 2;
+                    int yOffset = (h - (rows * blockSize)) / 2;
+                    // Fill background first
+                    _sprite->fillSprite(bg);
+                    // Draw centered checkerboard grid
+                    for (int row = 0; row < rows; row++) {
+                        for (int col = 0; col < cols; col++) {
+                            bool isForeground = (col + row) % 2 == 0;
+                            if (isForeground) {
+                                _sprite->fillRect(xOffset + col * blockSize, yOffset + row * blockSize, blockSize, blockSize, fg);
+                            }
+                        }
+                    }
+                }
+                break;
                 
             case Display::GLF_ST:
                 // Smart Tally icon - draw "ST" text large
@@ -267,10 +296,12 @@ namespace Display {
                 {
                     uint8_t sz = 10;
                     uint16_t fg = colorToRGB565(foreground);
+                    uint16_t w = currentWidth();
+                    uint16_t h = currentHeight();
                     _sprite->fillRect(0, 0, sz, sz, fg);
-                    _sprite->fillRect(_width - sz, 0, sz, sz, fg);
-                    _sprite->fillRect(0, _height - sz, sz, sz, fg);
-                    _sprite->fillRect(_width - sz, _height - sz, sz, sz, fg);
+                    _sprite->fillRect(w - sz, 0, sz, sz, fg);
+                    _sprite->fillRect(0, h - sz, sz, sz, fg);
+                    _sprite->fillRect(w - sz, h - sz, sz, sz, fg);
                 }
                 break;
                 
@@ -280,13 +311,20 @@ namespace Display {
                     uint16_t fg = colorToRGB565(foreground);
                     uint16_t bg = colorToRGB565(background);
                     uint8_t blockSize = 20;
-                    for (int y = 0; y < _height; y += blockSize) {
-                        for (int x = 0; x < _width; x += blockSize) {
+                    uint16_t w = currentWidth();
+                    uint16_t h = currentHeight();
+                    for (int y = 0; y < h; y += blockSize) {
+                        for (int x = 0; x < w; x += blockSize) {
                             bool isWhite = ((x / blockSize) + (y / blockSize)) % 2 == 0;
                             _sprite->fillRect(x, y, blockSize, blockSize, isWhite ? fg : bg);
                         }
                     }
                 }
+                break;
+                
+            case Display::GLF_FR:
+                // Factory reset icon - circular arrow
+                drawResetIcon(cx, cy, foreground);
                 break;
                 
             case Display::GLF_EN:
@@ -342,9 +380,9 @@ namespace Display {
         // Extract glyph index from stub glyph data
         uint8_t glyphIndex = glyph[0];
         
-        // Center coordinates
-        int16_t cx = _width / 2;
-        int16_t cy = _height / 2;
+        // Center coordinates (use rotated dimensions)
+        int16_t cx = currentWidth() / 2;
+        int16_t cy = currentHeight() / 2;
         
         // For overlay, we draw ON TOP of existing content without clearing
         switch (glyphIndex) {
@@ -396,14 +434,16 @@ namespace Display {
         uint8_t cornerSize = 15;  // Size of corner indicators
         
         if (_sprite) {
+            uint16_t w = currentWidth();
+            uint16_t h = currentHeight();
             // Top-left corner
             _sprite->fillRect(0, 0, cornerSize, cornerSize, rgb565);
             // Top-right corner
-            _sprite->fillRect(_width - cornerSize, 0, cornerSize, cornerSize, rgb565);
+            _sprite->fillRect(w - cornerSize, 0, cornerSize, cornerSize, rgb565);
             // Bottom-left corner
-            _sprite->fillRect(0, _height - cornerSize, cornerSize, cornerSize, rgb565);
+            _sprite->fillRect(0, h - cornerSize, cornerSize, cornerSize, rgb565);
             // Bottom-right corner
-            _sprite->fillRect(_width - cornerSize, _height - cornerSize, cornerSize, cornerSize, rgb565);
+            _sprite->fillRect(w - cornerSize, h - cornerSize, cornerSize, cornerSize, rgb565);
             
             show();
         }
@@ -416,11 +456,11 @@ namespace Display {
     }
 
     uint8_t DisplayTFT::getWidth() const {
-        return static_cast<uint8_t>(_width);
+        return static_cast<uint8_t>(currentWidth());
     }
 
     uint8_t DisplayTFT::getHeight() const {
-        return static_cast<uint8_t>(_height);
+        return static_cast<uint8_t>(currentHeight());
     }
 
     uint8_t DisplayTFT::getPixelCount() const {
@@ -448,7 +488,7 @@ namespace Display {
         _sprite->setTextSize(2);
         
         char digitStr[2] = {static_cast<char>('0' + digit), '\0'};
-        _sprite->drawString(digitStr, _width / 2, _height / 2);
+        _sprite->drawString(digitStr, currentWidth() / 2, currentHeight() / 2);
         
         show();
     }
@@ -475,7 +515,7 @@ namespace Display {
         
         char numStr[4];
         snprintf(numStr, sizeof(numStr), "%d", channel);
-        _sprite->drawString(numStr, _width / 2, _height / 2);
+        _sprite->drawString(numStr, currentWidth() / 2, currentHeight() / 2);
         
         show();
     }
@@ -485,22 +525,28 @@ namespace Display {
         
         uint16_t rgb565 = colorToRGB565(color);
         
-        // Draw WiFi arcs (signal strength indicator) - LARGE version
-        // Three concentric arcs centered above a dot
-        // Scale everything up for visibility on TFT
+        // Draw WiFi arcs (signal strength indicator)
+        // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
+        bool isLandscape = (_rotation == 1 || _rotation == 3);
+        float scale = isLandscape ? 0.55f : 1.0f;
         
-        int16_t dotY = cy + 40;  // Base dot position (moved down)
+        int16_t dotY = cy + static_cast<int16_t>(40 * scale);  // Base dot position
+        int16_t dotRadius = static_cast<int16_t>(10 * scale);
+        int16_t baseRadius = static_cast<int16_t>(25 * scale);
+        int16_t radiusStep = static_cast<int16_t>(20 * scale);
+        int16_t arcOffset = static_cast<int16_t>(15 * scale);
+        int16_t lineThickness = isLandscape ? 2 : 2;
         
-        // Draw the base dot - larger
-        _sprite->fillCircle(cx, dotY, 10, rgb565);
+        // Draw the base dot
+        _sprite->fillCircle(cx, dotY, dotRadius, rgb565);
         
         if (connected) {
-            // Draw three arcs for signal strength - much larger and thicker
+            // Draw three arcs for signal strength
             for (int i = 0; i < 3; i++) {
-                int16_t radius = 25 + (i * 20);  // Larger radii
-                int16_t arcY = dotY - 15;
+                int16_t radius = baseRadius + (i * radiusStep);
+                int16_t arcY = dotY - arcOffset;
                 
-                // Draw arc using multiple line segments - thicker
+                // Draw arc using multiple line segments
                 for (float angle = -60; angle <= 60; angle += 3) {
                     float rad1 = angle * M_PI / 180.0f;
                     float rad2 = (angle + 3) * M_PI / 180.0f;
@@ -511,7 +557,7 @@ namespace Display {
                     int16_t y2 = arcY - static_cast<int16_t>(radius * cos(rad2));
                     
                     // Draw thick arcs (multiple parallel lines)
-                    for (int t = -2; t <= 2; t++) {
+                    for (int t = -lineThickness; t <= lineThickness; t++) {
                         _sprite->drawLine(x1, y1 + t, x2, y2 + t, rgb565);
                     }
                 }
@@ -591,9 +637,13 @@ namespace Display {
         
         uint16_t rgb565 = colorToRGB565(color);
         
-        // Draw a larger, bolder checkmark
-        int16_t size = 50;      // Larger overall size
-        int16_t thickness = 12; // Thicker lines
+        // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
+        bool isLandscape = (_rotation == 1 || _rotation == 3);
+        float scale = isLandscape ? 0.55f : 1.0f;
+        
+        int16_t size = static_cast<int16_t>(50 * scale);       // Overall size
+        int16_t thickness = static_cast<int16_t>(12 * scale);  // Line thickness
+        int16_t offset = static_cast<int16_t>(10 * scale);     // Long leg offset
         
         // Short leg of checkmark (going down-right)
         int16_t x1 = cx - size/2;
@@ -602,7 +652,7 @@ namespace Display {
         int16_t y2 = cy + size/2;
         
         // Long leg of checkmark (going up-right)
-        int16_t x3 = cx + size/2 + 10;
+        int16_t x3 = cx + size/2 + offset;
         int16_t y3 = cy - size/2;
         
         // Draw thick lines using multiple parallel lines
@@ -637,25 +687,84 @@ namespace Display {
         
         uint16_t rgb565 = colorToRGB565(color);
         
+        // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
+        bool isLandscape = (_rotation == 1 || _rotation == 3);
+        
         // Draw a large question mark using FreeSansBold font
         _sprite->setTextColor(rgb565);
         _sprite->setTextDatum(MC_DATUM);
         _sprite->setFont(&fonts::FreeSansBold24pt7b);
-        _sprite->setTextSize(3);  // Large size for visibility
-        _sprite->drawString("?", cx, cy - 10);
+        _sprite->setTextSize(isLandscape ? 2 : 3);  // Smaller for landscape
+        
+        int16_t textOffset = isLandscape ? -5 : -10;
+        int16_t dotOffset = isLandscape ? 30 : 50;
+        int16_t dotRadius = isLandscape ? 5 : 8;
+        
+        _sprite->drawString("?", cx, cy + textOffset);
         
         // Draw the dot at the bottom
-        _sprite->fillCircle(cx, cy + 50, 8, rgb565);
+        _sprite->fillCircle(cx, cy + dotOffset, dotRadius, rgb565);
+    }
+
+    void DisplayTFT::drawResetIcon(int16_t cx, int16_t cy, color_t color) {
+        if (!_sprite) return;
+        
+        uint16_t rgb565 = colorToRGB565(color);
+        
+        // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
+        bool isLandscape = (_rotation == 1 || _rotation == 3);
+        float scale = isLandscape ? 0.65f : 1.0f;
+        
+        // Circular arrow dimensions
+        int16_t outerR = static_cast<int16_t>(45 * scale);   // Outer radius of arc
+        int16_t innerR = static_cast<int16_t>(35 * scale);   // Inner radius - thinner arc (was 25)
+        int16_t arrowLen = static_cast<int16_t>(28 * scale); // Arrow length (slightly longer)
+        int16_t arrowWid = static_cast<int16_t>(26 * scale); // Arrow width - wider base for visibility
+        
+        // Draw the circular arc with gap on the LEFT side
+        // LovyanGFX: angles go clockwise from 3 o'clock (0°)
+        // Gap on left: arc from 225° to 495° (135° + 360°)
+        _sprite->fillArc(cx, cy, outerR, innerR, 225, 495, rgb565);
+        
+        // Arrow at the END of arc (135°), with BASE aligned to arc end
+        // Tangent at 135° points toward 225° (down-left, clockwise along arc)
+        float endAngle = 135.0f * M_PI / 180.0f;
+        int16_t midR = (outerR + innerR) / 2;
+        
+        // Arc end point (center of arc thickness)
+        int16_t arcEndX = cx + static_cast<int16_t>(midR * cos(endAngle));
+        int16_t arcEndY = cy + static_cast<int16_t>(midR * sin(endAngle));
+        
+        // Tangent direction (225 degrees - pointing down-left along arc flow)
+        float tangentAngle = (135.0f + 90.0f) * M_PI / 180.0f;  // 225 degrees
+        
+        // Perpendicular to tangent for base spread (135° and 315°)
+        float perpAngle1 = (225.0f - 90.0f) * M_PI / 180.0f;  // 135 degrees
+        float perpAngle2 = (225.0f + 90.0f) * M_PI / 180.0f;  // 315 degrees
+        
+        // BASE of arrow at arc end point, spread perpendicular to tangent
+        int16_t base1X = arcEndX + static_cast<int16_t>(arrowWid * 0.5f * cos(perpAngle1));
+        int16_t base1Y = arcEndY + static_cast<int16_t>(arrowWid * 0.5f * sin(perpAngle1));
+        int16_t base2X = arcEndX + static_cast<int16_t>(arrowWid * 0.5f * cos(perpAngle2));
+        int16_t base2Y = arcEndY + static_cast<int16_t>(arrowWid * 0.5f * sin(perpAngle2));
+        
+        // TIP of arrow extends from arc end in tangent direction (down-left)
+        int16_t tipX = arcEndX + static_cast<int16_t>(arrowLen * cos(tangentAngle));
+        int16_t tipY = arcEndY + static_cast<int16_t>(arrowLen * sin(tangentAngle));
+        
+        _sprite->fillTriangle(tipX, tipY, base1X, base1Y, base2X, base2Y, rgb565);
     }
 
     void DisplayTFT::drawTallyFrame(color_t color, uint8_t thickness) {
         if (!_sprite) return;
         
         uint16_t rgb565 = colorToRGB565(color);
+        uint16_t w = currentWidth();
+        uint16_t h = currentHeight();
         
         // Draw frame around the display edge
         for (uint8_t i = 0; i < thickness; i++) {
-            _sprite->drawRect(i, i, _width - (2 * i), _height - (2 * i), rgb565);
+            _sprite->drawRect(i, i, w - (2 * i), h - (2 * i), rgb565);
         }
         
         show();
@@ -665,12 +774,49 @@ namespace Display {
         _rotation = rotation % 4;
         if (_lcd) {
             _lcd->setRotation(_rotation);
+            
+            // Recreate sprite with new dimensions to match rotated LCD
+            // After rotation, _lcd->width() and _lcd->height() return the rotated dimensions
+            if (_sprite) {
+                _sprite->deleteSprite();
+                _sprite->createSprite(_lcd->width(), _lcd->height());
+                _sprite->setSwapBytes(true);
+                log_i("Sprite recreated for rotation %d: %dx%d", _rotation, _lcd->width(), _lcd->height());
+            }
         }
-        // Note: sprite doesn't need rotation - we rotate content as we draw
     }
 
     uint8_t DisplayTFT::getRotation() const {
         return _rotation;
+    }
+
+    void DisplayTFT::setOrientationRotation(Orientation orientation) {
+        // Map IMU orientation to TFT rotation values
+        // M5StickC Plus default orientation: USB port at bottom = UP
+        // LovyanGFX rotation: 0=portrait(USB bottom), 1=landscape(USB right), 
+        //                     2=portrait inverted(USB top), 3=landscape(USB left)
+        uint8_t rotation;
+        switch (orientation) {
+            case Orientation::UP:
+                rotation = 0;  // Portrait, USB at bottom
+                break;
+            case Orientation::RIGHT:
+                rotation = 3;  // Landscape, USB at right (was 1, swapped)
+                break;
+            case Orientation::DOWN:
+                rotation = 2;  // Portrait inverted, USB at top
+                break;
+            case Orientation::LEFT:
+                rotation = 1;  // Landscape, USB at left (was 3, swapped)
+                break;
+            case Orientation::FLAT:
+            case Orientation::UNKNOWN:
+            default:
+                rotation = 0;  // Default to portrait
+                break;
+        }
+        setRotation(rotation);
+        log_i("Display rotation set to %d for orientation %d", rotation, static_cast<int>(orientation));
     }
 
     // ========================================================================
@@ -684,6 +830,16 @@ namespace Display {
         uint8_t b = color & 0xFF;
         
         return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+    }
+
+    // Helper to get current width accounting for rotation
+    inline uint16_t DisplayTFT::currentWidth() const {
+        return _lcd ? _lcd->width() : _width;
+    }
+
+    // Helper to get current height accounting for rotation
+    inline uint16_t DisplayTFT::currentHeight() const {
+        return _lcd ? _lcd->height() : _height;
     }
 
     void DisplayTFT::updateBacklight() {
