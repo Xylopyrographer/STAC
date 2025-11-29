@@ -44,6 +44,7 @@
     #define PIN_BUTTON 7
     #define BUTTON_DEBOUNCE_MS 25
     #define BUTTON_ACTIVE_LOW true
+    #define BUTTON_NEEDS_EXTERNAL_PULLUP false  // GPIO 7 supports internal pullup
 
     // ============================================================================
     // IMU CONFIGURATION
