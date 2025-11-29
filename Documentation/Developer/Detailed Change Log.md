@@ -3,6 +3,113 @@
 
 Intended for developers and others interested in the nitty gritty.
 
+---
+
+## Version 3.0.0 Development
+
+### v3.0.0-RC.9 + TFT Support (November 2025)
+
+**TFT Display Support (November 26-28, 2025)**
+- Added M5StickC Plus support (ST7789V2 TFT, AXP192 PMU)
+- Added LilyGO T-Display support (ST7789V TFT, PWM backlight)
+- DisplayTFT class with LovyanGFX sprite-based rendering
+- AXP192 PMU driver for power and backlight control
+- Button B (reset) support for TFT boards via XP_Button polling
+- GLF_FR glyph (factory reset icon - bars with X)
+- Fixed GPIO pullup error on input-only pins (NEEDS_EXTERNAL_PULLUP flag)
+- See `TFT_Display_Support_Context.md` for full details
+
+**NVS Version Management Refactoring (November 25, 2025)**
+- Simplified from complex migration to baseline v2.x approach
+- Single global `NOM_PREFS_VERSION` stored only in wifi namespace
+- Removed ~150 LOC of migration code
+- Manual factory reset required for schema changes
+
+**Board Configuration Cleanup (November 25, 2025)**
+- Centralized global constants to Constants.h
+- Removed 6 redundant defines from each board config
+- Created TEMPLATE_NewBoard_Config.h and TEMPLATE_GlyphsMxN.h
+- Type-safe enums for IMU orientation offset
+
+**Architectural Refactoring (November 25, 2025)**
+- Eliminated all `#ifdef` blocks in application code
+- Moved rotation LUTs into glyph headers
+- Added dimension-agnostic type aliases (GlyphManagerType, StartupConfigType)
+- Template-based design for future display sizes
+
+**Pre-Release Code Quality (November 24-25, 2025)**
+- ~200 LOC reduction across 6 phases
+- isProvisioned() helper, storage constants, brightness maps to board configs
+- Separate glyph headers per display size (Glyphs5x5.h, Glyphs8x8.h)
+- Switch model helpers (isV60HD, isV160HD)
+- Duplicate NVS reads eliminated
+
+**Glyph-Based Refactoring (November 22, 2025)**
+- Eliminated 18 magic numbers (corner pixels, colors)
+- Created GLF_CORNERS glyphs for 5×5 and 8×8
+- Moved pulseCorners to DisplayBase
+- Consolidated all colors to StandardColors namespace
+
+**Custom Build Script (November 22, 2025)**
+- Automated firmware binary generation
+- Naming: STAC_v{version}_{board}_{build}.bin
+- PlatformIO targets: `pio run -t merged -t ota`
+
+**Code Refactoring (November 21, 2025)**
+- DisplayBase class eliminates ~180 lines per display type
+- RolandClientBase eliminates ~100 lines between protocols
+- StateManagerBase<T> template eliminates ~140 lines
+- NetworkClient.flush() → clear() for arduino-esp32 v3.3.2+
+
+**Build Versioning Enhancement (November 21, 2025)**
+- Automatic extraction from PlatformIO configuration
+- Clean version for release: "3.0.0-RC.9 (b26d99)"
+- Annotated version for dev: "3.0.0-RC.9 (6928a8) D3"
+
+**Factory Reset Fix (November 21, 2025)**
+- Fixed to match baseline v2.x behavior (single flash, infinite park)
+- Skip factory reset when unconfigured (matches User's Guide)
+
+### v3.0.0-RC.1 to RC.9 (November 2025)
+
+**RC.9 Fixes**
+- V-160HD error handling improvements
+- HTTP timeout optimization
+- Polling improvements
+
+**RC.2 to RC.8 Fixes**
+- V-160HD startup sequence bug fixes
+- Channel display fixes
+- Color corrections
+- Serial output improvements
+
+**RC.1 Features**
+- Critical error recovery fix
+- STS Emulator utility
+- Web UI enhancements
+
+### Phase 9: Web Config & OTA (November 2025)
+
+- Glyph management system
+- Roland protocol support (V-60HD, V-160HD)
+- Web configuration captive portal
+- OTA firmware updates
+- Boot button sequence with visual feedback
+- Performance optimizations (server startup timing)
+
+### Architecture Overhaul (October-November 2025)
+
+**Complete Rewrite from v2.x**
+- Migrated from Arduino IDE (.ino) to PlatformIO project
+- Object-oriented architecture with interfaces
+- Hardware Abstraction Layer (HAL) for display, IMU, buttons
+- Factory pattern for hardware creation
+- Centralized state management (SystemState, TallyState, OpMode)
+- ConfigManager for NVS storage
+- Support for multiple hardware platforms (ATOM Matrix, Waveshare S3)
+
+---
+
 ### Version 2.2.0
 * Refactored pretty much the entire code base. Not an insignificant effort as you know.
 * Moved things about in and inside the `STACLib` "`.h`" files.
