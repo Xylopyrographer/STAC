@@ -863,6 +863,15 @@ namespace Application {
     void STACApp::handleProvisioningMode() {
         log_i( "Entering provisioning mode" );
 
+        // Check if device was already provisioned - affects display color
+        // Provisioned: ORANGE (warning - proceeding will modify existing config)
+        // Not provisioned: RED (alert - must provision to use device)
+        bool wasProvisioned = configManager->isProvisioned();
+        Display::color_t provisionColor = wasProvisioned 
+            ? Display::StandardColors::ORANGE 
+            : Display::StandardColors::RED;
+        log_i( "Provisioning color: %s", wasProvisioned ? "ORANGE (already provisioned)" : "RED (not provisioned)" );
+
         // Create and start web configuration server immediately
         Net::WebConfigServer configServer( stacID );
 
@@ -874,7 +883,7 @@ namespace Application {
         // Get glyph indices
         using namespace Display;
 
-        // Show GLF_CFG in red (matching baseline alertcolor for provisioning)
+        // Show GLF_CFG in appropriate color based on provisioned state
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t normalBrightness = display->getBrightness();
         
@@ -892,20 +901,20 @@ namespace Application {
             ? Config::Display::BRIGHTNESS_MAP[ currentLevel - 1 ]
             : Config::Display::BRIGHTNESS_MAP[ 2 ];
 
-        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+        display->drawGlyph( cfgGlyph, provisionColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
         // Flash 4 times at 500ms (matching baseline)
         for ( int i = 0; i < 4; i++ ) {
             delay( 500 );
             display->clear( Config::Display::SHOW );
             delay( 500 );
-            display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+            display->drawGlyph( cfgGlyph, provisionColor, Display::StandardColors::BLACK, Config::Display::SHOW );
         }
 
         // Set up pulsing config glyph display callback using brightness modulation
         bool pulseState = false;
-        configServer.setDisplayUpdateCallback( [ this, cfgGlyph, normalBrightness, dimBrightness, &pulseState ]() {
-            display->pulseDisplay( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
+        configServer.setDisplayUpdateCallback( [ this, cfgGlyph, provisionColor, normalBrightness, dimBrightness, &pulseState ]() {
+            display->pulseDisplay( cfgGlyph, provisionColor, Display::StandardColors::BLACK,
                                    pulseState, normalBrightness, dimBrightness );
         } );
 
@@ -919,7 +928,7 @@ namespace Application {
 
         // Initial config glyph display at normal brightness
         display->setBrightness( normalBrightness, Config::Display::NO_SHOW );
-        display->drawGlyph( cfgGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+        display->drawGlyph( cfgGlyph, provisionColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
         // Wait for configuration
         ProvisioningData provData = configServer.waitForConfiguration();
@@ -1359,17 +1368,29 @@ namespace Application {
 
         log_i( "Button held at boot - entering button sequence state machine" );
 
+        // Check if device is provisioned - affects state machine behavior
+        // If not provisioned: skip factory reset (device already in factory default state)
+        //                     show RED glyph (user cannot proceed without provisioning)
+        // If provisioned: show ORANGE glyph (warning that proceeding will modify config)
+        //                 include factory reset option
+        bool isProvisioned = configManager->isProvisioned();
+        log_i( "Device provisioned: %s", isProvisioned ? "YES" : "NO" );
+
         // Button state machine timing (in milliseconds)
         static constexpr unsigned long STATE_HOLD_TIME = 2000;  // 2 seconds per state
 
         enum class BootButtonState {
             PROVISIONING_PENDING,  // Short hold -> provisioning
-            FACTORY_RESET_PENDING, // Medium hold -> factory reset
+            FACTORY_RESET_PENDING, // Medium hold -> factory reset (provisioned only)
             OTA_UPDATE_PENDING     // Long hold -> OTA update
         };
 
-        // Always start at PROVISIONING_PENDING for consistent user experience
-        BootButtonState state = BootButtonState::PROVISIONING_PENDING;
+        // Start state depends on provisioned status
+        // Not provisioned: Start at OTA_UPDATE_PENDING (skip factory reset - already at defaults)
+        // Provisioned: Start at PROVISIONING_PENDING (full state machine)
+        BootButtonState state = isProvisioned 
+            ? BootButtonState::PROVISIONING_PENDING 
+            : BootButtonState::OTA_UPDATE_PENDING;
         unsigned long stateArmTime = millis() + STATE_HOLD_TIME;
         bool sequenceExit = false;
         OperatingMode resultMode = OperatingMode::NORMAL;
@@ -1381,16 +1402,35 @@ namespace Application {
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
 
-        // Show provisioning glyph (orange) - always start here
-        display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-        delay( 250 );
-
-        // Flash to confirm we're in button sequence mode
-        for ( int i = 0; i < 4; i++ ) {
-            display->clear( Config::Display::SHOW );
-            delay( 125 );
+        // Initial glyph color depends on provisioned state:
+        // - Provisioned: ORANGE (warning - proceeding will modify existing config)
+        // - Not provisioned: RED (alert - must provision before device can be used)
+        if ( isProvisioned ) {
+            // Show provisioning glyph in ORANGE (provisioned - warning color)
             display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-            delay( 125 );
+            delay( 250 );
+
+            // Flash to confirm we're in button sequence mode
+            for ( int i = 0; i < 4; i++ ) {
+                display->clear( Config::Display::SHOW );
+                delay( 125 );
+                display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+                delay( 125 );
+            }
+        }
+        else {
+            // Not provisioned: Show OTA update glyph in RED (alert - must configure)
+            // Skip directly to OTA state since factory reset is meaningless
+            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 250 );
+
+            // Flash to confirm we're in button sequence mode
+            for ( int i = 0; i < 4; i++ ) {
+                display->clear( Config::Display::SHOW );
+                delay( 125 );
+                display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+                delay( 125 );
+            }
         }
 
         // Button state machine loop
@@ -1399,6 +1439,7 @@ namespace Application {
 
             switch ( state ) {
                 case BootButtonState::PROVISIONING_PENDING:
+                    // This state only entered when provisioned
                     if ( !button->isPressed() ) {
                         // Released - enter provisioning mode
                         log_i( "Boot button sequence: PROVISIONING selected" );
@@ -1462,12 +1503,31 @@ namespace Application {
 
                 case BootButtonState::OTA_UPDATE_PENDING:
                     if ( !button->isPressed() ) {
-                        // Released - start OTA server
-                        log_i( "Boot button sequence: OTA UPDATE selected" );
+                        if ( isProvisioned ) {
+                            // Provisioned: Released in OTA state - start OTA server
+                            log_i( "Boot button sequence: OTA UPDATE selected" );
+                            handleOTAUpdateMode();
+                            // Never returns - ESP32 restarts after OTA
+                        }
+                        else {
+                            // Not provisioned: Released in OTA state - enter provisioning mode
+                            // (OTA is only option when not provisioned, release means "skip OTA, go provision")
+                            log_i( "Boot button sequence: PROVISIONING selected (not provisioned)" );
+                            resultMode = OperatingMode::PROVISIONING;
+                            sequenceExit = true;
+                        }
+                    }
+                    else if ( !isProvisioned && millis() >= stateArmTime ) {
+                        // Not provisioned and held past OTA state timeout: Start OTA server
+                        log_i( "Boot button sequence: OTA UPDATE selected (held) - starting server" );
+                        
+                        // Show static OTA glyph
+                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+                        
                         handleOTAUpdateMode();
                         // Never returns - ESP32 restarts after OTA
                     }
-                    // If button stays pressed beyond this state, just wait
+                    // If button stays pressed beyond this state (provisioned), just wait
                     break;
             }
         }

@@ -2,7 +2,7 @@
 
 **Version:** v3.0.0-RC.9  
 **Branch:** `v3_RC`  
-**Updated:** November 28, 2025  
+**Updated:** November 29, 2025  
 **Status:** TFT Display Support Added, Ready for Testing
 
 ---
@@ -262,6 +262,12 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### November 29, 2025 - Provisioning Mode Color Fix
+- Button held at boot: ORANGE if provisioned, RED if not
+- Pulsing display during provisioning now uses correct color
+- Not provisioned: skips factory reset state (already at defaults)
+- Matches baseline v2.x behavior
 
 ### November 28, 2025 - TFT Support Merged to v3_RC
 - Added M5StickC Plus and LilyGO T-Display support

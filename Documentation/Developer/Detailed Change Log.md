@@ -9,6 +9,13 @@ Intended for developers and others interested in the nitty gritty.
 
 ### v3.0.0-RC.9 + TFT Support (November 2025)
 
+**Provisioning Mode Color Fix (November 29, 2025)**
+- Fixed boot button sequence colors to match baseline v2.x behavior
+- Provisioned device: Shows GLF_CFG in ORANGE (warning color)
+- Not provisioned: Shows GLF_UD in RED (alert color), skips factory reset state
+- Fixed pulsing display to use correct color (ORANGE if provisioned, RED if not)
+- handleProvisioningMode() now checks isProvisioned() for color selection
+
 **STS Emulator v1.2.0 (November 28, 2025)**
 - Added per-STAC sequential state mode
 - Each STAC IP gets unique state in connection order
