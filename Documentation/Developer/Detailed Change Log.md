@@ -9,6 +9,14 @@ Intended for developers and others interested in the nitty gritty.
 
 ### v3.0.0-RC.9 + TFT Support (November 2025)
 
+**STS Emulator v1.2.0 (November 28, 2025)**
+- Added per-STAC sequential state mode
+- Each STAC IP gets unique state in connection order
+- First 3 STACs guaranteed different states (UNSELECTED, SELECTED, ONAIR)
+- States are static by default (no cycling) for easier visual testing
+- Optional per-STAC cycling available
+- Fixed duplicate STSEmulator class definition
+
 **TFT Display Support (November 26-28, 2025)**
 - Added M5StickC Plus support (ST7789V2 TFT, AXP192 PMU)
 - Added LilyGO T-Display support (ST7789V TFT, PWM backlight)

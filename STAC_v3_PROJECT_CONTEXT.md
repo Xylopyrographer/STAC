@@ -271,6 +271,12 @@ if (buttonB->wasPressed()) {
 - GLF_FR glyph (factory reset icon)
 - Fixed GPIO pullup error on input-only pins
 
+### November 28, 2025 - STS Emulator v1.2.0
+- Added per-STAC sequential state mode
+- Each STAC gets unique state (first 3 guaranteed different)
+- States are static by default (optional cycling)
+- Fixed duplicate class definition bug
+
 ### Key Documentation
 - **TFT Details:** `Documentation/Developer/TFT_Display_Support_Context.md`
 - **Full History:** `Documentation/Developer/Detailed Change Log.md`

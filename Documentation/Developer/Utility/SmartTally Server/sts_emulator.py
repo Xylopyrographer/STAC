@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
 Roland Smart Tally Server (STS) Emulator
-Version: 1.1.0
+Version: 1.2.0
 Python: 3.13.x (latest stable 3.13 release)
 
 A unified emulator for testing STAC devices with Roland V-60HD and V-160HD protocols.
-Supports multiple simultaneous STAC connections, error injection, per-STAC random states,
+Supports multiple simultaneous STAC connections, error injection, per-STAC sequential states,
 and detailed logging.
+
+Per-STAC Mode:
+- Each STAC IP gets a unique state (UNSELECTED, SELECTED, ONAIR) in sequence
+- First 3 STACs are guaranteed different states
+- States are static by default (no cycling)
+- Optional per-STAC cycling available
 """
 
 import socket
@@ -114,14 +120,15 @@ class STSEmulator:
         self.ignore_request_queue: List[tuple] = []  # (timestamp, stac_ip, request)
     
     def _get_state_for_stac(self, stac_ip: str) -> TallyState:
-        """Get or assign a consistent random state for a STAC IP"""
+        """Get or assign a state for a STAC IP (sequential assignment)"""
         if stac_ip not in self.config.per_stac_states:
-            # Use hash of IP to get deterministic but varied assignment
-            ip_hash = hash(stac_ip)
+            # Sequential assignment: each new STAC gets the next state in sequence
+            # This guarantees the first 3 devices all have different states
             states = list(TallyState)
-            assigned_state = states[ip_hash % len(states)]
+            next_idx = len(self.config.per_stac_states) % len(states)
+            assigned_state = states[next_idx]
             self.config.per_stac_states[stac_ip] = assigned_state
-            self.log(f"Assigned {assigned_state.value.upper()} to new STAC {stac_ip}", prefix="[RANDOM]")
+            self.log(f"Assigned {assigned_state.value.upper()} to STAC #{len(self.config.per_stac_states)} ({stac_ip})", prefix="[SEQ]")
         return self.config.per_stac_states[stac_ip]
     
     def _cycle_per_stac_states(self):
