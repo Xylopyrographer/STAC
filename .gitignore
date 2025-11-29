@@ -3,3 +3,4 @@
 
 # Development/planning documents (not for release)
 Documentation/VSCode_Context.md
+__pycache__/
