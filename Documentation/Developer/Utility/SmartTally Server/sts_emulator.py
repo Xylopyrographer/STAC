@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Roland Smart Tally Server (STS) Emulator
-Version: 1.0.0
+Version: 1.1.0
 Python: 3.13.x (latest stable 3.13 release)
 
 A unified emulator for testing STAC devices with Roland V-60HD and V-160HD protocols.
-Supports multiple simultaneous STAC connections, error injection, and detailed logging.
+Supports multiple simultaneous STAC connections, error injection, per-STAC random states,
+and detailed logging.
 """
 
 import socket
@@ -62,6 +63,11 @@ class EmulatorConfig:
     auto_cycle_enabled: bool = True
     cycle_interval_sec: float = 5.0
     
+    # Per-STAC random state mode
+    per_stac_random_enabled: bool = False  # When enabled, each STAC IP gets its own random state
+    per_stac_states: Dict[str, TallyState] = field(default_factory=dict)  # IP -> State mapping
+    per_stac_cycle_enabled: bool = False  # Cycle per-STAC states independently
+    
     # Error injection
     response_delay_ms: int = 0  # 0 = no delay
     junk_probability: float = 0.0  # 0.0-1.0 (0% to 100%)
@@ -104,21 +110,37 @@ class STSEmulator:
         self.stats: Dict[str, RequestStats] = {}  # Key: STAC IP
         self.stats_lock = threading.Lock()
         self.cycle_thread: Optional[threading.Thread] = None
+        self.per_stac_cycle_thread: Optional[threading.Thread] = None
         self.ignore_request_queue: List[tuple] = []  # (timestamp, stac_ip, request)
-
-
-class STSEmulator:
-    """Main STS Emulator class"""
     
-    def __init__(self, config: EmulatorConfig):
-        self.config = config
-        self.running = False
-        self.server_socket: Optional[socket.socket] = None
-        self.client_threads: List[threading.Thread] = []
-        self.stats: Dict[str, RequestStats] = {}  # Key: STAC IP
-        self.stats_lock = threading.Lock()
-        self.cycle_thread: Optional[threading.Thread] = None
-        self.ignore_request_queue: List[tuple] = []  # (timestamp, stac_ip, request)
+    def _get_state_for_stac(self, stac_ip: str) -> TallyState:
+        """Get or assign a consistent random state for a STAC IP"""
+        if stac_ip not in self.config.per_stac_states:
+            # Use hash of IP to get deterministic but varied assignment
+            ip_hash = hash(stac_ip)
+            states = list(TallyState)
+            assigned_state = states[ip_hash % len(states)]
+            self.config.per_stac_states[stac_ip] = assigned_state
+            self.log(f"Assigned {assigned_state.value.upper()} to new STAC {stac_ip}", prefix="[RANDOM]")
+        return self.config.per_stac_states[stac_ip]
+    
+    def _cycle_per_stac_states(self):
+        """Cycle per-STAC states independently (background thread)"""
+        cycle_sequence = [TallyState.UNSELECTED, TallyState.SELECTED, TallyState.ONAIR]
+        
+        while self.running:
+            time.sleep(self.config.cycle_interval_sec)
+            
+            if not self.running or not self.config.per_stac_cycle_enabled:
+                continue
+            
+            # Cycle each STAC's state
+            for stac_ip in list(self.config.per_stac_states.keys()):
+                current_state = self.config.per_stac_states[stac_ip]
+                current_idx = cycle_sequence.index(current_state)
+                next_idx = (current_idx + 1) % len(cycle_sequence)
+                next_state = cycle_sequence[next_idx]
+                self.config.per_stac_states[stac_ip] = next_state
         
     def timestamp(self) -> str:
         """Get formatted timestamp with milliseconds"""
@@ -164,14 +186,21 @@ class STSEmulator:
             self.log(f"Listening on: {local_ip}:{self.config.port}")
             if self.config.model == SwitcherModel.V160HD:
                 self.log(f"Auth: {self.config.username}:{'*' * len(self.config.password)}")
-            if self.config.auto_cycle_enabled:
+            if self.config.per_stac_random_enabled:
+                self.log(f"Per-STAC Random: ENABLED (cycle: {'ON' if self.config.per_stac_cycle_enabled else 'OFF'})")
+            elif self.config.auto_cycle_enabled:
                 self.log(f"Auto-cycle: {self.config.cycle_interval_sec}s interval")
             self.log(f"═══════════════════════════════════════════════════════════")
             
-            # Start auto-cycle thread if enabled
-            if self.config.auto_cycle_enabled:
+            # Start auto-cycle thread if enabled (for channel-based mode)
+            if self.config.auto_cycle_enabled and not self.config.per_stac_random_enabled:
                 self.cycle_thread = threading.Thread(target=self._auto_cycle_channels, daemon=True)
                 self.cycle_thread.start()
+            
+            # Start per-STAC cycle thread if enabled
+            if self.config.per_stac_random_enabled and self.config.per_stac_cycle_enabled:
+                self.per_stac_cycle_thread = threading.Thread(target=self._cycle_per_stac_states, daemon=True)
+                self.per_stac_cycle_thread.start()
             
             # Accept connections
             self.server_socket.settimeout(1.0)  # Timeout to allow checking self.running
@@ -364,8 +393,13 @@ class STSEmulator:
                 # V-60HD format: just channel number
                 channel = int(channel_str)
             
-            # Get channel state
-            if channel in self.config.channel_states:
+            # Get state based on mode
+            if self.config.per_stac_random_enabled:
+                # Per-STAC random mode: each STAC IP gets its own state
+                state = self._get_state_for_stac(stac_ip)
+                response_text = state.value
+            elif channel in self.config.channel_states:
+                # Normal channel-based mode
                 state = self.config.channel_states[channel]
                 response_text = state.value
             else:
@@ -402,6 +436,9 @@ class STSEmulator:
             
             for stac_ip, stats in sorted(self.stats.items()):
                 print(f"\nSTAC: {stac_ip}")
+                # Show assigned state if per-STAC random mode
+                if self.config.per_stac_random_enabled and stac_ip in self.config.per_stac_states:
+                    print(f"  Assigned State:    {self.config.per_stac_states[stac_ip].value.upper()}")
                 print(f"  Total Requests:    {stats.total_requests}")
                 print(f"  Normal Responses:  {stats.normal_responses}")
                 print(f"  Delayed Responses: {stats.delayed_responses}")
@@ -504,29 +541,123 @@ def tally_control_menu(config: EmulatorConfig):
         print("\n" + "-"*70)
         print(" TALLY STATE CONTROL")
         print("-"*70)
-        print(f" Auto-cycle: {'ENABLED' if config.auto_cycle_enabled else 'DISABLED'}")
-        if config.auto_cycle_enabled:
-            print(f" Cycle interval: {config.cycle_interval_sec} seconds")
-        print(f"\n Current channel states:")
-        for ch, state in sorted(config.channel_states.items())[:8]:  # Show first 8
-            print(f"   Channel {ch:2d}: {state.value.upper()}")
-        if len(config.channel_states) > 8:
-            print(f"   ... ({len(config.channel_states)} total channels)")
+        
+        # Show per-STAC random mode status
+        if config.per_stac_random_enabled:
+            print(f" Mode: PER-STAC RANDOM (each STAC IP gets unique state)")
+            print(f" Per-STAC Cycle: {'ENABLED' if config.per_stac_cycle_enabled else 'DISABLED'}")
+            if config.per_stac_states:
+                print(f"\n Current per-STAC states:")
+                for ip, state in sorted(config.per_stac_states.items()):
+                    print(f"   {ip}: {state.value.upper()}")
+            else:
+                print(f"\n No STACs connected yet (states assigned on first request)")
+        else:
+            print(f" Mode: CHANNEL-BASED (all STACs see same channel states)")
+            print(f" Auto-cycle: {'ENABLED' if config.auto_cycle_enabled else 'DISABLED'}")
+            if config.auto_cycle_enabled:
+                print(f" Cycle interval: {config.cycle_interval_sec} seconds")
+            print(f"\n Current channel states:")
+            for ch, state in sorted(config.channel_states.items())[:8]:  # Show first 8
+                print(f"   Channel {ch:2d}: {state.value.upper()}")
+            if len(config.channel_states) > 8:
+                print(f"   ... ({len(config.channel_states)} total channels)")
+        
         print("-"*70)
-        print(f" 1. Toggle Auto-cycle (currently: {'ON' if config.auto_cycle_enabled else 'OFF'})")
-        print(f" 2. Change Cycle Interval (current: {config.cycle_interval_sec}s)")
-        print(f" 3. Set Channel State Manually")
-        print(f" 4. Reset All Channels to UNSELECTED")
+        print(f" 1. Toggle Per-STAC Random Mode (currently: {'ON' if config.per_stac_random_enabled else 'OFF'})")
+        if config.per_stac_random_enabled:
+            print(f" 2. Toggle Per-STAC Cycle (currently: {'ON' if config.per_stac_cycle_enabled else 'OFF'})")
+            print(f" 3. Set STAC State Manually")
+            print(f" 4. Clear Per-STAC Assignments")
+        else:
+            print(f" 2. Toggle Auto-cycle (currently: {'ON' if config.auto_cycle_enabled else 'OFF'})")
+            print(f" 3. Set Channel State Manually")
+            print(f" 4. Reset All Channels to UNSELECTED")
+        print(f" 5. Change Cycle Interval (current: {config.cycle_interval_sec}s)")
         print(f" 0. Back to Main Menu")
         print("-"*70, flush=True)
         
         choice = flush_input("Select option: ").strip()
         
         if choice == '1':
-            config.auto_cycle_enabled = not config.auto_cycle_enabled
-            print(f"✓ Auto-cycle {'enabled' if config.auto_cycle_enabled else 'disabled'}")
+            config.per_stac_random_enabled = not config.per_stac_random_enabled
+            if config.per_stac_random_enabled:
+                print("✓ Per-STAC Random Mode ENABLED")
+                print("  Each STAC IP will receive a unique random tally state")
+            else:
+                print("✓ Per-STAC Random Mode DISABLED")
+                print("  All STACs will see the same channel-based states")
         
         elif choice == '2':
+            if config.per_stac_random_enabled:
+                config.per_stac_cycle_enabled = not config.per_stac_cycle_enabled
+                print(f"✓ Per-STAC cycle {'enabled' if config.per_stac_cycle_enabled else 'disabled'}")
+            else:
+                config.auto_cycle_enabled = not config.auto_cycle_enabled
+                print(f"✓ Auto-cycle {'enabled' if config.auto_cycle_enabled else 'disabled'}")
+        
+        elif choice == '3':
+            if config.per_stac_random_enabled:
+                # Set state for specific STAC IP
+                if not config.per_stac_states:
+                    print("✗ No STACs connected yet")
+                    continue
+                print("\nConnected STACs:")
+                ips = sorted(config.per_stac_states.keys())
+                for i, ip in enumerate(ips, 1):
+                    print(f"  {i}. {ip} ({config.per_stac_states[ip].value.upper()})")
+                try:
+                    idx = int(flush_input("Select STAC number: ").strip()) - 1
+                    if 0 <= idx < len(ips):
+                        stac_ip = ips[idx]
+                        print("\nSelect state:")
+                        print("  1. UNSELECTED")
+                        print("  2. SELECTED (Preview)")
+                        print("  3. ONAIR (Program)")
+                        state_choice = flush_input("Choice: ").strip()
+                        state_map = {'1': TallyState.UNSELECTED, '2': TallyState.SELECTED, '3': TallyState.ONAIR}
+                        if state_choice in state_map:
+                            config.per_stac_states[stac_ip] = state_map[state_choice]
+                            print(f"✓ {stac_ip} set to {state_map[state_choice].value.upper()}")
+                        else:
+                            print("✗ Invalid choice")
+                    else:
+                        print("✗ Invalid selection")
+                except (ValueError, IndexError):
+                    print("✗ Invalid input")
+            else:
+                # Original channel state setting
+                try:
+                    ch = int(flush_input("Enter channel number: ").strip())
+                    if ch not in config.channel_states:
+                        print(f"✗ Invalid channel (range: 1-{len(config.channel_states)})")
+                        continue
+                    
+                    print("\nSelect state:")
+                    print("  1. UNSELECTED")
+                    print("  2. SELECTED")
+                    print("  3. ONAIR")
+                    state_choice = flush_input("Choice: ").strip()
+                    
+                    state_map = {'1': TallyState.UNSELECTED, '2': TallyState.SELECTED, '3': TallyState.ONAIR}
+                    if state_choice in state_map:
+                        config.channel_states[ch] = state_map[state_choice]
+                        print(f"✓ Channel {ch} set to {state_map[state_choice].value.upper()}")
+                    else:
+                        print("✗ Invalid choice")
+                except ValueError:
+                    print("✗ Invalid input")
+        
+        elif choice == '4':
+            if config.per_stac_random_enabled:
+                config.per_stac_states.clear()
+                print("✓ All per-STAC assignments cleared (new states will be assigned on next request)")
+            else:
+                for ch in config.channel_states:
+                    config.channel_states[ch] = TallyState.UNSELECTED
+                print("✓ All channels reset to UNSELECTED")
+        
+        elif choice == '5':
             try:
                 interval = float(flush_input(f"Enter cycle interval in seconds (current: {config.cycle_interval_sec}): ").strip())
                 if interval > 0:
@@ -536,33 +667,6 @@ def tally_control_menu(config: EmulatorConfig):
                     print("✗ Interval must be positive")
             except ValueError:
                 print("✗ Invalid input")
-        
-        elif choice == '3':
-            try:
-                ch = int(flush_input("Enter channel number: ").strip())
-                if ch not in config.channel_states:
-                    print(f"✗ Invalid channel (range: 1-{len(config.channel_states)})")
-                    continue
-                
-                print("\nSelect state:")
-                print("  1. UNSELECTED")
-                print("  2. SELECTED")
-                print("  3. ONAIR")
-                state_choice = flush_input("Choice: ").strip()
-                
-                state_map = {'1': TallyState.UNSELECTED, '2': TallyState.SELECTED, '3': TallyState.ONAIR}
-                if state_choice in state_map:
-                    config.channel_states[ch] = state_map[state_choice]
-                    print(f"✓ Channel {ch} set to {state_map[state_choice].value.upper()}")
-                else:
-                    print("✗ Invalid choice")
-            except ValueError:
-                print("✗ Invalid input")
-        
-        elif choice == '4':
-            for ch in config.channel_states:
-                config.channel_states[ch] = TallyState.UNSELECTED
-            print("✓ All channels reset to UNSELECTED")
         
         elif choice == '0':
             break
