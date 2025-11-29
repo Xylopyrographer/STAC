@@ -37,9 +37,9 @@ namespace Display {
     constexpr uint8_t GLF_ST  = 12;  ///< Smart Tally icon
     constexpr uint8_t GLF_C   = 13;  ///< Letter C
     constexpr uint8_t GLF_T   = 14;  ///< Letter T
-    constexpr uint8_t GLF_RA  = 15;  ///< Right arrow
-    constexpr uint8_t GLF_LA  = 16;  ///< Left arrow
-    constexpr uint8_t GLF_HF  = 17;  ///< Happy face
+    constexpr uint8_t GLF_RA  = 15;  ///< UNUSED - reserved
+    constexpr uint8_t GLF_LA  = 16;  ///< UNUSED - reserved
+    constexpr uint8_t GLF_HF  = 17;  ///< UNUSED - reserved
     constexpr uint8_t GLF_BX  = 18;  ///< Big X
     constexpr uint8_t GLF_FM  = 19;  ///< Frame (solid)
     constexpr uint8_t GLF_DF  = 20;  ///< Dotted frame
@@ -56,6 +56,7 @@ namespace Display {
     constexpr uint8_t GLF_UD      = 31;  ///< Firmware update icon
     constexpr uint8_t GLF_PO      = 32;  ///< Power-on pixel (center)
     constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
+    constexpr uint8_t GLF_FR      = 34;  ///< Factory reset icon (circular arrow)
 
     /**
      * @brief Base glyph data (unrotated)
@@ -94,11 +95,11 @@ namespace Display {
         {0,0,1,1,0, 0,1,0,0,0, 0,1,0,0,0, 0,1,0,0,0, 0,0,1,1,0},
         // LETTER_T
         {0,1,1,1,0, 0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0, 0,0,1,0,0},
-        // ARROW_RIGHT
+        // UNUSED - was ARROW_RIGHT
         {0,0,1,0,0, 0,0,0,1,0, 1,1,1,1,1, 0,0,0,1,0, 0,0,1,0,0},
-        // ARROW_LEFT
+        // UNUSED - was ARROW_LEFT
         {0,0,1,0,0, 0,1,0,0,0, 1,1,1,1,1, 0,1,0,0,0, 0,0,1,0,0},
-        // HAPPY_FACE
+        // UNUSED - was HAPPY_FACE
         {0,1,0,1,0, 0,0,0,0,0, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0},
         // BIG_X
         {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,0,0,0,1},
@@ -131,7 +132,9 @@ namespace Display {
         // CENTER_PIXEL (pixel 12 only - for power indicator overlay)
         {0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0},
         // CORNERS (pixels 0, 4, 20, 24 - for autostart/pulsing)
-        {1,0,0,0,1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 1,0,0,0,1}
+        {1,0,0,0,1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 1,0,0,0,1},
+        // FACTORY_RESET (top/bottom bars with X in center)
+        {1,1,1,1,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,1,1,1,1}
     };
 
     // Derive glyph count from array size at compile time

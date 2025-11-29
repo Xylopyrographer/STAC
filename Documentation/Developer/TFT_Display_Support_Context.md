@@ -3,11 +3,27 @@
 **Branch:** `feature/tft-display-support`  
 **Created:** November 27, 2025  
 **Updated:** November 28, 2025  
-**Status:** In Development
+**Status:** In Development - LED Matrix Tested ✅
 
 ## Overview
 
 This branch adds TFT display support to STAC v3, extending the existing LED matrix display system with full-color TFT implementations using the LovyanGFX library. The architecture uses a **unified configuration approach** where all TFT-specific settings are defined in board configuration files.
+
+## Recent Changes (November 28, 2025)
+
+### Glyph System Updates
+- **Added GLF_FR glyph** - New factory reset icon (top/bottom bars with X in center)
+- **Marked unused glyphs as reserved** - `GLF_RA`, `GLF_LA`, `GLF_HF` (5x5/TFT) and `GLF_SF`, `GLF_IMUX` (8x8)
+- **Factory reset display** - Changed from yellow-on-red to red-on-black for clarity
+
+### Button Configuration Fix
+- **Fixed GPIO pullup error** - Input-only GPIOs (like GPIO 39 on ATOM Matrix) were incorrectly requesting internal pullup
+- **Added `NEEDS_EXTERNAL_PULLUP` to Config::Button** - XP_Button now correctly uses INPUT mode for input-only pins
+- **No more `E (xxxx) gpio: gpio_pullup_en` errors** on boot
+
+### Build System Updates
+- **Fixed waveshare-s3 build filter** - Added missing TFT and AXP192 file exclusions
+- **All LED matrix builds verified** - atom-matrix, waveshare-s3 compile and run correctly
 
 ## Supported Hardware
 
@@ -248,15 +264,21 @@ For easier debugging, the AXP192 driver includes a "dev mode" that:
 
 ### To Test 🔄
 - [ ] Provisioning mode full flow
-- [ ] Factory reset display sequence
+- [ ] Factory reset display sequence (TFT)
 - [ ] OTA update mode full flow
 - [ ] Error condition displays (question mark, big X)
 - [ ] Display rotation with IMU orientation changes
 
+### Verified 🧪
+- [x] ATOM Matrix - All features working, GPIO pullup fix verified
+- [x] Waveshare ESP32-S3 Matrix - Builds successfully  
+- [x] M5StickC Plus - Builds successfully
+- [x] LilyGO T-Display - Builds successfully
+
 ### Remaining Work 📋
 - [ ] Clean up debug code (LED blinks in main.cpp, log statements)
 - [ ] Test all error condition displays
-- [ ] Verify peripheral mode display
+- [ ] Verify peripheral mode display (TFT)
 - [ ] Consider adding status text labels (optional enhancement)
 
 ## Key Learnings

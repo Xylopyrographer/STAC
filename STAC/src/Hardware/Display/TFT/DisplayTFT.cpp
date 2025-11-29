@@ -465,7 +465,17 @@ namespace Display {
     void DisplayTFT::pulseDisplay(const uint8_t* glyph, color_t foreground, color_t background,
                                    bool& pulseState, uint8_t normalBrightness, uint8_t dimBrightness) {
         pulseState = !pulseState;
-        setBrightness(pulseState ? normalBrightness : dimBrightness, true);
+        
+        // For TFT displays with PWM backlight, use a more dramatic dim level (1/3 of normal)
+        // The passed dimBrightness is based on adjacent brightness map levels which are
+        // too close together for a noticeable pulse effect on TFT displays
+        #if defined(DISPLAY_BACKLIGHT_PWM)
+            uint8_t effectiveDim = normalBrightness / 3;
+            if (effectiveDim < 20) effectiveDim = 20;  // Minimum visible level
+            setBrightness(pulseState ? normalBrightness : effectiveDim, true);
+        #else
+            setBrightness(pulseState ? normalBrightness : dimBrightness, true);
+        #endif
     }
 
     uint8_t DisplayTFT::getWidth() const {

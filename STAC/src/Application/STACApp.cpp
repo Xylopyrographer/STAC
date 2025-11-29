@@ -177,10 +177,12 @@ namespace Application {
         }
 
         // Button - Create XP_Button directly
+        // puEnable must be false for input-only GPIOs that can't use internal pullup
+        bool enableInternalPullup = Config::Button::ACTIVE_LOW && !Config::Button::NEEDS_EXTERNAL_PULLUP;
         button = new Button(
             Config::Pins::BUTTON,
             Config::Button::DEBOUNCE_MS,
-            Config::Button::ACTIVE_LOW,    // puEnable: true for active low (needs pullup)
+            enableInternalPullup,          // puEnable: only if active low AND has internal pullup capability
             Config::Button::ACTIVE_LOW     // invert: true for active low
         );
         button->begin();
@@ -1407,16 +1409,16 @@ namespace Application {
                         // Held long enough - advance to factory reset state
                         log_v( "Advancing to FACTORY_RESET_PENDING state" );
 
-                        // GLF_FR (factory reset / circular arrow) in yellow on red background
+                        // GLF_FR (factory reset icon) in red on black background
                         const uint8_t *frGlyph = glyphManager->getGlyph( Display::GLF_FR );
-                        display->drawGlyph( frGlyph, Display::StandardColors::YELLOW, Display::StandardColors::RED, Config::Display::SHOW );
+                        display->drawGlyph( frGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
                         delay( 250 );
 
                         // Flash to show state change
                         for ( int i = 0; i < 4; i++ ) {
                             display->clear( Config::Display::SHOW );
                             delay( 125 );
-                            display->drawGlyph( frGlyph, Display::StandardColors::YELLOW, Display::StandardColors::RED, Config::Display::SHOW );
+                            display->drawGlyph( frGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
                             delay( 125 );
                         }
 

@@ -58,9 +58,9 @@ namespace Display {
     constexpr uint8_t GLF_ST  = 12;  ///< Smart Tally icon
     constexpr uint8_t GLF_C   = 13;  ///< Letter C
     constexpr uint8_t GLF_T   = 14;  ///< Letter T
-    constexpr uint8_t GLF_RA  = 15;  ///< Right arrow
-    constexpr uint8_t GLF_LA  = 16;  ///< Left arrow
-    constexpr uint8_t GLF_HF  = 17;  ///< Happy face
+    constexpr uint8_t GLF_RA  = 15;  ///< UNUSED - reserved
+    constexpr uint8_t GLF_LA  = 16;  ///< UNUSED - reserved
+    constexpr uint8_t GLF_HF  = 17;  ///< UNUSED - reserved
     constexpr uint8_t GLF_BX  = 18;  ///< Big X
     constexpr uint8_t GLF_FM  = 19;  ///< Frame (solid)
     constexpr uint8_t GLF_DF  = 20;  ///< Dotted frame

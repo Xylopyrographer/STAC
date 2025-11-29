@@ -72,6 +72,7 @@
         namespace Button {
             constexpr unsigned long DEBOUNCE_MS = BUTTON_DEBOUNCE_MS;
             constexpr bool ACTIVE_LOW = BUTTON_ACTIVE_LOW;
+            constexpr bool NEEDS_EXTERNAL_PULLUP = BUTTON_NEEDS_EXTERNAL_PULLUP;
         }
 
         // ============================================================================
