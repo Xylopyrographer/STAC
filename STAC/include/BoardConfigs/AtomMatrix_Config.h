@@ -81,12 +81,28 @@
 
     #endif // HAS_PERIPHERAL_MODE_CAPABILITY
 
-    // Status LED (ATOM doesn't have one)
+    // ============================================================================
+    // STATUS LED CONFIGURATION
+    // ============================================================================
+    // ATOM Matrix doesn't have a separate status LED (uses the 5x5 matrix)
+    
     #define HAS_STATUS_LED false
+    
     #if HAS_STATUS_LED
         #define PIN_STATUS_LED 13
-        #define STATUS_LED_TYPE LED_STRIP_WS2812  // GRB color order (default WS2812)
-        #define STATUS_LED_IS_RGBW false
+        
+        // Uncomment ONE LED type:
+        // #define STATUS_LED_TYPE_GPIO
+        #define STATUS_LED_TYPE_ADDRESSABLE
+        
+        #if defined(STATUS_LED_TYPE_GPIO)
+            #define STATUS_LED_ACTIVE_LOW true
+        #endif
+        
+        #if defined(STATUS_LED_TYPE_ADDRESSABLE)
+            #define STATUS_LED_STRIP_TYPE LED_STRIP_WS2812
+            #define STATUS_LED_IS_RGBW false
+        #endif
     #endif // HAS_STATUS_LED
 
     // ============================================================================

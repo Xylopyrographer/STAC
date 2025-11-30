@@ -53,10 +53,12 @@ namespace Application {
         log_i( "Operating Mode: %s", systemState->getOperatingMode().getModeString() );
         log_i( "STAC ID: %s", stacID.c_str() );
 
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
         // Configure GROVE port based on mode
         bool isOutput = !systemState->getOperatingMode().isPeripheralMode();
         // grovePort = Hardware::InterfaceFactory::createGrovePort( isOutput );
         grovePort = InterfaceFactory::createGrovePort( isOutput );
+        #endif
 
         // Set up state change callback
         systemState->getTallyState().setStateChangeCallback(
@@ -66,10 +68,12 @@ namespace Application {
                    State::TallyStateManager::stateToString( newState ) );
             updateDisplay();
 
+            #if HAS_PERIPHERAL_MODE_CAPABILITY
             // Update GROVE output if in normal mode
             if ( systemState->getOperatingMode().isNormalMode() ) {
                 grovePort->setTallyState( newState );
             }
+            #endif
         }
         );
 
@@ -81,6 +85,7 @@ namespace Application {
             // After provisioning completes, device will restart
         }
 
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
         // Initialize GROVE port GPIO pins (only in normal mode - peripheral mode is already handled)
         // This prevents floating pins from causing artifacts on peripheral mode devices
         if ( systemState->getOperatingMode().isNormalMode() ) {
@@ -88,6 +93,7 @@ namespace Application {
             grovePort->setTallyState( TallyState::ERROR );  // Set to ERROR (both pins LOW)
             log_i( "GROVE port initialized to UNKNOWN state" );
         }
+        #endif
 
         // Create startup config handler (dimension-agnostic using type alias)
         #if defined(BUTTON_B_PIN)
@@ -137,9 +143,11 @@ namespace Application {
                 handleNormalMode();
                 break;
 
+            #if HAS_PERIPHERAL_MODE_CAPABILITY
             case OperatingMode::PERIPHERAL:
                 handlePeripheralMode();
                 break;
+            #endif
 
             case OperatingMode::PROVISIONING:
                 // Provisioning is handled once in setup(), not in loop
@@ -224,14 +232,15 @@ namespace Application {
         glyphManager = std::make_unique<Display::GlyphManagerType>( initialOrientation );
         log_i( "✓ GlyphManager" );
 
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
         // Peripheral mode detector
         // peripheralDetector = Hardware::InterfaceFactory::createPeripheralDetector();
         peripheralDetector = InterfaceFactory::createPeripheralDetector();
         log_i( "✓ Peripheral detector" );
+        #endif
 
         return true;
     }
-
     bool STACApp::initializeNetworkAndStorage() {
         // Config Manager
         configManager = std::make_unique<Storage::ConfigManager>();
@@ -275,11 +284,13 @@ namespace Application {
     }
 
     OperatingMode STACApp::determineOperatingMode() {
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
         // Check for peripheral mode jumper
         if ( peripheralDetector->detect() ) {
             log_i( "Peripheral mode jumper detected" );
             return OperatingMode::PERIPHERAL;
         }
+        #endif
 
         // Check for button hold at boot (provisioning/factory reset/OTA)
         OperatingMode bootMode = checkBootButtonSequence();
@@ -308,9 +319,11 @@ namespace Application {
             if ( !longPressHandled ) {
                 longPressHandled = true;
 
+                #if HAS_PERIPHERAL_MODE_CAPABILITY
                 // Set GROVE port to UNKNOWN state while adjusting settings
                 // This prevents peripheral devices from showing false tally information
                 grovePort->setTallyState( TallyState::ERROR );
+                #endif
 
                 // Call brightness adjustment
                 StacOperations ops = systemState->getOperations();
@@ -647,6 +660,7 @@ namespace Application {
         }
     }
 
+#if HAS_PERIPHERAL_MODE_CAPABILITY
     void STACApp::handlePeripheralMode() {
         using namespace Display;
         using namespace Config::Timing;
@@ -859,6 +873,7 @@ namespace Application {
             }
         }
     }
+#endif // HAS_PERIPHERAL_MODE_CAPABILITY
 
     void STACApp::handleProvisioningMode() {
         log_i( "Entering provisioning mode" );
@@ -1136,9 +1151,11 @@ namespace Application {
                 else {
                     // State unchanged, but we need to update display and GROVE in case we're recovering from error
                     updateDisplay();
+                    #if HAS_PERIPHERAL_MODE_CAPABILITY
                     if ( systemState->getOperatingMode().isNormalMode() && grovePort ) {
                         grovePort->setTallyState( newState );
                     }
+                    #endif
                 }
 
                 // Grove port will be updated by tally state change callback
@@ -1155,10 +1172,12 @@ namespace Application {
                     // Hit error threshold - display error
                     switchState.junkReplyCount = 0;  // Reset counter
 
+                    #if HAS_PERIPHERAL_MODE_CAPABILITY
                     // Set Grove to unknown state
                     if ( grovePort ) {
                         grovePort->setTallyState( TallyState::ERROR );
                     }
+                    #endif
 
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple question mark
@@ -1184,10 +1203,12 @@ namespace Application {
                 // ===== Connection failed and timed out =====
                 switchState.noReplyCount = 0;  // Clear no-reply counter
 
+                #if HAS_PERIPHERAL_MODE_CAPABILITY
                 // Set Grove to error state (immediate - connection timeout)
                 if ( grovePort ) {
                     grovePort->setTallyState( TallyState::ERROR );
                 }
+                #endif
 
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show orange X
@@ -1214,10 +1235,12 @@ namespace Application {
                     switchState.currentTallyState = "NO_INIT";
                     switchState.lastTallyState = "NO_TALLY";
 
+                    #if HAS_PERIPHERAL_MODE_CAPABILITY
                     // Set Grove to error state (threshold reached)
                     if ( grovePort ) {
                         grovePort->setTallyState( TallyState::ERROR );
                     }
+                    #endif
 
                     if ( ops.cameraOperatorMode ) {
                         // Camera operator mode: Show purple X (big purple X)
@@ -1235,10 +1258,12 @@ namespace Application {
                 // ===== Some other error condition =====
                 switchState.noReplyCount = 0;  // Clear counter
 
+                #if HAS_PERIPHERAL_MODE_CAPABILITY
                 // Set Grove to error state (unknown error)
                 if ( grovePort ) {
                     grovePort->setTallyState( TallyState::ERROR );
                 }
+                #endif
 
                 if ( ops.cameraOperatorMode ) {
                     // Camera operator mode: Show red X

@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.9  
 **Branch:** `v3_RC`  
-**Updated:** November 29, 2025  
-**Status:** TFT Display Support Added, Ready for Testing
+**Updated:** November 30, 2025  
+**Status:** AIPI-Lite TFT Display Working, Multi-Board TFT Support
 
 ---
 
@@ -16,7 +16,8 @@
 | M5Stack ATOM Matrix | 5×5 LED | MPU6886 | ESP32-PICO-D4 | ✅ Tested |
 | Waveshare ESP32-S3-Matrix | 8×8 LED | QMI8658 | ESP32-S3 | ✅ Tested |
 | M5StickC Plus | 135×240 TFT | MPU6886 | ESP32-PICO-D4 | 🔄 In Development |
-| LilyGO T-Display | 135×240 TFT | None | ESP32 | 🔄 In Development |
+| LilyGO T-Display | 135×240 TFT | None | ESP32 | ✅ Tested |
+| AIPI-Lite | 128×128 TFT | None | ESP32-S3 | ✅ Tested |
 
 ### Key Files to Edit
 
@@ -228,6 +229,7 @@ if (buttonB->wasPressed()) {
 | `waveshare-s3-release` | Waveshare S3 | release | 0 (NONE) |
 | `m5stickc-plus` | M5StickC Plus | debug | 3 (INFO) |
 | `lilygo-t-display` | T-Display | debug | 3 (INFO) |
+| `aipi-lite` | AIPI-Lite | debug | 3 (INFO) |
 
 ### Version String Format
 
@@ -262,6 +264,16 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### November 30, 2025 - AIPI-Lite TFT Display Working
+- Added full support for AIPI-Lite board (ESP32-S3 + 128×128 ST7735S TFT)
+- **Key finding:** Display labeled ST7789 but requires ST7735S driver
+- Added `Panel_ST7735S` support to unified LGFX_STAC.h configuration
+- Added `TFT_ROTATION_OFFSET` for board-specific rotation adjustment
+- Added `_lcd->setSwapBytes(true)` after init for correct RGB565 colors
+- Added configurable `TFT_READABLE` and `TFT_BUS_SHARED` options
+- LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
+- AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
 
 ### November 29, 2025 - Provisioning Mode Color Fix
 - Button held at boot: ORANGE if provisioned, RED if not

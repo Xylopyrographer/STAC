@@ -164,9 +164,20 @@
 
 #define HAS_STATUS_LED true
 #if HAS_STATUS_LED
-    // Red LED (directly controlled, active low)
     #define PIN_STATUS_LED 10
-    #define STATUS_LED_ACTIVE_LOW true
+    
+    // M5StickC Plus has a standard red GPIO LED (active low)
+    #define STATUS_LED_TYPE_GPIO
+    // #define STATUS_LED_TYPE_ADDRESSABLE
+    
+    #if defined(STATUS_LED_TYPE_GPIO)
+        #define STATUS_LED_ACTIVE_LOW true
+    #endif
+    
+    #if defined(STATUS_LED_TYPE_ADDRESSABLE)
+        #define STATUS_LED_STRIP_TYPE LED_STRIP_WS2812
+        #define STATUS_LED_IS_RGBW false
+    #endif
 #endif
 
 // ============================================================================

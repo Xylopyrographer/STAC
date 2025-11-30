@@ -90,6 +90,8 @@ namespace Display {
         // Small/Medium TFT panels
         #if defined(TFT_PANEL_ST7789)
             lgfx::Panel_ST7789 _panel_instance;
+        #elif defined(TFT_PANEL_ST7735S)
+            lgfx::Panel_ST7735S _panel_instance;
         #elif defined(TFT_PANEL_ST7735)
             lgfx::Panel_ST7735 _panel_instance;
         #elif defined(TFT_PANEL_ILI9341)
@@ -131,17 +133,28 @@ namespace Display {
             {
                 auto cfg = _bus_instance.config();
 
-                // SPI host selection (ESP32 has VSPI and HSPI)
+                // SPI host selection
+                // ESP32-S3 uses SPI2_HOST/SPI3_HOST, ESP32 uses HSPI_HOST/VSPI_HOST
                 #if defined(TFT_SPI_HOST)
                     cfg.spi_host = TFT_SPI_HOST;
+                #elif defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
+                    cfg.spi_host = SPI2_HOST;  // ESP32-S3/S2/C3 default
                 #else
-                    cfg.spi_host = VSPI_HOST;
+                    cfg.spi_host = VSPI_HOST;  // Original ESP32 default
                 #endif
 
-                cfg.spi_mode = 0;
+                #if defined(TFT_SPI_MODE)
+                    cfg.spi_mode = TFT_SPI_MODE;
+                #else
+                    cfg.spi_mode = 0;
+                #endif
                 cfg.freq_write = TFT_SPI_FREQ_WRITE;
                 cfg.freq_read = TFT_SPI_FREQ_READ;
-                cfg.spi_3wire = true;
+                #if defined(TFT_SPI_3WIRE)
+                    cfg.spi_3wire = TFT_SPI_3WIRE;
+                #else
+                    cfg.spi_3wire = false;  // Standard 4-wire SPI (uses DC pin)
+                #endif
                 cfg.use_lock = true;
                 cfg.dma_channel = SPI_DMA_CH_AUTO;
 
@@ -167,16 +180,30 @@ namespace Display {
 
                 cfg.panel_width = DISPLAY_WIDTH;
                 cfg.panel_height = DISPLAY_HEIGHT;
+                cfg.memory_width = DISPLAY_WIDTH;
+                cfg.memory_height = DISPLAY_HEIGHT;
                 cfg.offset_x = TFT_OFFSET_X;
                 cfg.offset_y = TFT_OFFSET_Y;
-                cfg.offset_rotation = 0;
+                #if defined(TFT_OFFSET_ROTATION)
+                    cfg.offset_rotation = TFT_OFFSET_ROTATION;
+                #else
+                    cfg.offset_rotation = 0;
+                #endif
                 cfg.dummy_read_pixel = 8;
                 cfg.dummy_read_bits = 1;
-                cfg.readable = true;
+                #if defined(TFT_READABLE)
+                    cfg.readable = TFT_READABLE;
+                #else
+                    cfg.readable = true;
+                #endif
                 cfg.invert = TFT_INVERT;
                 cfg.rgb_order = TFT_RGB_ORDER;
                 cfg.dlen_16bit = false;
-                cfg.bus_shared = true;
+                #if defined(TFT_BUS_SHARED)
+                    cfg.bus_shared = TFT_BUS_SHARED;
+                #else
+                    cfg.bus_shared = true;
+                #endif
 
                 _panel_instance.config(cfg);
             }

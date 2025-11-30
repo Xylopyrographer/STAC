@@ -6,8 +6,10 @@
 #include "Hardware/Display/GlyphManager.h"
 #include "Hardware/Sensors/IIMU.h"
 #include "Hardware/Input/IButton.h"
-#include "Hardware/Interface/GrovePort.h"
-#include "Hardware/Interface/PeripheralMode.h"
+#if HAS_PERIPHERAL_MODE_CAPABILITY
+    #include "Hardware/Interface/GrovePort.h"
+    #include "Hardware/Interface/PeripheralMode.h"
+#endif
 #include "Network/WiFiManager.h"
 #include "Network/Protocol/IRolandClient.h"
 #include "Network/WebConfigServer.h"
@@ -69,8 +71,10 @@ namespace Application {
         #if defined(BUTTON_B_PIN)
             Button *buttonB;                                     // XP_Button library - secondary button (B) for reset
         #endif
-        std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
-        std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+            std::unique_ptr<Hardware::GrovePort> grovePort;          // Hardware namespace
+            std::unique_ptr<Hardware::PeripheralMode> peripheralDetector;  // Hardware namespace
+        #endif
 
         // Glyph management - dimension-agnostic using type alias from glyph header
         std::unique_ptr<Display::GlyphManagerType> glyphManager;
@@ -155,10 +159,12 @@ namespace Application {
          */
         void pollRolandSwitch();
 
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
         /**
          * @brief Handle peripheral operating mode
          */
         void handlePeripheralMode();
+        #endif
 
         /**
          * @brief Handle provisioning mode

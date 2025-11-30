@@ -1,11 +1,14 @@
 #ifndef STAC_INTERFACE_FACTORY_H
 #define STAC_INTERFACE_FACTORY_H
 
-#include "GrovePort.h"
-#include "PeripheralMode.h"
 #include "Device_Config.h"
 #include "Config/Constants.h"
 #include <memory>
+
+#if HAS_PERIPHERAL_MODE_CAPABILITY
+    #include "GrovePort.h"
+    #include "PeripheralMode.h"
+#endif
 
 
     namespace Hardware {
@@ -15,6 +18,7 @@
          */
         class InterfaceFactory {
           public:
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
             /**
              * @brief Create a GROVE port instance
              * @param asOutput true for output mode, false for input mode
@@ -49,6 +53,7 @@
                 detector->begin();
                 return detector;
             }
+        #endif // HAS_PERIPHERAL_MODE_CAPABILITY
         };
 
     } // namespace Hardware

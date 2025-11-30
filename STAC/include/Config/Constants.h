@@ -20,10 +20,12 @@
                 constexpr uint8_t IMU_SDA = PIN_IMU_SDA;
             #endif
 
-            constexpr uint8_t PM_CHECK_OUT = PIN_PM_CHECK_OUT;
-            constexpr uint8_t PM_CHECK_IN = PIN_PM_CHECK_IN;
-            constexpr uint8_t TALLY_STATUS_0 = PIN_TALLY_STATUS_0;
-            constexpr uint8_t TALLY_STATUS_1 = PIN_TALLY_STATUS_1;
+            #if HAS_PERIPHERAL_MODE_CAPABILITY
+                constexpr uint8_t PM_CHECK_OUT = PIN_PM_CHECK_OUT;
+                constexpr uint8_t PM_CHECK_IN = PIN_PM_CHECK_IN;
+                constexpr uint8_t TALLY_STATUS_0 = PIN_TALLY_STATUS_0;
+                constexpr uint8_t TALLY_STATUS_1 = PIN_TALLY_STATUS_1;
+            #endif
         }
 
         // ============================================================================
@@ -90,7 +92,9 @@
         // ============================================================================
 
         namespace Peripheral {
-            constexpr uint8_t PM_CHECK_COUNT = PM_CHECK_TOGGLE_COUNT;
+            #if HAS_PERIPHERAL_MODE_CAPABILITY
+                constexpr uint8_t PM_CHECK_COUNT = PM_CHECK_TOGGLE_COUNT;
+            #endif
             constexpr uint8_t INVALID_STATE = 0xFF;
         }
 

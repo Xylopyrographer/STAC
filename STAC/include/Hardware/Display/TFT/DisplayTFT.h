@@ -22,8 +22,8 @@
 #include "Config/Types.h"  // For Orientation enum
 #include <LovyanGFX.hpp>
 
-// Conditionally include AXP192 PMU for boards that use it
-#if defined(BOARD_M5STICKC_PLUS)
+// Conditionally include AXP192 PMU for boards that use PMU-controlled backlight
+#if defined(DISPLAY_BACKLIGHT_PMU)
     #include "Hardware/Power/AXP192.h"
 #endif
 
@@ -180,8 +180,8 @@ namespace Display {
         lgfx::LGFX_Device* _lcd;   // Generic pointer - actual type set in .cpp
         LGFX_Sprite* _sprite;      // Off-screen buffer for flicker-free updates
         
-        // Power management (backlight control) - only for boards with AXP192
-        #if defined(BOARD_M5STICKC_PLUS)
+        // Power management (backlight control) - only for boards with PMU
+        #if defined(DISPLAY_BACKLIGHT_PMU)
             Hardware::AXP192 _pmu;
         #endif
 

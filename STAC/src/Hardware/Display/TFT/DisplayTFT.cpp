@@ -16,21 +16,36 @@
 #endif
 // If neither defined, no software backlight control (DISPLAY_BACKLIGHT_NONE)
 
-// Debug LED helper for M5StickC Plus
-#if defined(BOARD_M5STICKC_PLUS)
-    #define DBG_LED_PIN 10
-    #define DBG_LED_ON  LOW
-    #define DBG_LED_OFF HIGH
+// Debug LED helper - uses GPIO status LED if configured
+// Note: Only supports GPIO LEDs for simple debug blinking, not addressable LEDs
+#if HAS_STATUS_LED && defined(PIN_STATUS_LED) && defined(STATUS_LED_TYPE_GPIO)
+    #if defined(STATUS_LED_ACTIVE_LOW) && STATUS_LED_ACTIVE_LOW
+        #define DBG_LED_ON  LOW
+        #define DBG_LED_OFF HIGH
+    #else
+        #define DBG_LED_ON  HIGH
+        #define DBG_LED_OFF LOW
+    #endif
     inline void dbgBlink(int count, int onMs = 100, int offMs = 100) {
         for (int i = 0; i < count; i++) {
-            digitalWrite(DBG_LED_PIN, DBG_LED_ON);
+            digitalWrite(PIN_STATUS_LED, DBG_LED_ON);
             delay(onMs);
-            digitalWrite(DBG_LED_PIN, DBG_LED_OFF);
+            digitalWrite(PIN_STATUS_LED, DBG_LED_OFF);
             delay(offMs);
         }
     }
 #else
     inline void dbgBlink(int, int = 100, int = 100) {}
+#endif
+
+// Default rotation can be overridden in board config
+#ifndef TFT_DEFAULT_ROTATION
+    #define TFT_DEFAULT_ROTATION 0
+#endif
+
+// Rotation offset for boards that need rotation adjustment
+#ifndef TFT_ROTATION_OFFSET
+    #define TFT_ROTATION_OFFSET 0
 #endif
 
 namespace Display {
@@ -44,7 +59,7 @@ namespace Display {
         , _width(width)
         , _height(height)
         , _brightness(128)
-        , _rotation(0)
+        , _rotation(TFT_DEFAULT_ROTATION)
     {
     }
 
@@ -89,6 +104,7 @@ namespace Display {
         dbgBlink(4);  // 4 blinks = about to init LCD
         
         _lcd->init();
+        _lcd->setSwapBytes(true);  // Required for correct RGB565 byte order
         
         dbgBlink(5);  // 5 blinks = LCD init done
         log_i("LCD init complete, setting rotation...");
@@ -838,8 +854,10 @@ namespace Display {
                 rotation = 0;  // Default to portrait
                 break;
         }
+        // Apply board-specific rotation offset (modulo 4 to keep in valid range)
+        rotation = (rotation + TFT_ROTATION_OFFSET) % 4;
         setRotation(rotation);
-        log_i("Display rotation set to %d for orientation %d", rotation, static_cast<int>(orientation));
+        log_i("Display rotation set to %d for orientation %d (offset %d)", rotation, static_cast<int>(orientation), TFT_ROTATION_OFFSET);
     }
 
     // ========================================================================
