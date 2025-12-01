@@ -23,10 +23,13 @@
                 log_i( "GROVE port initialized as OUTPUT (TS_0=%d, TS_1=%d)", pin0, pin1 );
             }
             else {
-                pinMode( pin0, INPUT );
-                pinMode( pin1, INPUT );
+                // Use INPUT_PULLDOWN for peripheral mode to prevent floating inputs
+                // Floating inputs would read random values; pulldown ensures 00 (NO_TALLY)
+                // when no external device is connected, displaying the orange X
+                pinMode( pin0, INPUT_PULLDOWN );
+                pinMode( pin1, INPUT_PULLDOWN );
 
-                log_i( "GROVE port initialized as INPUT (TS_0=%d, TS_1=%d)", pin0, pin1 );
+                log_i( "GROVE port initialized as INPUT_PULLDOWN (TS_0=%d, TS_1=%d)", pin0, pin1 );
             }
 
             return true;

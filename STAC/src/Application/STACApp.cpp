@@ -284,21 +284,26 @@ namespace Application {
     }
 
     OperatingMode STACApp::determineOperatingMode() {
-        #if HAS_PERIPHERAL_MODE_CAPABILITY
-        // Check for peripheral mode jumper
-        if ( peripheralDetector->detect() ) {
-            log_i( "Peripheral mode jumper detected" );
-            return OperatingMode::PERIPHERAL;
-        }
-        #endif
-
-        // Check for button hold at boot (provisioning/factory reset/OTA)
+        // Check for button hold at boot (PMode toggle/provisioning/factory reset/OTA)
+        // This must be checked BEFORE PMode NVS check since button sequence can toggle PMode
         OperatingMode bootMode = checkBootButtonSequence();
         if ( bootMode == OperatingMode::PROVISIONING ) {
             log_i( "Boot button: Forced provisioning mode" );
             return OperatingMode::PROVISIONING;
         }
+        if ( bootMode == OperatingMode::PERIPHERAL ) {
+            log_i( "Boot button: Peripheral mode selected" );
+            return OperatingMode::PERIPHERAL;
+        }
         // Note: Factory reset and OTA modes restart the device, so we never return from them
+
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+        // Check NVS for peripheral mode setting (replaces hardware jumper detection)
+        if ( configManager->loadPModeEnabled() ) {
+            log_i( "Peripheral mode enabled in NVS" );
+            return OperatingMode::PERIPHERAL;
+        }
+        #endif
 
         // Check if device is provisioned (has WiFi credentials AND switch configuration)
         if ( !configManager->isProvisioned() ) {
@@ -1401,21 +1406,35 @@ namespace Application {
         bool isProvisioned = configManager->isProvisioned();
         log_i( "Device provisioned: %s", isProvisioned ? "YES" : "NO" );
 
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+        // Check current PMode setting to determine glyph/color for PMODE_PENDING state
+        bool pmodeCurrentlyEnabled = configManager->loadPModeEnabled();
+        log_i( "PMode currently enabled: %s", pmodeCurrentlyEnabled ? "YES" : "NO" );
+        #endif
+
         // Button state machine timing (in milliseconds)
         static constexpr unsigned long STATE_HOLD_TIME = 2000;  // 2 seconds per state
 
         enum class BootButtonState {
+            #if HAS_PERIPHERAL_MODE_CAPABILITY
+            PMODE_PENDING,         // First state: Toggle peripheral mode
+            #endif
             PROVISIONING_PENDING,  // Short hold -> provisioning
             FACTORY_RESET_PENDING, // Medium hold -> factory reset (provisioned only)
             OTA_UPDATE_PENDING     // Long hold -> OTA update
         };
 
-        // Start state depends on provisioned status
-        // Not provisioned: Start at OTA_UPDATE_PENDING (skip factory reset - already at defaults)
-        // Provisioned: Start at PROVISIONING_PENDING (full state machine)
+        // Determine starting state based on PMode capability and provisioned status
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+        // PMode capable: Always start at PMODE_PENDING
+        BootButtonState state = BootButtonState::PMODE_PENDING;
+        #else
+        // No PMode: Start depends on provisioned status
         BootButtonState state = isProvisioned 
             ? BootButtonState::PROVISIONING_PENDING 
             : BootButtonState::OTA_UPDATE_PENDING;
+        #endif
+
         unsigned long stateArmTime = millis() + STATE_HOLD_TIME;
         bool sequenceExit = false;
         OperatingMode resultMode = OperatingMode::NORMAL;
@@ -1426,16 +1445,41 @@ namespace Application {
         // Get all glyphs we'll need
         const uint8_t *cfgGlyph = glyphManager->getGlyph( Display::GLF_CFG );
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+        const uint8_t *pGlyph = glyphManager->getGlyph( Display::GLF_P );
+        const uint8_t *pCancelGlyph = glyphManager->getGlyph( Display::GLF_P_CANCEL );
+        #endif
 
-        // Initial glyph color depends on provisioned state:
-        // - Provisioned: ORANGE (warning - proceeding will modify existing config)
-        // - Not provisioned: RED (alert - must provision before device can be used)
+        // Show initial glyph based on starting state
+        #if HAS_PERIPHERAL_MODE_CAPABILITY
+        // PMode capable: Show P glyph
+        // - If PMode disabled: Show [P] in GREEN (action: enable PMode)
+        // - If PMode enabled: Show [P_CANCEL] in ORANGE (action: disable PMode)
+        if ( pmodeCurrentlyEnabled ) {
+            display->drawGlyph( pCancelGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 250 );
+            for ( int i = 0; i < 4; i++ ) {
+                display->clear( Config::Display::SHOW );
+                delay( 125 );
+                display->drawGlyph( pCancelGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+                delay( 125 );
+            }
+        }
+        else {
+            display->drawGlyph( pGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 250 );
+            for ( int i = 0; i < 4; i++ ) {
+                display->clear( Config::Display::SHOW );
+                delay( 125 );
+                display->drawGlyph( pGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
+                delay( 125 );
+            }
+        }
+        #else
+        // No PMode capability: Show based on provisioned state (existing behavior)
         if ( isProvisioned ) {
-            // Show provisioning glyph in ORANGE (provisioned - warning color)
             display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 250 );
-
-            // Flash to confirm we're in button sequence mode
             for ( int i = 0; i < 4; i++ ) {
                 display->clear( Config::Display::SHOW );
                 delay( 125 );
@@ -1444,12 +1488,8 @@ namespace Application {
             }
         }
         else {
-            // Not provisioned: Show OTA update glyph in RED (alert - must configure)
-            // Skip directly to OTA state since factory reset is meaningless
             display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 250 );
-
-            // Flash to confirm we're in button sequence mode
             for ( int i = 0; i < 4; i++ ) {
                 display->clear( Config::Display::SHOW );
                 delay( 125 );
@@ -1457,12 +1497,64 @@ namespace Application {
                 delay( 125 );
             }
         }
+        #endif
 
         // Button state machine loop
         while ( !sequenceExit ) {
             button->read();
 
             switch ( state ) {
+                #if HAS_PERIPHERAL_MODE_CAPABILITY
+                case BootButtonState::PMODE_PENDING:
+                    if ( !button->isPressed() ) {
+                        // Released - toggle PMode setting
+                        bool newPModeState = !pmodeCurrentlyEnabled;
+                        configManager->savePModeEnabled( newPModeState );
+                        log_i( "Boot button sequence: PMODE toggled to %s", newPModeState ? "ENABLED" : "DISABLED" );
+                        
+                        if ( newPModeState ) {
+                            // PMode now enabled - return PERIPHERAL mode
+                            resultMode = OperatingMode::PERIPHERAL;
+                        }
+                        else {
+                            // PMode now disabled - return NORMAL (will check provisioning later)
+                            resultMode = OperatingMode::NORMAL;
+                        }
+                        sequenceExit = true;
+                    }
+                    else if ( millis() >= stateArmTime ) {
+                        // Held long enough - advance to next state
+                        log_v( "Advancing from PMODE_PENDING state" );
+
+                        if ( isProvisioned ) {
+                            // Provisioned: Go to provisioning state
+                            display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+                            delay( 250 );
+                            for ( int i = 0; i < 4; i++ ) {
+                                display->clear( Config::Display::SHOW );
+                                delay( 125 );
+                                display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+                                delay( 125 );
+                            }
+                            state = BootButtonState::PROVISIONING_PENDING;
+                        }
+                        else {
+                            // Not provisioned: Skip to OTA state
+                            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+                            delay( 250 );
+                            for ( int i = 0; i < 4; i++ ) {
+                                display->clear( Config::Display::SHOW );
+                                delay( 125 );
+                                display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+                                delay( 125 );
+                            }
+                            state = BootButtonState::OTA_UPDATE_PENDING;
+                        }
+                        stateArmTime = millis() + STATE_HOLD_TIME;
+                    }
+                    break;
+                #endif
+
                 case BootButtonState::PROVISIONING_PENDING:
                     // This state only entered when provisioned
                     if ( !button->isPressed() ) {
