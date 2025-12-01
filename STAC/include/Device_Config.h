@@ -29,6 +29,20 @@
 #endif
 
 // ============================================================================
+// COMPILE-TIME VALIDATION
+// ============================================================================
+// Verify GROVE/Tally pins are defined when Peripheral Mode is enabled
+
+#if HAS_PERIPHERAL_MODE_CAPABILITY
+    #ifndef PIN_TALLY_STATUS_0
+        #error "PIN_TALLY_STATUS_0 must be defined when HAS_PERIPHERAL_MODE_CAPABILITY is true"
+    #endif
+    #ifndef PIN_TALLY_STATUS_1
+        #error "PIN_TALLY_STATUS_1 must be defined when HAS_PERIPHERAL_MODE_CAPABILITY is true"
+    #endif
+#endif
+
+// ============================================================================
 // SOFTWARE VERSION
 // ============================================================================
 

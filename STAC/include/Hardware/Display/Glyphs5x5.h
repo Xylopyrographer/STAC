@@ -57,6 +57,7 @@ namespace Display {
     constexpr uint8_t GLF_PO      = 32;  ///< Power-on pixel (center)
     constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
     constexpr uint8_t GLF_FR      = 34;  ///< Factory reset icon (circular arrow)
+    constexpr uint8_t GLF_P_CANCEL = 35; ///< Letter P with cancel slash (PMode cancel)
 
     /**
      * @brief Base glyph data (unrotated)
@@ -134,7 +135,9 @@ namespace Display {
         // CORNERS (pixels 0, 4, 20, 24 - for autostart/pulsing)
         {1,0,0,0,1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 1,0,0,0,1},
         // FACTORY_RESET (top/bottom bars with X in center)
-        {1,1,1,1,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,1,1,1,1}
+        {1,1,1,1,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,1,1,1,1},
+        // P_CANCEL (P with diagonal slash through it - PMode cancel)
+        {0,1,1,0,1, 0,1,0,1,0, 0,1,1,0,0, 0,1,0,0,0, 1,1,0,0,0}
     };
 
     // Derive glyph count from array size at compile time

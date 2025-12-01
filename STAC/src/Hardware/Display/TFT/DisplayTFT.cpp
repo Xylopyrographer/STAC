@@ -356,6 +356,23 @@ namespace Display {
                 drawResetIcon(cx, cy, foreground);
                 break;
                 
+            case Display::GLF_P_CANCEL:
+                // P with cancel slash - PMode cancel indicator
+                {
+                    _sprite->setTextColor(colorToRGB565(foreground), colorToRGB565(background));
+                    _sprite->setTextDatum(MC_DATUM);
+                    _sprite->setFont(&fonts::FreeSansBold24pt7b);
+                    _sprite->setTextSize(2);
+                    _sprite->drawString("P", cx, cy);
+                    // Draw diagonal slash through the P
+                    uint16_t slashColor = colorToRGB565(foreground);
+                    int16_t offset = 40;  // Half-width of slash area
+                    for (int t = -3; t <= 3; t++) {  // Line thickness
+                        _sprite->drawLine(cx - offset + t, cy + offset, cx + offset + t, cy - offset, slashColor);
+                    }
+                }
+                break;
+                
             case Display::GLF_EN:
             case Display::GLF_EM:
             default:

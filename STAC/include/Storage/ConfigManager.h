@@ -195,6 +195,19 @@
             bool loadPeripheralSettings( bool& cameraMode, uint8_t& brightnessLevel );
 
             /**
+             * @brief Save peripheral mode enabled state
+             * @param enabled true to boot into peripheral mode, false for normal mode
+             * @return true if saved successfully
+             */
+            bool savePModeEnabled( bool enabled );
+
+            /**
+             * @brief Load peripheral mode enabled state
+             * @return true if peripheral mode is enabled, false otherwise (default: false)
+             */
+            bool loadPModeEnabled();
+
+            /**
              * @brief Get configuration version
              * @return Version number
              */
@@ -217,6 +230,7 @@
             static constexpr const char *KEY_VERSION = "version";  // Global NOM version (stored in wifi namespace only)
             static constexpr const char *KEY_SSID = "ssid";
             static constexpr const char *KEY_PASSWORD = "password";
+            static constexpr const char *KEY_PM_ENABLED = "pmEnabled";  // PMode flag stored here for early boot check
             
             // Key names - Switch
             static constexpr const char *KEY_MODEL = "model";

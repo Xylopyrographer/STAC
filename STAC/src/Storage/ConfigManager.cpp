@@ -345,6 +345,32 @@ using namespace Config::Storage;
             return true;
         }
 
+        bool ConfigManager::savePModeEnabled( bool enabled ) {
+            if ( !prefs.begin( NS_WIFI, READ_WRITE ) ) {
+                log_e( "Failed to open wifi preferences" );
+                return false;
+            }
+
+            prefs.putBool( KEY_PM_ENABLED, enabled );
+            prefs.end();
+
+            log_i( "PMode enabled saved: %s", enabled ? "true" : "false" );
+            return true;
+        }
+
+        bool ConfigManager::loadPModeEnabled() {
+            if ( !prefs.begin( NS_WIFI, READ_ONLY ) ) {
+                log_d( "No wifi preferences found, defaulting to normal mode" );
+                return false;
+            }
+
+            bool enabled = prefs.getBool( KEY_PM_ENABLED, false );
+            prefs.end();
+
+            log_i( "PMode enabled loaded: %s", enabled ? "true" : "false" );
+            return enabled;
+        }
+
         bool ConfigManager::isConfigured() {
             return hasWiFiCredentials();
         }
