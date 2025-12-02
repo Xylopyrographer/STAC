@@ -164,13 +164,15 @@ namespace Application {
         }
         log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
 
-        // Clear display buffer and set initial brightness to remove power-up artifacts
-        display->clear( Config::Display::NO_SHOW );  // Clear buffer without showing
-        display->setBrightness( Config::Display::BRIGHTNESS_MAP[ 1 ], Config::Display::NO_SHOW ); // Set to level 1, no show
-
-        // Show power pixel immediately using BASE_GLYPHS (before orientation detection)
+        // Clear display buffer (backlight is still OFF from begin())
+        display->clear( Config::Display::NO_SHOW );
+        
+        // Draw power glyph to buffer BEFORE turning on backlight
         const uint8_t *earlyPowerGlyph = Display::BASE_GLYPHS[ Display::GLF_PO ];
         display->drawGlyphOverlay( earlyPowerGlyph, Display::StandardColors::ORANGE, Config::Display::SHOW );
+        
+        // NOW turn on backlight - display already shows the power glyph
+        display->setBrightness( Config::Display::BRIGHTNESS_MAP[ 1 ], Config::Display::NO_SHOW );
 
         // IMU - only read orientation once at startup for glyph rotation
         imu = IMUFactory::create();
@@ -380,6 +382,7 @@ namespace Application {
             if ( buttonB->wasPressed() ) {
                 log_i( "Button B pressed - Restarting..." );
                 Serial.println( "\n*** Button B pressed - Restarting... ***" );
+                display->setBrightness( 0 );  // Turn off backlight before restart
                 delay( 100 );  // Allow serial to flush
                 ESP.restart();
             }
@@ -944,6 +947,11 @@ namespace Application {
                 buttonB->read();
                 return buttonB->wasReleased();
             } );
+
+            // Set up pre-restart callback to turn off backlight on TFT displays
+            configServer.setPreRestartCallback( [ this ]() {
+                display->setBrightness( 0 );
+            } );
         #endif
 
         // Initial config glyph display at normal brightness
@@ -1037,6 +1045,7 @@ namespace Application {
 
         // Restart to apply new configuration
         log_i( "Restarting to apply configuration" );
+        display->setBrightness( 0 );  // Turn off backlight before restart
         ESP.restart();
     }
 
@@ -1318,6 +1327,7 @@ namespace Application {
 
         if ( !otaServer.begin() ) {
             log_e( "Failed to start OTA update server" );
+            display->setBrightness( 0 );  // Turn off backlight before restart
             ESP.restart(); // Restart on error
             return;
         }
@@ -1335,6 +1345,11 @@ namespace Application {
                 buttonB->read();
                 return buttonB->wasReleased();
             } );
+
+            // Set up pre-restart callback to turn off backlight on TFT displays
+            otaServer.setPreRestartCallback( [ this ]() {
+                display->setBrightness( 0 );
+            } );
         #endif
 
         // Wait for firmware upload and update
@@ -1351,6 +1366,7 @@ namespace Application {
         }
 
         // Restart either way
+        display->setBrightness( 0 );  // Turn off backlight before restart
         ESP.restart();
     }
 
@@ -1383,6 +1399,7 @@ namespace Application {
                 buttonB->read();
                 if ( buttonB->wasReleased() ) {
                     log_i( "Button B pressed after factory reset - restarting" );
+                    display->setBrightness( 0 );  // Turn off backlight before restart
                     ESP.restart();
                 }
             #endif

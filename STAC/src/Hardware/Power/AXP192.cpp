@@ -55,10 +55,11 @@ namespace Hardware {
         // Initialize for M5StickC Plus (based on M5GFX initialization)
         // Register 0x12: Enable power outputs
         // Bit 0: DCDC1 (ESP32 power)
-        // Bit 2: LDO2 (backlight)
+        // Bit 2: LDO2 (backlight) - DO NOT enable here, let display code turn it on
         // Bit 3: LDO3 (LCD power)
         // Bit 6: EXTEN
-        writeRegister(AXP192Reg::POWER_OUTPUT_CTRL, 0x4D);  // DCDC1, LDO2, LDO3, EXTEN
+        // Start with backlight OFF (0x49 instead of 0x4D) to prevent showing stale LCD content
+        writeRegister(AXP192Reg::POWER_OUTPUT_CTRL, 0x49);  // DCDC1, LDO3, EXTEN (NO LDO2/backlight)
         
         // VBUS-IPSOUT pass-through management
         // Bit 7: VBUS can be used regardless of N_VBUSEN

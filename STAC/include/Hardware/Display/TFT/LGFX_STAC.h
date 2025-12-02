@@ -121,10 +121,8 @@ namespace Display {
 
         lgfx::Bus_SPI _bus_instance;
 
-        // PWM backlight control (optional)
-        #if defined(DISPLAY_BACKLIGHT_PWM) && defined(TFT_BL)
-            lgfx::Light_PWM _light_instance;
-        #endif
+        // NOTE: Backlight control is handled by DisplayTFT::updateBacklight()
+        // We don't use LGFX Light_PWM to avoid it turning on backlight during init()
 
         LGFX_STAC() {
             // ================================================================
@@ -208,22 +206,8 @@ namespace Display {
                 _panel_instance.config(cfg);
             }
 
-            // ================================================================
-            // Configure PWM backlight (if enabled)
-            // ================================================================
-            #if defined(DISPLAY_BACKLIGHT_PWM) && defined(TFT_BL)
-            {
-                auto cfg = _light_instance.config();
-
-                cfg.pin_bl = TFT_BL;
-                cfg.invert = TFT_BL_INVERT;
-                cfg.freq = 44100;
-                cfg.pwm_channel = 7;
-
-                _light_instance.config(cfg);
-                _panel_instance.setLight(&_light_instance);
-            }
-            #endif
+            // NOTE: Backlight is NOT configured here - DisplayTFT handles it directly
+            // via LEDC PWM to ensure backlight stays OFF until we explicitly turn it on
 
             setPanel(&_panel_instance);
         }

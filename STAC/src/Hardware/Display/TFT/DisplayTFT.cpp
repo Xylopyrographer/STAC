@@ -16,25 +16,57 @@
 #endif
 // If neither defined, no software backlight control (DISPLAY_BACKLIGHT_NONE)
 
-// Debug LED helper - uses GPIO status LED if configured
-// Note: Only supports GPIO LEDs for simple debug blinking, not addressable LEDs
-#if HAS_STATUS_LED && defined(PIN_STATUS_LED) && defined(STATUS_LED_TYPE_GPIO)
-    #if defined(STATUS_LED_ACTIVE_LOW) && STATUS_LED_ACTIVE_LOW
-        #define DBG_LED_ON  LOW
-        #define DBG_LED_OFF HIGH
-    #else
-        #define DBG_LED_ON  HIGH
-        #define DBG_LED_OFF LOW
-    #endif
-    inline void dbgBlink(int count, int onMs = 100, int offMs = 100) {
-        for (int i = 0; i < count; i++) {
-            digitalWrite(PIN_STATUS_LED, DBG_LED_ON);
-            delay(onMs);
+// Debug LED helper - uses status LED if configured
+#if HAS_STATUS_LED && defined(PIN_STATUS_LED)
+    #if defined(STATUS_LED_TYPE_GPIO)
+        // Simple GPIO LED
+        #if defined(STATUS_LED_ACTIVE_LOW) && STATUS_LED_ACTIVE_LOW
+            #define DBG_LED_ON  LOW
+            #define DBG_LED_OFF HIGH
+        #else
+            #define DBG_LED_ON  HIGH
+            #define DBG_LED_OFF LOW
+        #endif
+        inline void dbgLedInit() {
+            pinMode(PIN_STATUS_LED, OUTPUT);
             digitalWrite(PIN_STATUS_LED, DBG_LED_OFF);
-            delay(offMs);
         }
-    }
+        inline void dbgBlink(int count, int onMs = 100, int offMs = 100) {
+            for (int i = 0; i < count; i++) {
+                digitalWrite(PIN_STATUS_LED, DBG_LED_ON);
+                delay(onMs);
+                digitalWrite(PIN_STATUS_LED, DBG_LED_OFF);
+                delay(offMs);
+            }
+        }
+    #elif defined(STATUS_LED_TYPE_ADDRESSABLE)
+        // Addressable RGB LED (WS2812, etc.)
+        #include <LiteLED.h>
+        static LiteLED dbgLed(STATUS_LED_STRIP_TYPE, STATUS_LED_IS_RGBW);
+        static bool dbgLedInitialized = false;
+        inline void dbgLedInit() {
+            if (!dbgLedInitialized) {
+                dbgLed.begin(PIN_STATUS_LED, 1);  // 1 LED
+                dbgLed.brightness(32);  // Low brightness for status
+                dbgLed.setPixel(0, 0, false);  // Off initially
+                dbgLedInitialized = true;
+            }
+        }
+        inline void dbgBlink(int count, int onMs = 100, int offMs = 100) {
+            dbgLedInit();
+            for (int i = 0; i < count; i++) {
+                dbgLed.setPixel(0, 0x00FF00, true);  // Green
+                delay(onMs);
+                dbgLed.setPixel(0, 0, true);  // Off
+                delay(offMs);
+            }
+        }
+    #else
+        inline void dbgLedInit() {}
+        inline void dbgBlink(int, int = 100, int = 100) {}
+    #endif
 #else
+    inline void dbgLedInit() {}
     inline void dbgBlink(int, int = 100, int = 100) {}
 #endif
 
@@ -75,6 +107,9 @@ namespace Display {
 
     bool DisplayTFT::begin() {
         log_i("DisplayTFT::begin() - starting initialization...");
+        // Note: Backlight is already OFF - turned off in main.cpp at boot
+        
+        dbgLedInit();  // Initialize status LED if present
         dbgBlink(1);  // 1 blink = starting init
         
         #if defined(USE_AXP192_PMU)
@@ -84,6 +119,8 @@ namespace Display {
                 log_e("Failed to initialize AXP192 PMU");
                 return false;
             }
+            // Ensure backlight is off via PMU during init
+            _pmu.setBacklight(0);
             log_i("AXP192 PMU initialized");
             dbgBlink(2);  // 2 blinks = PMU done
             
@@ -93,6 +130,17 @@ namespace Display {
         
         log_i("Creating LGFX display...");
         dbgBlink(3);  // 3 blinks = creating LCD
+        
+        // Hardware reset the LCD panel BEFORE creating the LGFX instance.
+        // This clears the LCD's internal RAM and eliminates any stale content
+        // that persists through ESP32 soft reset (ESP.restart).
+        #if defined(TFT_RST) && TFT_RST >= 0
+            pinMode(TFT_RST, OUTPUT);
+            digitalWrite(TFT_RST, LOW);   // Assert reset
+            delay(20);                     // Hold reset for 20ms
+            digitalWrite(TFT_RST, HIGH);  // Release reset
+            delay(150);                    // Wait for LCD to initialize (ST7735 needs ~120ms)
+        #endif
         
         // Create and initialize the display (unified LGFX class configured via board defines)
         _lcd = new LGFX_STAC();
@@ -104,12 +152,31 @@ namespace Display {
         dbgBlink(4);  // 4 blinks = about to init LCD
         
         _lcd->init();
+        // NOTE: Backlight remains OFF - we turned it off in main.cpp and LGFX
+        // no longer manages it (we removed Light_PWM configuration)
+        
         _lcd->setSwapBytes(true);  // Required for correct RGB565 byte order
+
+        // Set rotation first
+        _lcd->setRotation(_rotation);
+
+        // Clear the entire LCD driver memory including hidden offset regions.
+        // The ST7735S has 132x162 memory but only 128x128 is visible.
+        // The hidden regions can retain stale data through soft reset.
+        // We use writeFillRectPreclipped which bypasses normal clipping.
+        _lcd->startWrite();
+        _lcd->setWindow(0, 0, 131, 161);  // Full ST7735S memory
+        for (int i = 0; i < 132 * 162; i++) {
+            _lcd->writeColor(TFT_BLACK, 1);
+        }
+        _lcd->endWrite();
+        
+        // Now do the normal fillScreen for the visible area
+        _lcd->fillScreen(TFT_BLACK);
+        delay(20);  // Give LCD time to process
         
         dbgBlink(5);  // 5 blinks = LCD init done
-        log_i("LCD init complete, setting rotation...");
-        
-        _lcd->setRotation(_rotation);
+        log_i("LCD init complete, rotation set to %d", _rotation);
         
         // Create sprite for double-buffering (flicker-free updates)
         _sprite = new LGFX_Sprite(_lcd);
@@ -123,12 +190,15 @@ namespace Display {
         _sprite->createSprite(_width, _height);
         _sprite->setSwapBytes(true);  // For correct RGB565 byte order
         
-        // Initialize backlight (full brightness for now)
-        _brightness = 255;
-        updateBacklight();
-        
-        // Clear display
+        // Clear sprite and push to LCD (backlight is still OFF at this point)
         clear(true);
+        
+        // NOTE: Backlight remains OFF here - it will be turned on later when
+        // STACApp calls setBrightness() after all initialization is complete
+        // and the first real content is ready to display. This prevents showing
+        // any startup artifacts from stale LCD memory.
+        // BRIGHTNESS_MAP[0] is compile-time verified to be 0 (backlight off)
+        _brightness = 0;
         
         log_i("TFT Display initialized: %dx%d", _width, _height);
         return true;
@@ -387,8 +457,10 @@ namespace Display {
 
     void DisplayTFT::setBrightness(uint8_t brightness, bool doShow) {
         log_i("setBrightness: %d", brightness);
-        _brightness = brightness;
-        updateBacklight();
+        if (brightness != _brightness) {
+            _brightness = brightness;
+            updateBacklight();
+        }
         if (doShow) {
             show();
         }
@@ -904,11 +976,9 @@ namespace Display {
         #if defined(USE_AXP192_PMU)
             // Use AXP192 PMU to control backlight brightness via LDO2
             _pmu.setBacklight(_brightness);
-        #elif defined(USE_LGFX_BACKLIGHT)
-            // Use LovyanGFX built-in backlight control (PWM)
-            if (_lcd) {
-                _lcd->setBrightness(_brightness);
-            }
+        #elif defined(DISPLAY_BACKLIGHT_PWM) && defined(TFT_BL)
+            // Use analogWrite for backlight PWM control (simpler, more compatible)
+            analogWrite(TFT_BL, _brightness);
         #endif
         log_d("Backlight set to: %d", _brightness);
     }

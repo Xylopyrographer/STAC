@@ -55,6 +55,11 @@ namespace Net {
         using ResetCheckCallback = std::function<bool()>;
 
         /**
+         * @brief Callback function type for pre-restart cleanup (e.g., turn off backlight)
+         */
+        using PreRestartCallback = std::function<void()>;
+
+        /**
          * @brief Constructor
          * @param deviceID Unique STAC device identifier (used as AP SSID)
          */
@@ -92,6 +97,14 @@ namespace Net {
          */
         void setResetCheckCallback(ResetCheckCallback callback) {
             resetCheckCallback = callback;
+        }
+
+        /**
+         * @brief Set callback for pre-restart cleanup (e.g., turn off TFT backlight)
+         * @param callback Function to call before ESP.restart()
+         */
+        void setPreRestartCallback(PreRestartCallback callback) {
+            preRestartCallback = callback;
         }
 
         /**
@@ -144,6 +157,7 @@ namespace Net {
         bool serverRunning;
         DisplayUpdateCallback displayCallback;
         ResetCheckCallback resetCheckCallback;
+        PreRestartCallback preRestartCallback;
 
         /**
          * @brief Register all HTTP endpoint handlers

@@ -99,6 +99,9 @@ namespace Net {
             // Check for reset button via callback
             if (resetCheckCallback && resetCheckCallback()) {
                 log_i("Reset requested during OTA wait - restarting");
+                if (preRestartCallback) {
+                    preRestartCallback();  // Call cleanup (e.g., turn off backlight)
+                }
                 ESP.restart();
             }
             
@@ -159,6 +162,10 @@ namespace Net {
 
     void OTAUpdateServer::setResetCheckCallback(std::function<bool()> callback) {
         resetCheckCallback = callback;
+    }
+
+    void OTAUpdateServer::setPreRestartCallback(std::function<void()> callback) {
+        preRestartCallback = callback;
     }
 
     void OTAUpdateServer::registerEndpoints() {

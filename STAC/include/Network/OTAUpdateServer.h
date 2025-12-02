@@ -119,6 +119,12 @@ namespace Net {
          */
         void setResetCheckCallback(std::function<bool()> callback);
 
+        /**
+         * @brief Set callback for pre-restart cleanup (e.g., turn off TFT backlight)
+         * @param callback Function to call before ESP.restart()
+         */
+        void setPreRestartCallback(std::function<void()> callback);
+
     private:
         // WiFi Access Point configuration
         static constexpr const char* AP_HOSTNAME = "update";
@@ -146,6 +152,9 @@ namespace Net {
 
         // Reset check callback
         std::function<bool()> resetCheckCallback;
+
+        // Pre-restart callback (for cleanup like turning off backlight)
+        std::function<void()> preRestartCallback;
 
         /**
          * @brief Register all HTTP endpoint handlers

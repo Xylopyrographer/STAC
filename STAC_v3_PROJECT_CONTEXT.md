@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.9  
 **Branch:** `v3_RC`  
-**Updated:** November 30, 2025  
-**Status:** AIPI-Lite TFT Display Working, Multi-Board TFT Support
+**Updated:** December 1, 2025  
+**Status:** TFT Display Startup Artifact Fix, Multi-Board TFT Support
 
 ---
 
@@ -264,6 +264,18 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### December 1, 2025 - TFT Display Startup Artifact Fix
+- Fixed display artifacts (stale pixels) showing during soft reset on TFT displays
+- **M5StickC Plus (ST7789):** Disabled LDO2 (backlight) in AXP192 init - let display code turn it on
+- **AIPI-Lite (ST7735S):** Hardware LCD reset + direct write to full 132×162 driver memory via `setWindow()`
+- Common fixes for all TFT boards:
+  - Early backlight OFF in `main.cpp` before any other init
+  - Backlight OFF before all `ESP.restart()` calls
+  - Removed LGFX Light_PWM backlight management - control directly via LEDC/analogWrite or PMU
+  - Added `PreRestartCallback` to WebConfigServer and OTAUpdateServer
+- Key insight: ST7735S has 132×162 memory but only 128×128 visible; hidden "offset" regions retain stale data through soft reset
+- Changed AIPI-Lite backlight control from `ledcAttach/ledcWrite` to simpler `analogWrite()`
 
 ### November 30, 2025 - AIPI-Lite TFT Display Working
 - Added full support for AIPI-Lite board (ESP32-S3 + 128×128 ST7735S TFT)

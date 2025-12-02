@@ -15,6 +15,13 @@ std::unique_ptr<STACApp> app;
 #endif
 
 void setup() {
+    // IMMEDIATELY turn off TFT backlight to prevent showing stale LCD content
+    // This must happen before ANYTHING else, as LCD memory persists through soft reset
+    #if defined(TFT_BL)
+        pinMode(TFT_BL, OUTPUT);
+        digitalWrite(TFT_BL, LOW);  // Backlight OFF
+    #endif
+    
     // Immediately blink LED to show we're alive
     #if defined(DEBUG_LED_PIN)
         pinMode(DEBUG_LED_PIN, OUTPUT);

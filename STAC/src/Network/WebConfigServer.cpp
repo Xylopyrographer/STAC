@@ -109,6 +109,9 @@ namespace Net {
             // Check for reset button via callback
             if (resetCheckCallback && resetCheckCallback()) {
                 log_i("Reset requested during provisioning - restarting");
+                if (preRestartCallback) {
+                    preRestartCallback();  // Call cleanup (e.g., turn off backlight)
+                }
                 ESP.restart();
             }
             
