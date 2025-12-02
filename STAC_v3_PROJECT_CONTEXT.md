@@ -267,14 +267,19 @@ if (buttonB->wasPressed()) {
 
 ### December 1, 2025 - TFT Display Startup Artifact Fix
 - Fixed display artifacts (stale pixels) showing during soft reset on TFT displays
+- **Root cause:** LCD driver memory persists through ESP32 soft reset; hidden offset regions retain stale data
+- **Solution:** Unified approach for all TFT panels - clear full driver memory before normal `fillScreen()`
 - **M5StickC Plus (ST7789):** Disabled LDO2 (backlight) in AXP192 init - let display code turn it on
-- **AIPI-Lite (ST7735S):** Hardware LCD reset + direct write to full 132×162 driver memory via `setWindow()`
 - Common fixes for all TFT boards:
   - Early backlight OFF in `main.cpp` before any other init
   - Backlight OFF before all `ESP.restart()` calls
   - Removed LGFX Light_PWM backlight management - control directly via LEDC/analogWrite or PMU
   - Added `PreRestartCallback` to WebConfigServer and OTAUpdateServer
-- Key insight: ST7735S has 132×162 memory but only 128×128 visible; hidden "offset" regions retain stale data through soft reset
+  - Clear full LCD driver memory via `setWindow()` to address hidden offset regions:
+    - ST7735/ST7735S: 132×162 memory for various display sizes
+    - ST7789: 240×320 memory for various display sizes
+    - ILI9341/ILI9342: 240×320 memory
+    - GC9A01: 240×240 memory
 - Changed AIPI-Lite backlight control from `ledcAttach/ledcWrite` to simpler `analogWrite()`
 
 ### November 30, 2025 - AIPI-Lite TFT Display Working

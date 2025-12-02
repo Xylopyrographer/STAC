@@ -131,17 +131,6 @@ namespace Display {
         log_i("Creating LGFX display...");
         dbgBlink(3);  // 3 blinks = creating LCD
         
-        // Hardware reset the LCD panel BEFORE creating the LGFX instance.
-        // This clears the LCD's internal RAM and eliminates any stale content
-        // that persists through ESP32 soft reset (ESP.restart).
-        #if defined(TFT_RST) && TFT_RST >= 0
-            pinMode(TFT_RST, OUTPUT);
-            digitalWrite(TFT_RST, LOW);   // Assert reset
-            delay(20);                     // Hold reset for 20ms
-            digitalWrite(TFT_RST, HIGH);  // Release reset
-            delay(150);                    // Wait for LCD to initialize (ST7735 needs ~120ms)
-        #endif
-        
         // Create and initialize the display (unified LGFX class configured via board defines)
         _lcd = new LGFX_STAC();
         if (!_lcd) {
@@ -161,12 +150,26 @@ namespace Display {
         _lcd->setRotation(_rotation);
 
         // Clear the entire LCD driver memory including hidden offset regions.
-        // The ST7735S has 132x162 memory but only 128x128 is visible.
-        // The hidden regions can retain stale data through soft reset.
-        // We use writeFillRectPreclipped which bypasses normal clipping.
+        // LCD drivers often have more memory than the visible display area:
+        // - ST7735S: 132x162 memory for 128x128 display
+        // - ST7789: 240x320 memory for various display sizes
+        // Hidden regions can retain stale data through soft reset.
+        // We use setWindow to write black to the full driver memory.
+        #if defined(TFT_PANEL_ST7735S) || defined(TFT_PANEL_ST7735)
+            const int memW = 132, memH = 162;
+        #elif defined(TFT_PANEL_ST7789)
+            const int memW = 240, memH = 320;
+        #elif defined(TFT_PANEL_ILI9341) || defined(TFT_PANEL_ILI9342)
+            const int memW = 240, memH = 320;
+        #elif defined(TFT_PANEL_GC9A01)
+            const int memW = 240, memH = 240;
+        #else
+            const int memW = DISPLAY_WIDTH, memH = DISPLAY_HEIGHT;
+        #endif
+        
         _lcd->startWrite();
-        _lcd->setWindow(0, 0, 131, 161);  // Full ST7735S memory
-        for (int i = 0; i < 132 * 162; i++) {
+        _lcd->setWindow(0, 0, memW - 1, memH - 1);
+        for (int i = 0; i < memW * memH; i++) {
             _lcd->writeColor(TFT_BLACK, 1);
         }
         _lcd->endWrite();

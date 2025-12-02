@@ -7,7 +7,40 @@ Intended for developers and others interested in the nitty gritty.
 
 ## Version 3.0.0 Development
 
-### v3.0.0-RC.9 + TFT Support (November 2025)
+### v3.0.0-RC.9 + TFT Support (November-December 2025)
+
+**TFT Display Startup Artifact Fix - Simplified (December 1, 2025)**
+- Removed hardware LCD reset in favor of unified full-memory clear approach
+- All TFT panels now use same approach: setWindow() to clear full driver memory
+- Dynamic memory size based on panel type:
+  - ST7735/ST7735S: 132×162
+  - ST7789: 240×320
+  - ILI9341/ILI9342: 240×320
+  - GC9A01: 240×240
+- Saves ~170ms startup time (removed 20ms + 150ms reset delays)
+- Consistent code path for all TFT boards - no special cases
+
+**TFT Display Startup Artifact Fix (December 1, 2025)**
+- Fixed display artifacts (stale pixels) showing during soft reset on TFT displays
+- Root cause: LCD driver memory persists through ESP32 soft reset; hidden offset regions retain stale data
+- M5StickC Plus (ST7789): Disabled LDO2 (backlight) in AXP192 init
+- Common fixes for all TFT boards:
+  - Early backlight OFF in main.cpp before any other init
+  - Backlight OFF before all ESP.restart() calls
+  - Removed LGFX Light_PWM backlight management - control directly via analogWrite() or PMU
+  - Added PreRestartCallback to WebConfigServer and OTAUpdateServer
+  - Clear full LCD driver memory via setWindow() to address hidden offset regions
+- Changed AIPI-Lite backlight control from ledcAttach/ledcWrite to simpler analogWrite()
+
+**AIPI-Lite TFT Display Support (November 30, 2025)**
+- Added full support for AIPI-Lite board (ESP32-S3 + 128×128 ST7735S TFT)
+- Key finding: Display labeled ST7789 but requires ST7735S driver
+- Added Panel_ST7735S support to unified LGFX_STAC.h configuration
+- Added TFT_ROTATION_OFFSET for board-specific rotation adjustment
+- Added _lcd->setSwapBytes(true) after init for correct RGB565 colors
+- Added configurable TFT_READABLE and TFT_BUS_SHARED options
+- LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
+- AIPI-Lite specific: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
 
 **Provisioning Mode Color Fix (November 29, 2025)**
 - Fixed boot button sequence colors to match baseline v2.x behavior
