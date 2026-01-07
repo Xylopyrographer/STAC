@@ -985,6 +985,13 @@ namespace Application {
             ESP.restart();
             // Never returns
         }
+        else if ( result.type == Net::WebPortalServer::PortalResultType::FACTORY_RESET ) {
+            // Factory reset requested from web portal
+            log_i( "Factory reset requested from web portal" );
+            portalServer.end();
+            handleFactoryReset();
+            // Never returns - handleFactoryReset calls ESP.restart()
+        }
         // else CONFIG_RECEIVED - continue with provisioning flow
         
         ProvisioningData provData = result.configData;

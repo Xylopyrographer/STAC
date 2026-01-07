@@ -201,7 +201,7 @@ namespace WebPortal {
      */
     const char TAB_BUTTONS[] = R"=====(    <div class="tabs">
       <button class="tab active" onclick="showTab('setup')" id="tab-setup">Setup</button>
-      <button class="tab" onclick="showTab('update')" id="tab-update">Update</button>
+      <button class="tab" onclick="showTab('maintenance')" id="tab-maintenance">Maintenance</button>
     </div>
 )=====";
 
@@ -299,27 +299,51 @@ namespace WebPortal {
 )=====";
 
     /**
-     * @brief Update tab content - OTA firmware upload
+     * @brief Maintenance tab content - OTA firmware upload and factory reset
      */
-    const char TAB_UPDATE[] = R"=====(    <div id="content-update" class="tab-content">
-      <h2>Firmware Update</h2>
+    const char TAB_MAINTENANCE[] = R"=====(    <div id="content-maintenance" class="tab-content">
+      <h2>Maintenance</h2>
       
-      <div class="info-text">
-        <strong>Instructions:</strong><br>
-        1. Select a .bin firmware file below<br>
-        2. Click "Update Firmware"<br>
-        3. Wait for upload and installation to complete<br>
-        4. STAC will restart automatically<br>
-        <br>
-        <strong>Note:</strong> To cancel, press the STAC reset button now.
+      <!-- Firmware Update Section -->
+      <div class="section">
+        <h3>Firmware Update</h3>
+        <div class="info-text">
+          <strong>Instructions:</strong><br>
+          1. Select a .bin firmware file below<br>
+          2. Click "Update Firmware"<br>
+          3. Wait for upload and installation to complete<br>
+          4. STAC will restart automatically<br>
+          <br>
+          <strong>Note:</strong> To cancel, press the STAC reset button.
+        </div>
+        
+        <form method="post" enctype="multipart/form-data" action="/update">
+          <label for="update">Select Firmware File (.bin):</label>
+          <input type="file" name="update" id="update" accept=".bin" required>
+          <br>
+          <input type="submit" value="Update Firmware" id="update-btn" disabled>
+        </form>
       </div>
       
-      <form method="post" enctype="multipart/form-data" action="/update">
-        <label for="update">Select Firmware File (.bin):</label>
-        <input type="file" name="update" id="update" accept=".bin" required>
-        <br>
-        <input type="submit" value="Update Firmware" id="update-btn" disabled>
-      </form>
+      <!-- Factory Reset Section -->
+      <div class="section" style="margin-top: 30px;">
+        <h3 style="color: #f44336;">Factory Reset</h3>
+        <div class="info-text" style="background: #ffebee; border-left: 4px solid #f44336;">
+          <strong style="color: #f44336;">⚠️ Warning:</strong><br>
+          Factory Reset will erase all settings including:<br>
+          • WiFi credentials<br>
+          • Roland switcher configuration<br>
+          • Display brightness settings<br>
+          • Channel assignments<br>
+          <br>
+          <strong>This action cannot be undone!</strong><br>
+          The STAC will restart and require re-configuration.
+        </div>
+        
+        <form method="post" action="/factory-reset" onsubmit="return confirmFactoryReset()">
+          <input type="submit" value="Perform Factory Reset" style="background: #f44336; margin-top: 15px;">
+        </form>
+      </div>
     </div>
 )=====";
 
@@ -370,6 +394,21 @@ namespace WebPortal {
     document.getElementById('update').addEventListener('change', function(e) {
       document.getElementById('update-btn').disabled = !e.target.value;
     });
+    
+    // Factory reset confirmation dialog
+    function confirmFactoryReset() {
+      return confirm(
+        'FACTORY RESET WARNING\n\n' +
+        'This will permanently erase ALL configuration data including:\n' +
+        '• WiFi credentials\n' +
+        '• Roland switcher settings\n' +
+        '• Display preferences\n' +
+        '• Channel assignments\n' +
+        '• All custom settings\n\n' +
+        'The STAC will restart and require complete re-configuration.\n\n' +
+        'Are you absolutely sure you want to continue?'
+      );
+    }
     </script>
 )=====";
 
@@ -420,6 +459,51 @@ namespace WebPortal {
     <p>Your STAC configuration has been saved successfully.</p>
     <p>The device will now restart and connect to your WiFi network.</p>
     <p><strong>Please wait...</strong></p>
+  </div>
+</body>
+</html>
+)=====";
+
+    /**
+     * @brief Factory reset confirmation page
+     */
+    const char FACTORY_RESET_RECEIVED[] = R"=====(<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factory Reset</title>
+  <style type="text/css">
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    text-align: center;
+    background: #ffebee;
+    padding: 20px;
+  }
+  .container {
+    max-width: 500px;
+    margin: 50px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  h1 {
+    color: #f44336;
+  }
+  p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #555;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚠️ Factory Reset Complete</h1>
+    <p>All configuration data has been erased.</p>
+    <p>The STAC will now restart with factory default settings.</p>
+    <p><strong>Please wait for restart...</strong></p>
+    <p style="margin-top: 20px; font-size: 14px; color: #999;">You will need to re-configure the device after restart.</p>
   </div>
 </body>
 </html>

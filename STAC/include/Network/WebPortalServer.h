@@ -80,7 +80,8 @@ namespace Net {
             NONE,              ///< No action taken yet
             CONFIG_RECEIVED,   ///< Configuration submitted
             OTA_SUCCESS,       ///< OTA update completed successfully
-            OTA_FAILED         ///< OTA update failed
+            OTA_FAILED,        ///< OTA update failed
+            FACTORY_RESET      ///< Factory reset requested
         };
 
         /**
@@ -219,6 +220,7 @@ namespace Net {
          * - GET  / : Serve tabbed portal index page
          * - POST /config : Process configuration submission
          * - POST /update : Handle firmware upload
+         * - POST /factory-reset : Handle factory reset request
          * - * (not found) : Serve 404 page
          */
         void registerEndpoints();
@@ -234,6 +236,12 @@ namespace Net {
          * Processes configuration form submission (from Setup tab)
          */
         void handleConfigSubmit();
+
+        /**
+         * @brief Handler for POST /factory-reset
+         * Processes factory reset request (from Maintenance tab)
+         */
+        void handleFactoryReset();
 
         /**
          * @brief Handler for POST /update (completion)

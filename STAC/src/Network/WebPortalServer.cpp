@@ -169,6 +169,11 @@ namespace Net {
             handleConfigSubmit();
         });
 
+        // POST /factory-reset - Handle factory reset request
+        server->on("/factory-reset", HTTP_POST, [this]() {
+            handleFactoryReset();
+        });
+
         // POST /update - Handle firmware upload and flashing
         server->on("/update", HTTP_POST,
             [this]() {
@@ -242,6 +247,21 @@ namespace Net {
         }
 
         result.type = PortalResultType::CONFIG_RECEIVED;
+        operationComplete = true;
+    }
+
+    void WebPortalServer::handleFactoryReset() {
+        log_i("Processing factory reset request from web portal");
+
+        // Send confirmation page immediately
+        server->send(200, "text/html", WebPortal::FACTORY_RESET_RECEIVED);
+        
+        // Ensure response is sent before continuing
+        delay(100);
+
+        log_i("Factory reset confirmed via web portal");
+        
+        result.type = PortalResultType::FACTORY_RESET;
         operationComplete = true;
     }
 
@@ -348,7 +368,7 @@ namespace Net {
         page += WebPortal::DEVICE_INFO_CLOSE;
         page += WebPortal::TAB_BUTTONS;
         page += WebPortal::TAB_SETUP;
-        page += WebPortal::TAB_UPDATE;
+        page += WebPortal::TAB_MAINTENANCE;
         page += WebPortal::PAGE_SCRIPT;
         page += WebPortal::PAGE_FOOTER;
 
