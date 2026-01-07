@@ -12,8 +12,6 @@
 #endif
 #include "Network/WiFiManager.h"
 #include "Network/Protocol/IRolandClient.h"
-#include "Network/WebConfigServer.h"
-#include "Network/OTAUpdateServer.h"
 #include "Storage/ConfigManager.h"
 #include "State/SystemState.h"
 #include "Application/StartupConfig.h"
@@ -169,15 +167,17 @@ namespace Application {
         /**
          * @brief Handle provisioning mode
          */
-        void handleProvisioningMode();
-
         /**
-         * @brief Handle OTA update mode
+         * @brief Handle provisioning/portal mode
          *
-         * Starts OTA update server, waits for firmware upload,
-         * and restarts device with new firmware.
+         * Starts unified web portal server with tabbed interface for:
+         * - Device commissioning (WiFi + Roland switch config)
+         * - OTA firmware updates
+         * 
+         * Waits for user action (config submission or firmware upload),
+         * then processes accordingly and restarts device.
          */
-        void handleOTAUpdateMode();
+        void handleProvisioningMode();
 
         /**
          * @brief Handle factory reset
@@ -190,11 +190,11 @@ namespace Application {
          * @brief Check for button hold at boot
          *
          * Implements button state machine:
-         * - Short hold: Force provisioning mode
-         * - Medium hold: Factory reset
-         * - Long hold: OTA update mode
+         * - 0-2 sec (with PMode): Toggle peripheral mode
+         * - 2-4 sec: Unified portal mode (provisioning/OTA)
+         * - 4-6 sec: Factory reset
          *
-         * @return Operating mode to enter (NORMAL, PROVISIONING, or DFU)
+         * @return Operating mode to enter (NORMAL, PROVISIONING, or PERIPHERAL)
          */
         OperatingMode checkBootButtonSequence();
 

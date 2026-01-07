@@ -7,6 +7,7 @@
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/Protocol/RolandClientFactory.h"
+#include "Network/WebPortalServer.h"
 #include "Utils/InfoPrinter.h"
 
 // Add these 'using' declarations
@@ -884,7 +885,7 @@ namespace Application {
 #endif // HAS_PERIPHERAL_MODE_CAPABILITY
 
     void STACApp::handleProvisioningMode() {
-        log_i( "Entering provisioning mode" );
+        log_i( "Entering unified portal mode (provisioning/OTA)" );
 
         // Check if device was already provisioned - affects display color
         // Provisioned: ORANGE (warning - proceeding will modify existing config)
@@ -895,11 +896,11 @@ namespace Application {
             : Display::StandardColors::RED;
         log_i( "Provisioning color: %s", wasProvisioned ? "ORANGE (already provisioned)" : "RED (not provisioned)" );
 
-        // Create and start web configuration server immediately
-        Net::WebConfigServer configServer( stacID );
+        // Create and start unified web portal server immediately
+        Net::WebPortalServer portalServer( stacID );
 
-        if ( !configServer.begin() ) {
-            log_e( "Failed to start configuration server" );
+        if ( !portalServer.begin() ) {
+            log_e( "Failed to start portal server" );
             return;
         }
 
@@ -936,20 +937,20 @@ namespace Application {
 
         // Set up pulsing config glyph display callback using brightness modulation
         bool pulseState = false;
-        configServer.setDisplayUpdateCallback( [ this, cfgGlyph, provisionColor, normalBrightness, dimBrightness, &pulseState ]() {
+        portalServer.setDisplayUpdateCallback( [ this, cfgGlyph, provisionColor, normalBrightness, dimBrightness, &pulseState ]() {
             display->pulseDisplay( cfgGlyph, provisionColor, Display::StandardColors::BLACK,
                                    pulseState, normalBrightness, dimBrightness );
         } );
 
         // Set up Button B reset check callback (for M5StickC Plus)
         #if defined(BUTTON_B_PIN)
-            configServer.setResetCheckCallback( [ this ]() {
+            portalServer.setResetCheckCallback( [ this ]() {
                 buttonB->read();
                 return buttonB->wasReleased();
             } );
 
             // Set up pre-restart callback to turn off backlight on TFT displays
-            configServer.setPreRestartCallback( [ this ]() {
+            portalServer.setPreRestartCallback( [ this ]() {
                 display->setBrightness( 0 );
             } );
         #endif
@@ -958,8 +959,35 @@ namespace Application {
         display->setBrightness( normalBrightness, Config::Display::NO_SHOW );
         display->drawGlyph( cfgGlyph, provisionColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
-        // Wait for configuration
-        ProvisioningData provData = configServer.waitForConfiguration();
+        // Wait for either configuration or OTA to complete
+        Net::WebPortalServer::PortalResult result = portalServer.waitForCompletion();
+
+        // Handle result based on type
+        if ( result.type == Net::WebPortalServer::PortalResultType::OTA_SUCCESS ) {
+            // OTA succeeded - server will restart automatically
+            log_i( "OTA update successful - restarting..." );
+            const uint8_t *checkmarkGlyph = glyphManager->getGlyph( Display::GLF_CK );
+            display->drawGlyph( checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 1000 );
+            portalServer.end();
+            display->setBrightness( 0 );
+            ESP.restart();
+            // Never returns
+        }
+        else if ( result.type == Net::WebPortalServer::PortalResultType::OTA_FAILED ) {
+            // OTA failed - show error and restart
+            log_e( "OTA update failed: %s", result.otaResult.statusMessage.c_str() );
+            const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_X );
+            display->drawGlyph( xGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 3000 );
+            portalServer.end();
+            display->setBrightness( 0 );
+            ESP.restart();
+            // Never returns
+        }
+        // else CONFIG_RECEIVED - continue with provisioning flow
+        
+        ProvisioningData provData = result.configData;
 
         // Show green checkmark to confirm receipt (matching baseline)
         const uint8_t *checkmarkGlyph = glyphManager->getGlyph( Display::GLF_CK );
@@ -967,7 +995,7 @@ namespace Application {
         delay( 1000 );
 
         // Stop the web server
-        configServer.end();
+        portalServer.end();
 
         // Save configuration to NVS
         log_i( "Saving configuration to NVS" );
@@ -1293,83 +1321,6 @@ namespace Application {
         }
     }
 
-    void STACApp::handleOTAUpdateMode() {
-        log_i( "Entering OTA update mode" );
-
-        // Print OTA mode notification to serial
-        Utils::InfoPrinter::printOTA();
-
-        // OTA glyph is already showing from boot button sequence - leave it
-        // (matching baseline behavior which doesn't change display on OTA entry)
-
-        // Get glyph for pulsing display
-        using namespace Display;
-
-        const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
-        const uint8_t normalBrightness = display->getBrightness();
-        
-        // Calculate dim brightness using adjacent brightness levels from the map
-        // Find current level index in brightness map
-        uint8_t currentLevel = 1;
-        for ( uint8_t i = 1; i <= Config::Display::BRIGHTNESS_LEVELS; i++ ) {
-            if ( Config::Display::BRIGHTNESS_MAP[ i ] == normalBrightness ) {
-                currentLevel = i;
-                break;
-            }
-        }
-        // Pulse to adjacent level: down one level, or up one if already at minimum
-        const uint8_t dimBrightness = ( currentLevel > 1 ) 
-            ? Config::Display::BRIGHTNESS_MAP[ currentLevel - 1 ]
-            : Config::Display::BRIGHTNESS_MAP[ 2 ];
-
-        // Create and start OTA update server
-        Net::OTAUpdateServer otaServer( stacID );
-
-        if ( !otaServer.begin() ) {
-            log_e( "Failed to start OTA update server" );
-            display->setBrightness( 0 );  // Turn off backlight before restart
-            ESP.restart(); // Restart on error
-            return;
-        }
-
-        // Set up pulsing OTA glyph display callback using brightness modulation
-        bool pulseState = false;
-        otaServer.setDisplayUpdateCallback( [ this, udGlyph, normalBrightness, dimBrightness, &pulseState ]() {
-            display->pulseDisplay( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK,
-                                   pulseState, normalBrightness, dimBrightness );
-        } );
-
-        // Set up Button B reset check callback (for M5StickC Plus)
-        #if defined(BUTTON_B_PIN)
-            otaServer.setResetCheckCallback( [ this ]() {
-                buttonB->read();
-                return buttonB->wasReleased();
-            } );
-
-            // Set up pre-restart callback to turn off backlight on TFT displays
-            otaServer.setPreRestartCallback( [ this ]() {
-                display->setBrightness( 0 );
-            } );
-        #endif
-
-        // Wait for firmware upload and update
-        // This will either restart the ESP32 (success) or return (failure)
-        Net::OTAUpdateResult result = otaServer.waitForUpdate();
-
-        // Print OTA update result to serial
-        Utils::InfoPrinter::printOTAResult( result.success, result.filename,
-                                            result.bytesWritten, result.statusMessage );
-
-        if ( !result.success ) {
-            log_e( "OTA update failed: %s", result.statusMessage.c_str() );
-            delay( 3000 );
-        }
-
-        // Restart either way
-        display->setBrightness( 0 );  // Turn off backlight before restart
-        ESP.restart();
-    }
-
     void STACApp::handleFactoryReset() {
         log_i( "Performing factory reset" );
 
@@ -1434,22 +1385,19 @@ namespace Application {
 
         enum class BootButtonState {
             #if HAS_PERIPHERAL_MODE_CAPABILITY
-            PMODE_PENDING,         // First state: Toggle peripheral mode
+            PMODE_PENDING,         // First state: Toggle peripheral mode (0-2 sec)
             #endif
-            PROVISIONING_PENDING,  // Short hold -> provisioning
-            FACTORY_RESET_PENDING, // Medium hold -> factory reset (provisioned only)
-            OTA_UPDATE_PENDING     // Long hold -> OTA update
+            PROVISIONING_PENDING,  // Short hold -> unified portal (2-4 sec)
+            FACTORY_RESET_PENDING  // Medium hold -> factory reset (4-6 sec)
         };
 
-        // Determine starting state based on PMode capability and provisioned status
+        // Determine starting state based on PMode capability
         #if HAS_PERIPHERAL_MODE_CAPABILITY
         // PMode capable: Always start at PMODE_PENDING
         BootButtonState state = BootButtonState::PMODE_PENDING;
         #else
-        // No PMode: Start depends on provisioned status
-        BootButtonState state = isProvisioned 
-            ? BootButtonState::PROVISIONING_PENDING 
-            : BootButtonState::OTA_UPDATE_PENDING;
+        // No PMode: Start at PROVISIONING_PENDING
+        BootButtonState state = BootButtonState::PROVISIONING_PENDING;
         #endif
 
         unsigned long stateArmTime = millis() + STATE_HOLD_TIME;
@@ -1493,26 +1441,15 @@ namespace Application {
             }
         }
         #else
-        // No PMode capability: Show based on provisioned state (existing behavior)
-        if ( isProvisioned ) {
-            display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-            delay( 250 );
-            for ( int i = 0; i < 4; i++ ) {
-                display->clear( Config::Display::SHOW );
-                delay( 125 );
-                display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-                delay( 125 );
-            }
-        }
-        else {
-            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-            delay( 250 );
-            for ( int i = 0; i < 4; i++ ) {
-                display->clear( Config::Display::SHOW );
-                delay( 125 );
-                display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                delay( 125 );
-            }
+        // No PMode capability: Show provisioning glyph based on provisioned state
+        auto color = isProvisioned ? Display::StandardColors::ORANGE : Display::StandardColors::RED;
+        display->drawGlyph( cfgGlyph, color, Display::StandardColors::BLACK, Config::Display::SHOW );
+        delay( 250 );
+        for ( int i = 0; i < 4; i++ ) {
+            display->clear( Config::Display::SHOW );
+            delay( 125 );
+            display->drawGlyph( cfgGlyph, color, Display::StandardColors::BLACK, Config::Display::SHOW );
+            delay( 125 );
         }
         #endif
 
@@ -1540,43 +1477,30 @@ namespace Application {
                         sequenceExit = true;
                     }
                     else if ( millis() >= stateArmTime ) {
-                        // Held long enough - advance to next state
-                        log_v( "Advancing from PMODE_PENDING state" );
+                        // Held long enough - advance to provisioning state
+                        log_v( "Advancing from PMODE_PENDING to PROVISIONING_PENDING state" );
 
-                        if ( isProvisioned ) {
-                            // Provisioned: Go to provisioning state
-                            display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-                            delay( 250 );
-                            for ( int i = 0; i < 4; i++ ) {
-                                display->clear( Config::Display::SHOW );
-                                delay( 125 );
-                                display->drawGlyph( cfgGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
-                                delay( 125 );
-                            }
-                            state = BootButtonState::PROVISIONING_PENDING;
+                        // Show provisioning glyph (gear icon)
+                        // Use ORANGE if provisioned, RED if not (different from old behavior)
+                        auto color = isProvisioned ? Display::StandardColors::ORANGE : Display::StandardColors::RED;
+                        display->drawGlyph( cfgGlyph, color, Display::StandardColors::BLACK, Config::Display::SHOW );
+                        delay( 250 );
+                        for ( int i = 0; i < 4; i++ ) {
+                            display->clear( Config::Display::SHOW );
+                            delay( 125 );
+                            display->drawGlyph( cfgGlyph, color, Display::StandardColors::BLACK, Config::Display::SHOW );
+                            delay( 125 );
                         }
-                        else {
-                            // Not provisioned: Skip to OTA state
-                            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                            delay( 250 );
-                            for ( int i = 0; i < 4; i++ ) {
-                                display->clear( Config::Display::SHOW );
-                                delay( 125 );
-                                display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                                delay( 125 );
-                            }
-                            state = BootButtonState::OTA_UPDATE_PENDING;
-                        }
+                        state = BootButtonState::PROVISIONING_PENDING;
                         stateArmTime = millis() + STATE_HOLD_TIME;
                     }
                     break;
                 #endif
 
                 case BootButtonState::PROVISIONING_PENDING:
-                    // This state only entered when provisioned
                     if ( !button->isPressed() ) {
-                        // Released - enter provisioning mode
-                        log_i( "Boot button sequence: PROVISIONING selected" );
+                        // Released - enter unified portal mode
+                        log_i( "Boot button sequence: UNIFIED PORTAL selected (provisioning/OTA)" );
                         resultMode = OperatingMode::PROVISIONING;
                         sequenceExit = true;
                     }
@@ -1609,59 +1533,8 @@ namespace Application {
                         handleFactoryReset();
                         // Never returns - ESP32 restarts
                     }
-                    else if ( millis() >= stateArmTime ) {
-                        // Held long enough - advance to OTA update state and start server immediately
-                        log_v( "Advancing to OTA_UPDATE_PENDING state" );
-
-                        // GLF_UD (firmware update icon) in red
-                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                        delay( 250 );
-
-                        // Flash to show state change
-                        for ( int i = 0; i < 4; i++ ) {
-                            display->clear( Config::Display::SHOW );
-                            delay( 125 );
-                            display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                            delay( 125 );
-                        }
-
-                        // Show static OTA glyph after flash sequence
-                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-
-                        // Start OTA server immediately (don't wait for button release)
-                        log_i( "Boot button sequence: OTA UPDATE selected - starting server" );
-                        handleOTAUpdateMode();
-                        // Never returns - ESP32 restarts after OTA
-                    }
-                    break;
-
-                case BootButtonState::OTA_UPDATE_PENDING:
-                    if ( !button->isPressed() ) {
-                        if ( isProvisioned ) {
-                            // Provisioned: Released in OTA state - start OTA server
-                            log_i( "Boot button sequence: OTA UPDATE selected" );
-                            handleOTAUpdateMode();
-                            // Never returns - ESP32 restarts after OTA
-                        }
-                        else {
-                            // Not provisioned: Released in OTA state - enter provisioning mode
-                            // (OTA is only option when not provisioned, release means "skip OTA, go provision")
-                            log_i( "Boot button sequence: PROVISIONING selected (not provisioned)" );
-                            resultMode = OperatingMode::PROVISIONING;
-                            sequenceExit = true;
-                        }
-                    }
-                    else if ( !isProvisioned && millis() >= stateArmTime ) {
-                        // Not provisioned and held past OTA state timeout: Start OTA server
-                        log_i( "Boot button sequence: OTA UPDATE selected (held) - starting server" );
-                        
-                        // Show static OTA glyph
-                        display->drawGlyph( udGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
-                        
-                        handleOTAUpdateMode();
-                        // Never returns - ESP32 restarts after OTA
-                    }
-                    // If button stays pressed beyond this state (provisioned), just wait
+                    // If button stays pressed beyond this state, just wait for release
+                    // (no more states after factory reset)
                     break;
             }
         }
