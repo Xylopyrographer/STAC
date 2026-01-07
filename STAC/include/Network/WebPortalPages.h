@@ -237,16 +237,16 @@ namespace WebPortal {
         <div class="section">
           <h3>V-60HD Settings</h3>
           <label for="stIP">V-60HD IP Address:</label>
-          <input type="text" id="stIP" name="stIP" placeholder="192.168.1.100" required>
+          <input type="text" id="stIP" name="stIP" placeholder="192.168.1.100" inputmode="decimal" required>
           
           <label for="stPort">Port:</label>
-          <input type="number" id="stPort" name="stPort" value="8080" min="1" max="65535" required>
+          <input type="number" id="stPort" name="stPort" value="80" min="1" max="65535" inputmode="numeric" pattern="[0-9]*" required>
           
           <label for="stChan">Max HDMI Channel (1-8):</label>
-          <input type="number" id="stChan" name="stChan" value="8" min="1" max="8" required>
+          <input type="number" id="stChan" name="stChan" value="6" min="1" max="8" inputmode="numeric" pattern="[0-9]*" required>
           
           <label for="pollTime">Poll Interval (ms):</label>
-          <input type="number" id="pollTime" name="pollTime" value="250" min="175" max="2000" required>
+          <input type="number" id="pollTime" name="pollTime" value="300" min="175" max="2000" inputmode="numeric" pattern="[0-9]*" required>
         </div>
         
         <input type="submit" value="Save Configuration">
@@ -270,25 +270,25 @@ namespace WebPortal {
         <div class="section">
           <h3>V-160HD Settings</h3>
           <label for="stIP2">V-160HD IP Address:</label>
-          <input type="text" id="stIP2" name="stIP" placeholder="192.168.1.100" required>
+          <input type="text" id="stIP2" name="stIP" placeholder="192.168.1.100" inputmode="decimal" required>
           
           <label for="stPort2">Port:</label>
-          <input type="number" id="stPort2" name="stPort" value="80" min="1" max="65535" required>
+          <input type="number" id="stPort2" name="stPort" value="80" min="1" max="65535" inputmode="numeric" pattern="[0-9]*" required>
           
           <label for="stnetUser">LAN Username:</label>
-          <input type="text" id="stnetUser" name="stnetUser" maxlength="32" required>
+          <input type="text" id="stnetUser" name="stnetUser" value="admin" maxlength="32" required>
           
           <label for="stnetPW">LAN Password:</label>
-          <input type="password" id="stnetPW" name="stnetPW" maxlength="32" required>
+          <input type="password" id="stnetPW" name="stnetPW" value="admin" maxlength="32" required>
           
           <label for="stChanHDMI">Max HDMI Channel (1-8):</label>
-          <input type="number" id="stChanHDMI" name="stChanHDMI" value="8" min="1" max="8" required>
+          <input type="number" id="stChanHDMI" name="stChanHDMI" value="8" min="1" max="8" inputmode="numeric" pattern="[0-9]*" required>
           
           <label for="stChanSDI">Max SDI Channel (1-8):</label>
-          <input type="number" id="stChanSDI" name="stChanSDI" value="8" min="1" max="8" required>
+          <input type="number" id="stChanSDI" name="stChanSDI" value="8" min="1" max="8" inputmode="numeric" pattern="[0-9]*" required>
           
           <label for="pollTime2">Poll Interval (ms):</label>
-          <input type="number" id="pollTime2" name="pollTime" value="250" min="175" max="2000" required>
+          <input type="number" id="pollTime2" name="pollTime" value="300" min="175" max="2000" inputmode="numeric" pattern="[0-9]*" required>
         </div>
         
         <input type="submit" value="Save Configuration">
@@ -340,8 +340,14 @@ namespace WebPortal {
           The STAC will restart and require re-configuration.
         </div>
         
-        <form method="post" action="/factory-reset" onsubmit="return confirmFactoryReset()">
-          <input type="submit" value="Perform Factory Reset" style="background: #f44336; margin-top: 15px;">
+        <form id="factory-reset-form" method="post" action="/factory-reset">
+          <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border: 2px solid #f44336; border-radius: 4px;">
+            <label style="display: flex; align-items: center; cursor: pointer; font-size: 15px; font-weight: bold; color: #333;">
+              <input type="checkbox" id="confirm-reset" name="confirm" value="yes" required style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+              <span>I understand this will PERMANENTLY ERASE all configuration data and cannot be undone</span>
+            </label>
+          </div>
+          <input type="submit" id="reset-btn" value="Perform Factory Reset" style="background: #f44336; margin-top: 15px; padding: 12px 30px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white;">
         </form>
       </div>
     </div>
@@ -394,21 +400,6 @@ namespace WebPortal {
     document.getElementById('update').addEventListener('change', function(e) {
       document.getElementById('update-btn').disabled = !e.target.value;
     });
-    
-    // Factory reset confirmation dialog
-    function confirmFactoryReset() {
-      return confirm(
-        'FACTORY RESET WARNING\n\n' +
-        'This will permanently erase ALL configuration data including:\n' +
-        '• WiFi credentials\n' +
-        '• Roland switcher settings\n' +
-        '• Display preferences\n' +
-        '• Channel assignments\n' +
-        '• All custom settings\n\n' +
-        'The STAC will restart and require complete re-configuration.\n\n' +
-        'Are you absolutely sure you want to continue?'
-      );
-    }
     </script>
 )=====";
 
@@ -455,7 +446,7 @@ namespace WebPortal {
 </head>
 <body>
   <div class="container">
-    <h1>✓ Configuration Saved</h1>
+    <h1>Configuration Saved</h1>
     <p>Your STAC configuration has been saved successfully.</p>
     <p>The device will now restart and connect to your WiFi network.</p>
     <p><strong>Please wait...</strong></p>
@@ -499,7 +490,7 @@ namespace WebPortal {
 </head>
 <body>
   <div class="container">
-    <h1>⚠️ Factory Reset Complete</h1>
+    <h1>Factory Reset Complete</h1>
     <p>All configuration data has been erased.</p>
     <p>The STAC will now restart with factory default settings.</p>
     <p><strong>Please wait for restart...</strong></p>

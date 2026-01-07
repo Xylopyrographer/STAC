@@ -63,8 +63,8 @@ public:
         Serial.println(ESP.getSdkVersion());
         Serial.print("    Setup SSID: ");
         Serial.println(stacID);
-        Serial.println("    Setup URL: http://setup.local");
-        Serial.println("    Setup IP: 192.168.6.14");
+        Serial.println("    Portal: Captive (auto-popup)");
+        Serial.println("    Fallback: http://192.168.6.14");
         Serial.print("    MAC: ");
         
         // Get MAC address directly from eFuse (WiFi not initialized yet)

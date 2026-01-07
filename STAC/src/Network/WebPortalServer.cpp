@@ -407,7 +407,8 @@ namespace Net {
         page += "<p><strong>Device:</strong> " + deviceID + "</p>";
         page += "<p><strong>MAC:</strong> " + macAddress + "</p>";
         page += "<p><strong>Firmware:</strong> " + fwVersion + "</p>";
-        page += "<p><strong>Core:</strong> " + coreVersion + " | <strong>SDK:</strong> " + sdkVersion + "</p>";
+        page += "<p><strong>Core:</strong> " + coreVersion + "</p>";
+        page += "<p><strong>SDK:</strong> " + sdkVersion + "</p>";
         page += WebPortal::DEVICE_INFO_CLOSE;
         page += WebPortal::TAB_BUTTONS;
         page += WebPortal::TAB_SETUP;

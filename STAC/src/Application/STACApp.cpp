@@ -561,6 +561,8 @@ namespace Application {
                 autostartColor = Display::StandardColors::BRIGHT_GREEN;
             }
 
+            // Clear any previous display state before showing channel glyph
+            display->clear( Config::Display::NO_SHOW );
             display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
             // Wait for button release before proceeding
@@ -989,8 +991,22 @@ namespace Application {
             // Factory reset requested from web portal
             log_i( "Factory reset requested from web portal" );
             portalServer.end();
-            handleFactoryReset();
-            // Never returns - handleFactoryReset calls ESP.restart()
+            
+            // Print factory reset notification to serial
+            Utils::InfoPrinter::printReset();
+            
+            // Clear all NVS data using ConfigManager
+            if ( !configManager->clearAll() ) {
+                log_e( "Factory reset failed - NVS clear unsuccessful" );
+            }
+            else {
+                log_i( "Factory reset complete - restarting" );
+            }
+            
+            // Restart immediately (web-based reset doesn't wait for button)
+            delay( 1000 );
+            ESP.restart();
+            // Never returns
         }
         // else CONFIG_RECEIVED - continue with provisioning flow
         
@@ -1419,21 +1435,21 @@ namespace Application {
         const uint8_t *udGlyph = glyphManager->getGlyph( Display::GLF_UD );
         #if HAS_PERIPHERAL_MODE_CAPABILITY
         const uint8_t *pGlyph = glyphManager->getGlyph( Display::GLF_P );
-        const uint8_t *pCancelGlyph = glyphManager->getGlyph( Display::GLF_P_CANCEL );
+        const uint8_t *nGlyph = glyphManager->getGlyph( Display::GLF_N );
         #endif
 
         // Show initial glyph based on starting state
         #if HAS_PERIPHERAL_MODE_CAPABILITY
-        // PMode capable: Show P glyph
+        // PMode capable: Show P or N glyph
         // - If PMode disabled: Show [P] in GREEN (action: enable PMode)
-        // - If PMode enabled: Show [P_CANCEL] in ORANGE (action: disable PMode)
+        // - If PMode enabled: Show [N] in GREEN (action: disable PMode → Normal mode)
         if ( pmodeCurrentlyEnabled ) {
-            display->drawGlyph( pCancelGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+            display->drawGlyph( nGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 250 );
             for ( int i = 0; i < 4; i++ ) {
                 display->clear( Config::Display::SHOW );
                 delay( 125 );
-                display->drawGlyph( pCancelGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
+                display->drawGlyph( nGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
                 delay( 125 );
             }
         }
@@ -1478,7 +1494,12 @@ namespace Application {
                             resultMode = OperatingMode::PERIPHERAL;
                         }
                         else {
-                            // PMode now disabled - return NORMAL (will check provisioning later)
+                            // PMode now disabled - show checkmark confirmation then return to NORMAL
+                            delay( Config::Timing::GUI_PAUSE_MS );
+                            const uint8_t *checkGlyph = glyphManager->getGlyph( Display::GLF_CK );
+                            display->drawGlyph( checkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
+                            delay( Config::Timing::GUI_PAUSE_MS );
+                            display->clear( Config::Display::SHOW );
                             resultMode = OperatingMode::NORMAL;
                         }
                         sequenceExit = true;

@@ -55,6 +55,7 @@ namespace Display {
     constexpr uint8_t GLF_CORNERS = 28;  ///< Four corner pixels
     constexpr uint8_t GLF_FR      = 29;  ///< Factory reset icon (circular arrow)
     constexpr uint8_t GLF_P_CANCEL = 30; ///< Letter P with cancel slash (PMode cancel)
+    constexpr uint8_t GLF_N       = 31;  ///< Letter N (for normal mode)
 
     /**
      * @brief Base glyph data (unrotated) for 8×8 display
@@ -186,7 +187,11 @@ namespace Display {
         
         // P_CANCEL (P with diagonal slash through it - PMode cancel)
         {0,1,1,1,1,0,0,1, 0,1,1,0,1,1,0,1, 0,1,1,0,1,1,1,0, 0,1,1,1,1,1,0,0,
-         0,1,1,0,1,0,0,0, 0,1,1,1,0,0,0,0, 1,1,1,0,0,0,0,0, 0,0,0,0,0,0,0,0}
+         0,1,1,0,1,0,0,0, 0,1,1,1,0,0,0,0, 1,1,1,0,0,0,0,0, 0,0,0,0,0,0,0,0},
+        
+        // LETTER_N - 0x62, 0x62, 0x72, 0x7a, 0x6e, 0x66, 0x62, 0x62
+        {0,1,1,0,0,0,1,0, 0,1,1,0,0,0,1,0, 0,1,1,1,0,0,1,0, 0,1,1,1,1,0,1,0,
+         0,1,1,0,1,1,1,0, 0,1,1,0,0,1,1,0, 0,1,1,0,0,0,1,0, 0,1,1,0,0,0,1,0}
     };
 
     // Derive glyph count from array size at compile time

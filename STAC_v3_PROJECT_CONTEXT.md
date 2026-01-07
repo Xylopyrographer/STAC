@@ -1,9 +1,9 @@
 # STAC v3 Project Context
 
 **Version:** v3.0.0-RC.9  
-**Branch:** `v3_RC`  
-**Updated:** December 1, 2025  
-**Status:** TFT Display Startup Artifact Fix, Multi-Board TFT Support
+**Branch:** `v3-unified-portal`  
+**Updated:** January 7, 2026  
+**Status:** Unified Web Portal with Captive Portal Support
 
 ---
 
@@ -56,8 +56,7 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 
 1. **Normal Mode** - WiFi client polling Roland switch for tally state
 2. **Peripheral Mode** - Receives tally via GROVE port from master STAC
-3. **Provisioning Mode** - Captive portal for WiFi/switch configuration
-4. **OTA Mode** - Over-the-air firmware updates
+3. **Provisioning Mode** - Unified web portal with captive portal for WiFi/switch configuration and OTA updates
 
 ---
 
@@ -93,8 +92,8 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 **Network Layer:**
 - `WiFiManager` → Connection management
 - `RolandClientBase` → `V60HDClient`, `V160HDClient`
-- `WebConfigServer` → Captive portal
-- `OTAUpdateServer` → Firmware updates
+- `WebPortalServer` → Unified captive portal with Setup/Maintenance tabs
+- `DNSServer` → Captive portal DNS redirect
 
 **State Management:**
 - `SystemState` → Central state coordinator
@@ -253,17 +252,56 @@ if (buttonB->wasPressed()) {
 - [ ] OTA: Upload firmware, restart
 - [ ] Factory Reset: Clear NVS, restart
 
-### Boot Button Sequence
-| Hold Time | Action | Display |
-|-----------|--------|---------|
-| 0-2 sec | Provisioning | Gear icon |
-| 2-4 sec | Factory Reset | Red flash |
-| 4-6 sec | OTA Update | Down arrow |
-| >6 sec | Normal boot | Channel digit |
+### Boot Button Sequence (HAS_PERIPHERAL_MODE_CAPABILITY)
+| Hold Time | Action | Display | Color |
+|-----------|--------|---------|-------|
+| 0-2 sec | Toggle Peripheral Mode | P (enable) or N (disable) | Green |
+| 2-4 sec | Unified Portal (Setup/OTA) | Gear icon | Orange (provisioned) / Red (not provisioned) |
+| 4-6 sec | Factory Reset | Factory reset icon | Red |
+
+### Boot Button Sequence (Non-Peripheral Boards)
+| Hold Time | Action | Display | Color |
+|-----------|--------|---------|-------|
+| 0-2 sec | Unified Portal (Setup/OTA) | Gear icon | Orange (provisioned) / Red (not provisioned) |
+| 2-4 sec | Factory Reset | Factory reset icon | Red |
 
 ---
 
 ## Recent Changes
+
+### January 7, 2026 - Unified Web Portal with Captive Portal
+- **Major architectural change:** Combined provisioning and OTA into single unified web portal
+- Replaced separate `WebConfigServer` and `OTAUpdateServer` with unified `WebPortalServer`
+- Deleted 6 obsolete files: WebConfigServer.{h,cpp}, OTAUpdateServer.{h,cpp}, WebConfigPages.h, OTAUpdatePages.h (1,521 lines removed)
+- **Key Features:**
+  - Tabbed interface: "Setup" tab (WiFi + Roland configuration) and "Maintenance" tab (Firmware Update + Factory Reset)
+  - Auto-popup captive portal on iOS/iPadOS/Android/Windows devices
+  - DNSServer integration for DNS redirect to 192.168.6.14
+  - Captive portal detection endpoints: `/hotspot-detect.html` (iOS), `/generate_204` (Android), `/connecttest.txt` (Windows)
+  - Fallback direct access: `http://192.168.6.14`
+- **iOS/iPadOS Compatibility Fixes:**
+  - Removed UTF-8 special characters (displayed incorrectly on iOS)
+  - Replaced JavaScript `confirm()` dialogs with HTML5 required checkbox (JavaScript dialogs blocked in iOS captive portal)
+  - Added `inputmode="numeric"` and `pattern="[0-9]*"` for numeric keyboards on mobile devices
+  - Added `inputmode="decimal"` for IP address fields (numeric keyboard with decimal point)
+- **Form Improvements:**
+  - Updated defaults: V-60HD (port=80, maxChan=6, poll=300ms), V-160HD (port=80, poll=300ms, user/pass=admin)
+  - Factory reset requires checkbox confirmation before submit button enables
+  - Web-based factory reset calls `ESP.restart()` directly (no orange glyph artifact)
+- **Boot Button Sequence Updates:**
+  - 0-2 sec: Toggle Peripheral Mode (if capable) - shows green P or N glyph
+  - 2-4 sec: Unified Portal (Setup/OTA) - shows orange/red gear icon
+  - 4-6 sec: Factory Reset - shows red factory reset icon
+- **Display Improvements:**
+  - Added GLF_N glyph for 5×5 and 8×8 displays (shows when exiting peripheral mode to normal mode)
+  - Replaced GLF_P_CANCEL (P with slash - hard to see on 5×5) with clear green N glyph
+  - Fixed display artifacts when transitioning from peripheral mode to normal mode
+  - Peripheral mode exit now shows: green N flash → checkmark → clear → channel number
+- **Documentation:**
+  - Updated DEVELOPER_GUIDE.md with unified portal architecture
+  - Updated user documentation with new portal workflow
+  - Serial monitor shows "Portal: Captive (auto-popup)" and "Fallback: http://192.168.6.14"
+- **Memory:** Flash 66.9% (1,301,111 bytes), RAM 15.7% (51,348 bytes)
 
 ### December 1, 2025 - TFT Display Startup Artifact Fix
 - Fixed display artifacts (stale pixels) showing during soft reset on TFT displays
