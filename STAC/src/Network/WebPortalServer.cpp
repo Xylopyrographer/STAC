@@ -19,6 +19,7 @@ namespace Net {
         , apGateway(0, 0, 0, 0)
         , apNetmask(255, 255, 255, 0)
         , server(nullptr)
+        , dnsServer(nullptr)
         , deviceID(deviceID)
         , serverRunning(false)
         , operationComplete(false)
@@ -81,6 +82,12 @@ namespace Net {
 
         log_i("AP started - SSID: %s, IP: %s", deviceID.c_str(), apIP.toString().c_str());
 
+        // Start DNS server for captive portal
+        // This redirects all DNS requests to our AP IP
+        dnsServer = new DNSServer();
+        dnsServer->start(DNS_PORT, "*", apIP);
+        log_i("DNS server started for captive portal");
+
         // Create and configure web server
         server = new WebServer(80);
         registerEndpoints();
@@ -108,6 +115,7 @@ namespace Net {
 
         // Handle client requests until operation completes
         while (!operationComplete) {
+            dnsServer->processNextRequest();  // Process DNS requests for captive portal
             server->handleClient();
             
             // Check for reset button via callback
@@ -140,6 +148,13 @@ namespace Net {
 
         log_i("Stopping web portal server");
 
+        // Stop DNS server
+        if (dnsServer) {
+            dnsServer->stop();
+            delete dnsServer;
+            dnsServer = nullptr;
+        }
+
         // Stop server
         if (server) {
             server->stop();
@@ -164,6 +179,43 @@ namespace Net {
             handleRoot();
         });
 
+        // Captive portal detection endpoints
+        // Android
+        server->on("/generate_204", HTTP_GET, [this]() {
+            server->sendHeader("Location", "http://" + apIP.toString(), true);
+            server->send(302, "text/plain", "");
+        });
+        
+        // Microsoft/Windows
+        server->on("/connecttest.txt", HTTP_GET, [this]() {
+            server->sendHeader("Location", "http://" + apIP.toString(), true);
+            server->send(302, "text/plain", "");
+        });
+        server->on("/ncsi.txt", HTTP_GET, [this]() {
+            server->send(200, "text/plain", "Microsoft NCSI");
+        });
+        
+        // Apple/iOS/macOS
+        server->on("/hotspot-detect.html", HTTP_GET, [this]() {
+            handleRoot();
+        });
+        server->on("/library/test/success.html", HTTP_GET, [this]() {
+            handleRoot();
+        });
+        
+        // Catch-all for captive portal - redirect to root
+        server->onNotFound([this]() {
+            // If it looks like a captive portal check, redirect to root
+            String host = server->hostHeader();
+            if (host.indexOf(apIP.toString()) < 0) {
+                server->sendHeader("Location", "http://" + apIP.toString(), true);
+                server->send(302, "text/plain", "");
+            } else {
+                // Regular 404
+                server->send(404, "text/html", WebPortal::NOT_FOUND);
+            }
+        });
+
         // POST /config - Process configuration submission
         server->on("/config", HTTP_POST, [this]() {
             handleConfigSubmit();
@@ -185,11 +237,6 @@ namespace Net {
                 handleFileUpload();
             }
         );
-
-        // 404 handler
-        server->onNotFound([this]() {
-            handleNotFound();
-        });
     }
 
     void WebPortalServer::handleRoot() {
@@ -341,10 +388,6 @@ namespace Net {
         }
     }
 
-    void WebPortalServer::handleNotFound() {
-        server->send(404, "text/html", WebPortal::NOT_FOUND);
-        log_v("404 served for: %s", server->uri().c_str());
-    }
 
     String WebPortalServer::buildIndexPage() const {
         // Get firmware version info

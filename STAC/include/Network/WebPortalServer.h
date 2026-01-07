@@ -19,6 +19,7 @@
 #include <ESPmDNS.h>
 #include <WiFi.h>
 #include <Update.h>
+#include <DNSServer.h>
 #include "Config/Types.h"
 
 
@@ -45,13 +46,15 @@ namespace Net {
      * @brief Unified web portal server for provisioning and OTA updates
      * 
      * This class manages both device commissioning and firmware updates through
-     * a single tabbed web interface:
+     * a single tabbed web interface with captive portal support:
      * 
      * 1. Creates WiFi Access Point with STAC device ID as SSID
-     * 2. Serves tabbed HTML interface with Setup and Update tabs
-     * 3. Handles configuration form submission (WiFi + Roland switch settings)
-     * 4. Handles firmware upload and flashing
-     * 5. Provides callbacks for display updates and button checking
+     * 2. Starts DNS server to capture all requests (captive portal)
+     * 3. Serves tabbed HTML interface with Setup and Maintenance tabs
+     * 4. Handles configuration form submission (WiFi + Roland switch settings)
+     * 5. Handles firmware upload and flashing
+     * 6. Handles factory reset requests
+     * 7. Provides automatic browser popup on connection (iOS, Android, Windows, macOS)
      * 
      * Usage:
      * @code
@@ -189,6 +192,9 @@ namespace Net {
         static constexpr bool AP_HIDE_SSID = false;
         static constexpr uint8_t AP_MAX_CONNECTIONS = 1;
 
+        // DNS Server configuration for captive portal
+        static constexpr uint8_t DNS_PORT = 53;
+
         // Display update interval (ms)
         static constexpr unsigned long DISPLAY_UPDATE_INTERVAL = 1000;
 
@@ -199,6 +205,7 @@ namespace Net {
 
         // Server and state
         WebServer* server;
+        DNSServer* dnsServer;
         String deviceID;
         String macAddress;
         bool serverRunning;
@@ -254,11 +261,6 @@ namespace Net {
          * Processes uploaded firmware data
          */
         void handleFileUpload();
-
-        /**
-         * @brief Handler for 404 Not Found
-         */
-        void handleNotFound();
 
         /**
          * @brief Build the main portal index page with tabs
