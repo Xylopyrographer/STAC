@@ -42,17 +42,15 @@ Version 3.0 represents a major refactoring of the STAC codebase with significant
    - Automatic error detection and recovery
    - Configurable poll intervals
 
-3. **Web Configuration** - Browser-based setup via WiFi AP
-   - `WebConfigServer` - Captive portal for initial setup
-   - Configure WiFi, switch IP, channels, poll rates
-   - Mobile-friendly responsive interface
-   - Automatic restart after configuration
-
-4. **OTA Updates** - Over-the-air firmware updates
-   - `OTAUpdateServer` - mDNS-based update server
-   - Upload `.bin` files via web browser
-   - Progress indication on display
-   - Automatic verification and rollback on failure
+3. **Unified Web Portal** - Single tabbed interface for setup and maintenance
+   - `WebPortalServer` - Combines provisioning and OTA in one server
+   - **Captive Portal** - Automatic browser popup on WiFi connection
+   - **Setup Tab** - Configure WiFi, switch IP, channels, poll rates
+   - **Maintenance Tab** - Firmware updates and factory reset
+   - DNS server redirects all requests to portal
+   - Platform detection endpoints (iOS, Android, Windows, macOS)
+   - Mobile-friendly responsive interface with visual feedback
+   - Automatic restart after configuration or updates
 
 5. **StartupConfig** - Interactive startup configuration
    - Channel selection with number glyphs
@@ -64,17 +62,19 @@ Version 3.0 represents a major refactoring of the STAC codebase with significant
 ### User-Visible Improvements
 
 **Boot Button Sequence:**
-- Hold 0-2 sec: Provisioning mode (orange config glyph)
-- Hold 2-4 sec: Factory reset (red frame + green check)
-- Hold 4-6 sec: OTA update mode (red update glyph)
+- Hold 0-2 sec: Toggle PMode (camera ↔ talent)
+- Hold 2-4 sec: Unified Portal mode (orange config glyph)
+- Hold 4-6 sec: Factory reset (red frame + green check)
 - Visual feedback with glyph flashing at each stage
-- **Performance:** Servers start immediately (no wait for button release)
+- **Unified Portal** provides access to both setup and firmware updates
+- **Performance:** Server starts immediately (no wait for button release)
 
 **Enhanced Display Features:**
 - Power-on indicator (orange center pixel) overlays tally state
 - Glyph rotation follows device orientation
-- Pulsing glyphs during provisioning/OTA (brightness modulation)
+- Pulsing glyphs during portal mode (brightness modulation)
 - Visual parity with v2.x baseline
+- Automatic captive portal popup on connection (all platforms)
 
 **Peripheral Mode Enhancements:**
 - Settings persistence (camera mode, brightness)
@@ -91,10 +91,10 @@ Version 3.0 represents a major refactoring of the STAC codebase with significant
 ### Performance Optimizations
 
 **Network Service Startup:**
-- Provisioning server starts before flash sequence (-4 seconds)
-- OTA server starts immediately after threshold (-6 seconds)
-- User can release button anytime during sequences
-- Reduces wait time for service availability
+- Unified portal server starts before flash sequence (-4 seconds)
+- User can release button anytime during flash sequence
+- Reduces wait time for portal availability
+- Captive portal triggers automatic browser popup
 
 **Poll Rate Management:**
 - Normal operation: User-configured interval (default 300ms)

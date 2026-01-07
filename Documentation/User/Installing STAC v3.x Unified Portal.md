@@ -25,17 +25,44 @@
 
 **Steps:**
 1. Download: `STAC-v3.x.x-unified-[board].ota.bin`
-2. Hold STAC button 4-6 seconds (down arrow icon)
+2. Hold STAC button 2-4 seconds (orange config icon)
 3. Connect to STAC-XXXXX WiFi (password: 1234567890)
-4. Open browser: http://192.168.6.14
-5. Select the .ota.bin file and click Update
-6. Wait for update to complete and STAC to reboot
+4. Browser should auto-open to portal page (or visit http://192.168.6.14)
+5. Click "Maintenance" tab
+6. Select the .ota.bin file and click Update Firmware
+7. Wait for update to complete and STAC to reboot
 
 ### First Time Setup (After Fresh Flash)
-1. Hold STAC button for 2+ seconds
-2. Connect to STAC-XXXXX WiFi network
-3. Browser should auto-open to setup page (captive portal)
-4. Click "Setup" tab
-5. Enter WiFi and Roland switch details
-6. Click Submit
-7. STAC will reboot and connect to your network
+1. Hold STAC button for 2-4 seconds (orange config icon)
+2. Connect to STAC-XXXXX WiFi network (password: 1234567890)
+3. Browser should auto-open to portal page (captive portal)
+   - Works on iOS, Android, Windows, macOS
+   - If not automatic: visit http://192.168.6.14
+4. Click "Setup" tab (default view)
+5. Select your Roland switcher model (V-60HD or V-160HD)
+6. Enter WiFi credentials and switcher IP address
+7. Configure channel assignments and poll rate
+8. Click Submit Configuration
+9. STAC will reboot and connect to your network
+
+### Maintenance Operations
+
+**Firmware Updates:**
+1. Hold button 2-4 seconds to enter portal mode
+2. Connect to STAC-XXXXX WiFi
+3. Click "Maintenance" tab
+4. Click "Choose File" under Firmware Update
+5. Select .bin file and click Update Firmware
+6. Wait for completion and automatic reboot
+
+**Factory Reset:**
+1. Hold button 2-4 seconds to enter portal mode
+2. Connect to STAC-XXXXX WiFi
+3. Click "Maintenance" tab
+4. Click "Factory Reset" button
+5. Confirm when prompted
+6. STAC will erase all settings and reboot
+
+**Alternative Factory Reset (Hardware):**
+- Hold button for 4-6 seconds (red frame, then green check)
+- All settings erased, STAC reboots to defaults
