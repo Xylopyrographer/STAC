@@ -269,7 +269,7 @@ if (buttonB->wasPressed()) {
 
 ## Recent Changes
 
-### January 7, 2026 - Unified Web Portal with Captive Portal
+### January 7, 2026 - Unified Web Portal with Captive Portal Support & Cross-Platform Testing
 - **Major architectural change:** Combined provisioning and OTA into single unified web portal
 - Replaced separate `WebConfigServer` and `OTAUpdateServer` with unified `WebPortalServer`
 - Deleted 6 obsolete files: WebConfigServer.{h,cpp}, OTAUpdateServer.{h,cpp}, WebConfigPages.h, OTAUpdatePages.h (1,521 lines removed)
@@ -279,29 +279,45 @@ if (buttonB->wasPressed()) {
   - DNSServer integration for DNS redirect to 192.168.6.14
   - Captive portal detection endpoints: `/hotspot-detect.html` (iOS), `/generate_204` (Android), `/connecttest.txt` (Windows)
   - Fallback direct access: `http://192.168.6.14`
+- **Platform-Specific Behavior:**
+  - **iOS/iPadOS captive portal:** Auto-redirect to Safari after 1.5s (captive portal restrictions bypass), full functionality in Safari
+  - **Android captive portal:** Setup tab only, notice directs users to browser for OTA (WebView blocks file input for security)
+  - **Android browser (Chrome/Firefox):** Full functionality, both tabs visible, file upload works
+  - **Desktop browsers:** Full functionality with both tabs
+  - Browser detection: Identifies Chrome/Firefox/Safari vs WebView (checks User-Agent for browser name + absence of `wv`/`WebView`)
 - **iOS/iPadOS Compatibility Fixes:**
   - Removed UTF-8 special characters (displayed incorrectly on iOS)
   - Replaced JavaScript `confirm()` dialogs with HTML5 required checkbox (JavaScript dialogs blocked in iOS captive portal)
-  - Added `inputmode="numeric"` and `pattern="[0-9]*"` for numeric keyboards on mobile devices
+  - Added `inputmode="numeric"` and `pattern="[0-9]*"` for numeric keyboards on mobile devices (both attributes required for iOS reliability)
   - Added `inputmode="decimal"` for IP address fields (numeric keyboard with decimal point)
-- **Form Improvements:**
-  - Updated defaults: V-60HD (port=80, maxChan=6, poll=300ms), V-160HD (port=80, poll=300ms, user/pass=admin)
-  - Factory reset requires checkbox confirmation before submit button enables
-  - Web-based factory reset calls `ESP.restart()` directly (no orange glyph artifact)
+  - Auto-redirect button uses `<a href target="_blank">` instead of JavaScript `window.location` (Android best practice)
+- **Form Validation (matching v2.x implementation):**
+  - IP address pattern: `^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`
+  - SSID: Required, max 32 characters
+  - Password: Optional (allows open WiFi), max 63 characters (corrected from 64)
+  - Port: Required, 1-65535
+  - Max channels (V-60HD/V-160HD): Required, 1-8
+  - Poll interval: Required, 175-2000ms
+  - V-160HD LAN credentials: Required, max 32 characters each
+  - Factory reset: Requires checkbox confirmation
+- **Form Defaults:**
+  - V-60HD: port=80, maxChan=6, poll=300ms
+  - V-160HD: port=80, poll=300ms, LAN user="admin", LAN pass="admin", HDMI/SDI channels=8
 - **Boot Button Sequence Updates:**
-  - 0-2 sec: Toggle Peripheral Mode (if capable) - shows green P or N glyph
+  - 0-2 sec: Toggle Peripheral Mode (if capable) - shows green N glyph when exiting to normal mode
   - 2-4 sec: Unified Portal (Setup/OTA) - shows orange/red gear icon
   - 4-6 sec: Factory Reset - shows red factory reset icon
 - **Display Improvements:**
-  - Added GLF_N glyph for 5×5 and 8×8 displays (shows when exiting peripheral mode to normal mode)
-  - Replaced GLF_P_CANCEL (P with slash - hard to see on 5×5) with clear green N glyph
-  - Fixed display artifacts when transitioning from peripheral mode to normal mode
-  - Peripheral mode exit now shows: green N flash → checkmark → clear → channel number
+  - Added GLF_N glyph for 5×5 and 8×8 displays (clearer than slash-through-P for normal mode)
+  - Peripheral mode exit sequence: green N flash → checkmark → clear → channel number
+  - Fixed display artifacts when transitioning from peripheral mode to normal mode (added clear() calls)
+  - Web-based factory reset calls `ESP.restart()` directly (no orange glyph artifact)
 - **Documentation:**
   - Updated DEVELOPER_GUIDE.md with unified portal architecture
-  - Updated user documentation with new portal workflow
+  - Updated user documentation with new portal workflow and platform-specific notes
   - Serial monitor shows "Portal: Captive (auto-popup)" and "Fallback: http://192.168.6.14"
-- **Memory:** Flash 66.9% (1,301,111 bytes), RAM 15.7% (51,348 bytes)
+- **Testing:** Validated on iOS/iPadOS (captive portal + Safari), Android (captive portal + Chrome browser), desktop browsers
+- **Memory:** Flash 67.1% (1,305,927 bytes), RAM 15.7% (51,348 bytes)
 
 ### December 1, 2025 - TFT Display Startup Artifact Fix
 - Fixed display artifacts (stale pixels) showing during soft reset on TFT displays

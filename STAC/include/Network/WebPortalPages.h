@@ -133,6 +133,20 @@ namespace WebPortal {
     border: 1px solid #ccc;
     border-radius: 4px;
     background: white;
+    cursor: pointer;
+    display: block;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  input[type="file"]::-webkit-file-upload-button {
+    padding: 8px 16px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
   }
   button, input[type="submit"], input[type="reset"] {
     padding: 12px 30px;
@@ -176,6 +190,53 @@ namespace WebPortal {
     background: #fafafa;
     border-radius: 4px;
   }
+  .landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    min-height: 300px;
+  }
+  .landing h2 {
+    color: #4CAF50;
+    margin-bottom: 20px;
+  }
+  .landing p {
+    color: #666;
+    margin: 10px 0;
+    font-size: 16px;
+  }
+  .landing .btn-continue {
+    margin-top: 30px;
+    padding: 15px 40px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .landing .btn-continue:hover {
+    background: #45a049;
+  }
+  .spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
   </style>
 </head>
 <body>
@@ -197,18 +258,34 @@ namespace WebPortal {
 )=====";
 
     /**
+     * @brief Landing page with auto-redirect to full browser
+     */
+    const char LANDING_PAGE[] = R"=====(    <div id="landing" class="landing">
+      <h2>Welcome to STAC Setup</h2>
+      <div class="spinner"></div>
+      <p id="landing-message">Opening in browser...</p>
+      <a href="http://192.168.6.14?open=1" target="_blank" class="btn-continue" id="btn-continue" style="display:none;">
+        Continue to Setup
+      </a>
+    </div>
+)=====";
+
+    /**
      * @brief Tab buttons
      */
-    const char TAB_BUTTONS[] = R"=====(    <div class="tabs">
+    const char TAB_BUTTONS[] = R"=====(    <div class="tabs" id="tabs" style="display:none;">
       <button class="tab active" onclick="showTab('setup')" id="tab-setup">Setup</button>
       <button class="tab" onclick="showTab('maintenance')" id="tab-maintenance">Maintenance</button>
+    </div>
+    <div id="portal-notice" class="info-text" style="display:none; margin: 15px 20px; background: #fff3cd; border: 1px solid #ffc107;">
+      <strong>Note:</strong> For firmware updates, open <strong>http://192.168.6.14</strong> in your browser after connecting to STAC WiFi.
     </div>
 )=====";
 
     /**
      * @brief Setup tab content - model selection and configuration
      */
-    const char TAB_SETUP[] = R"=====(    <div id="content-setup" class="tab-content active">
+    const char TAB_SETUP[] = R"=====(    <div id="content-setup" class="tab-content active" style="display:none;">
       <h2>Device Setup</h2>
       
       <form id="form-model" method="post" action="/config-step1">
@@ -231,13 +308,13 @@ namespace WebPortal {
           <input type="text" id="SSID" name="SSID" maxlength="32" required>
           
           <label for="pwd">Password:</label>
-          <input type="password" id="pwd" name="pwd" maxlength="64" required>
+          <input type="password" id="pwd" name="pwd" maxlength="63">
         </div>
         
         <div class="section">
           <h3>V-60HD Settings</h3>
           <label for="stIP">V-60HD IP Address:</label>
-          <input type="text" id="stIP" name="stIP" placeholder="192.168.1.100" inputmode="decimal" required>
+          <input type="text" id="stIP" name="stIP" placeholder="192.168.1.100" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" inputmode="decimal" required>
           
           <label for="stPort">Port:</label>
           <input type="number" id="stPort" name="stPort" value="80" min="1" max="65535" inputmode="numeric" pattern="[0-9]*" required>
@@ -264,13 +341,13 @@ namespace WebPortal {
           <input type="text" id="SSID2" name="SSID" maxlength="32" required>
           
           <label for="pwd2">Password:</label>
-          <input type="password" id="pwd2" name="pwd" maxlength="64" required>
+          <input type="password" id="pwd2" name="pwd" maxlength="63">
         </div>
         
         <div class="section">
           <h3>V-160HD Settings</h3>
           <label for="stIP2">V-160HD IP Address:</label>
-          <input type="text" id="stIP2" name="stIP" placeholder="192.168.1.100" inputmode="decimal" required>
+          <input type="text" id="stIP2" name="stIP" placeholder="192.168.1.100" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" inputmode="decimal" required>
           
           <label for="stPort2">Port:</label>
           <input type="number" id="stPort2" name="stPort" value="80" min="1" max="65535" inputmode="numeric" pattern="[0-9]*" required>
@@ -301,7 +378,7 @@ namespace WebPortal {
     /**
      * @brief Maintenance tab content - OTA firmware upload and factory reset
      */
-    const char TAB_MAINTENANCE[] = R"=====(    <div id="content-maintenance" class="tab-content">
+    const char TAB_MAINTENANCE[] = R"=====(    <div id="content-maintenance" class="tab-content" style="display:none;">
       <h2>Maintenance</h2>
       
       <!-- Firmware Update Section -->
@@ -321,7 +398,7 @@ namespace WebPortal {
           <label for="update">Select Firmware File (.bin):</label>
           <input type="file" name="update" id="update" accept=".bin" required>
           <br>
-          <input type="submit" value="Update Firmware" id="update-btn" disabled>
+          <input type="submit" value="Update Firmware">
         </form>
       </div>
       
@@ -357,37 +434,96 @@ namespace WebPortal {
      * @brief JavaScript for tab switching and form handling
      */
     const char PAGE_SCRIPT[] = R"=====(    <script>
+    // Auto-redirect from captive portal to full browser
+    function openInBrowser() {
+      window.location.href = 'http://192.168.6.14?open=1';
+    }
+    
     // Tab switching
     function showTab(tabName) {
-      // Hide all tab content
+      // Hide all tab content - remove inline styles and active class
       document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.remove('active');
+        el.style.display = 'none';
       });
       // Deactivate all tabs
       document.querySelectorAll('.tab').forEach(el => {
         el.classList.remove('active');
       });
       // Show selected tab content
-      document.getElementById('content-' + tabName).classList.add('active');
+      const selectedContent = document.getElementById('content-' + tabName);
+      selectedContent.style.display = 'block';
+      selectedContent.classList.add('active');
       // Activate selected tab
       document.getElementById('tab-' + tabName).classList.add('active');
     }
     
-    // Handle model selection in Setup tab
-    document.getElementById('form-model').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const model = document.getElementById('stModel').value;
+    // Check if we should auto-redirect (detect captive portal environment)
+    function checkCaptivePortal() {
+      // Check if we've already been redirected (look for ?open=1 parameter)
+      const urlParams = new URLSearchParams(window.location.search);
+      const alreadyOpened = urlParams.get('open') === '1';
       
-      // Hide model selection form
-      document.getElementById('form-model').style.display = 'none';
+      // Detect captive portal environments
+      const isIOSCaptivePortal = /CaptiveNetworkSupport/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
       
-      // Show appropriate config form
-      if (model === 'V-60HD') {
-        document.getElementById('form-v60hd').style.display = 'block';
-      } else if (model === 'V-160HD') {
-        document.getElementById('form-v160hd').style.display = 'block';
+      // Check if we're in a full browser (has Chrome, Firefox, Safari in UA) vs captive portal WebView
+      const isFullBrowser = /Chrome|Firefox|Safari|Edge|OPR/i.test(navigator.userAgent) && 
+                           !/wv|WebView/i.test(navigator.userAgent);
+      
+      // Show both tabs if: redirected, desktop browser, or full mobile browser
+      if (alreadyOpened || !isIOSCaptivePortal && !isAndroid || (isAndroid && isFullBrowser)) {
+        document.getElementById('landing').style.display = 'none';
+        document.getElementById('tabs').style.display = 'flex';
+        document.getElementById('tab-maintenance').style.display = 'inline-block';
+        showTab('setup');
+        return;
       }
-    });
+      
+      if (isIOSCaptivePortal) {
+        // iOS captive portal - try auto-redirect
+        document.getElementById('landing-message').textContent = 'Opening in browser...';
+        setTimeout(function() {
+          document.getElementById('btn-continue').style.display = 'block';
+          document.getElementById('landing-message').textContent = 'Tap Continue to open setup in Safari';
+        }, 2000);
+        setTimeout(function() {
+          openInBrowser();
+        }, 1500);
+      } else if (isAndroid && !isFullBrowser) {
+        // Android captive portal - show Setup only, hide Maintenance (file inputs don't work)
+        document.getElementById('landing').style.display = 'none';
+        document.getElementById('tabs').style.display = 'flex';
+        document.getElementById('tab-maintenance').style.display = 'none';
+        document.getElementById('portal-notice').style.display = 'block';
+        showTab('setup');
+      }
+    }
+    
+    // Initialize page after DOM is loaded
+    function initializePage() {
+      checkCaptivePortal();
+      
+      // Handle model selection in Setup tab
+      const formModel = document.getElementById('form-model');
+      if (formModel) {
+        formModel.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const model = document.getElementById('stModel').value;
+          
+          // Hide model selection form
+          document.getElementById('form-model').style.display = 'none';
+          
+          // Show appropriate config form
+          if (model === 'V-60HD') {
+            document.getElementById('form-v60hd').style.display = 'block';
+          } else if (model === 'V-160HD') {
+            document.getElementById('form-v160hd').style.display = 'block';
+          }
+        });
+      }
+    }
     
     // Back button - return to model selection
     function showModelSelect() {
@@ -396,10 +532,8 @@ namespace WebPortal {
       document.getElementById('form-model').style.display = 'block';
     }
     
-    // Enable update button when file is selected
-    document.getElementById('update').addEventListener('change', function(e) {
-      document.getElementById('update-btn').disabled = !e.target.value;
-    });
+    // Run on page load
+    window.addEventListener('load', initializePage);
     </script>
 )=====";
 

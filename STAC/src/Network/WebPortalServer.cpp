@@ -410,6 +410,7 @@ namespace Net {
         page += "<p><strong>Core:</strong> " + coreVersion + "</p>";
         page += "<p><strong>SDK:</strong> " + sdkVersion + "</p>";
         page += WebPortal::DEVICE_INFO_CLOSE;
+        page += WebPortal::LANDING_PAGE;
         page += WebPortal::TAB_BUTTONS;
         page += WebPortal::TAB_SETUP;
         page += WebPortal::TAB_MAINTENANCE;
