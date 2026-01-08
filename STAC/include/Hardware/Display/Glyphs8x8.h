@@ -43,6 +43,7 @@ namespace Display {
     constexpr uint8_t GLF_WIFI = 16;  ///< WiFi icon
     constexpr uint8_t GLF_CFG  = 17;  ///< Config required icon
     constexpr uint8_t GLF_BX   = 18;  ///< Big X
+    constexpr uint8_t GLF_X    = GLF_BX;  ///< Letter X (alias to BIG_X)
     constexpr uint8_t GLF_CK   = 19;  ///< Checkmark
     constexpr uint8_t GLF_CBD  = 20;  ///< Checkerboard
     constexpr uint8_t GLF_FM   = 21;  ///< Frame (solid)
