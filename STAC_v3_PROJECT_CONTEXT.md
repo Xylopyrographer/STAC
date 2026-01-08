@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.9  
 **Branch:** `v3-unified-portal`  
-**Updated:** January 7, 2026  
-**Status:** Unified Web Portal with Captive Portal Support
+**Updated:** January 8, 2026  
+**Status:** Unified Web Portal - All Platforms Tested
 
 ---
 
@@ -15,7 +15,7 @@
 |-------|---------|-----|-----|--------|
 | M5Stack ATOM Matrix | 5×5 LED | MPU6886 | ESP32-PICO-D4 | ✅ Tested |
 | Waveshare ESP32-S3-Matrix | 8×8 LED | QMI8658 | ESP32-S3 | ✅ Tested |
-| M5StickC Plus | 135×240 TFT | MPU6886 | ESP32-PICO-D4 | 🔄 In Development |
+| M5StickC Plus | 135×240 TFT | MPU6886 | ESP32-PICO-D4 | ✅ Tested |
 | LilyGO T-Display | 135×240 TFT | None | ESP32 | ✅ Tested |
 | AIPI-Lite | 128×128 TFT | None | ESP32-S3 | ✅ Tested |
 
@@ -268,6 +268,34 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### January 8, 2026 - Multi-Platform Glyph Compatibility Fixes & Complete Platform Validation
+- **Waveshare ESP32-S3-Matrix (8×8 LED):** Added GLF_X alias to GLF_BX (existing Big X glyph at index 18)
+  - Boot button sequence uses GLF_X for error states
+  - 8×8 glyph set already had Big X icon, just needed alias for compatibility
+  - Build: Flash 65.7% (1,267,347 bytes), RAM 15.0% (49,192 bytes)
+  - Tested: Unified portal working, boot button sequence visual feedback confirmed
+- **M5StickC Plus (TFT LCD):** Added GLF_N glyph support to TFT display system
+  - TFT displays render letter glyphs (C, T, A, S, P) using `drawString()` with FreeSansBold font
+  - GLF_N was missing when boot sequence changed from GLF_P_CANCEL to GLF_N in commit 164772e
+  - Added GLF_N constant (index 36) to `GlyphsTFT.h` to match LED matrix glyph sets
+  - Added GLF_N to BASE_GLYPHS array and drawGlyph() switch case to render 'N'
+  - Build: Flash 72.1% (1,402,067 bytes), RAM 15.7% (51,368 bytes)
+  - Tested: Boot button sequence shows proper glyphs (N, gear, factory reset icons)
+- **AIPI-Lite (TFT LCD):** Validated with GLF_N support
+  - Build: Flash 16.7% (1,393,195 bytes), RAM 15.4% (50,376 bytes)
+  - Tested: Boot button sequence, unified portal, all features working
+- **LilyGO T-Display (TFT LCD):** Validated with GLF_N support
+  - Build: Flash 72.4% (1,408,063 bytes), RAM 15.7% (51,572 bytes)
+  - Tested: Boot button sequence (P, gear, factory reset glyphs), provisioning mode with captive portal, factory reset, configuration save/load, WiFi connection
+  - Serial monitor confirmed: startup config sequence, web portal operation, successful configuration submission, restart and normal mode operation
+- **Key insight:** TFT and LED matrix displays have fundamentally different architectures:
+  - LED matrix: Include `Glyphs5x5.h` or `Glyphs8x8.h` with bitmap glyph data arrays
+  - TFT: Include `GlyphsTFT.h` with stub arrays (just index values), render glyphs as graphics primitives
+  - Both use same glyph index constants for application code compatibility
+- **All five platforms validated:** ATOM Matrix (5×5 LED), Waveshare S3 (8×8 LED), M5StickC Plus (TFT), AIPI-Lite (TFT), LilyGO T-Display (TFT)
+- **Production ready:** Unified portal fully operational across entire hardware ecosystem
+- Git commits: a96ab82 (GLF_X alias), c88705c (GLF_N support)
 
 ### January 7-8, 2026 - Unified Web Portal with Captive Portal Support & Cross-Platform Testing
 - **Major architectural change:** Combined provisioning and OTA into single unified web portal
