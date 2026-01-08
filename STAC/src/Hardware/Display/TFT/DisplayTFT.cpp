@@ -348,6 +348,7 @@ namespace Display {
             case Display::GLF_A:
             case Display::GLF_S:
             case Display::GLF_P:
+            case Display::GLF_N:
                 // Single letter glyphs - draw large using a proper font (not 7-segment)
                 {
                     char letter = ' ';
@@ -356,6 +357,7 @@ namespace Display {
                     else if (glyphIndex == Display::GLF_A) letter = 'A';
                     else if (glyphIndex == Display::GLF_S) letter = 'S';
                     else if (glyphIndex == Display::GLF_P) letter = 'P';
+                    else if (glyphIndex == Display::GLF_N) letter = 'N';
                     
                     _sprite->setTextColor(colorToRGB565(foreground), colorToRGB565(background));
                     _sprite->setTextDatum(MC_DATUM);
