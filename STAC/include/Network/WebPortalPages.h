@@ -397,11 +397,17 @@ namespace WebPortal {
           <strong>Note:</strong> To cancel, press the STAC reset button.
         </div>
         
-        <form method="post" enctype="multipart/form-data" action="/update">
+        <form method="post" enctype="multipart/form-data" action="/update" id="upload-form">
           <label for="update">Select Firmware File (.bin):</label>
           <input type="file" name="update" id="update" accept=".bin" required>
           <br>
-          <input type="submit" value="Update Firmware">
+          <input type="submit" value="Update Firmware" id="upload-btn">
+          <div id="upload-progress" style="display:none; margin-top: 15px;">
+            <div style="background: #f0f0f0; border-radius: 10px; height: 24px; overflow: hidden;">
+              <div id="progress-bar" style="background: #4CAF50; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <p id="progress-text" style="margin-top: 10px; font-weight: bold;">Uploading: 0%</p>
+          </div>
         </form>
       </div>
       
@@ -409,7 +415,7 @@ namespace WebPortal {
       <div class="section" style="margin-top: 30px;">
         <h3 style="color: #f44336;">Factory Reset</h3>
         <div class="info-text" style="background: #ffebee; border-left: 4px solid #f44336;">
-          <strong style="color: #f44336;">⚠️ Warning:</strong><br>
+          <strong style="color: #f44336;">&#9888; Warning:</strong><br>
           Factory Reset will erase all settings including:<br>
           • WiFi credentials<br>
           • Roland switcher configuration<br>
@@ -501,6 +507,63 @@ namespace WebPortal {
     // Initialize page after DOM is loaded
     function initializePage() {
       checkCaptivePortal();
+      
+      // Handle firmware upload with progress
+      const uploadForm = document.getElementById('upload-form');
+      if (uploadForm) {
+        uploadForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          const fileInput = document.getElementById('update');
+          const file = fileInput.files[0];
+          
+          if (!file) {
+            alert('Please select a firmware file');
+            return;
+          }
+          
+          // Show progress, hide submit button
+          document.getElementById('upload-btn').disabled = true;
+          document.getElementById('upload-progress').style.display = 'block';
+          
+          const xhr = new XMLHttpRequest();
+          
+          // Track upload progress
+          xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+              const percent = Math.round((e.loaded / e.total) * 100);
+              document.getElementById('progress-bar').style.width = percent + '%';
+              document.getElementById('progress-text').textContent = 'Uploading: ' + percent + '%';
+            }
+          });
+          
+          // Handle completion
+          xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+              document.getElementById('progress-text').textContent = 'Upload complete! Processing...';
+              // The response is the result page - display it
+              document.open();
+              document.write(xhr.responseText);
+              document.close();
+            } else {
+              document.getElementById('progress-text').textContent = 'Upload failed: ' + xhr.status;
+              document.getElementById('upload-btn').disabled = false;
+            }
+          });
+          
+          // Handle errors
+          xhr.addEventListener('error', function() {
+            document.getElementById('progress-text').textContent = 'Upload failed - connection error';
+            document.getElementById('upload-btn').disabled = false;
+          });
+          
+          // Send the file
+          const formData = new FormData();
+          formData.append('update', file);
+          xhr.open('POST', '/update');
+          xhr.send(formData);
+        });
+      }
       
       // Handle model selection in Setup tab
       const formModel = document.getElementById('form-model');

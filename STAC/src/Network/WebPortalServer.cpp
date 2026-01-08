@@ -8,6 +8,7 @@
 
 #include "Network/WebPortalServer.h"
 #include "Network/WebPortalPages.h"
+#include "Device_Config.h"
 #include <esp_wifi.h>
 #include <esp_mac.h>
 
@@ -391,8 +392,7 @@ namespace Net {
 
     String WebPortalServer::buildIndexPage() const {
         // Get firmware version info
-        // TODO: Replace with actual version strings from build system
-        String fwVersion = "3.0.0-unified";
+        String fwVersion = STAC_SOFTWARE_VERSION;
         String coreVersion = String(ESP_ARDUINO_VERSION_MAJOR) + "." +
                              String(ESP_ARDUINO_VERSION_MINOR) + "." +
                              String(ESP_ARDUINO_VERSION_PATCH);
@@ -427,13 +427,13 @@ namespace Net {
         page += WebPortal::OTA_PAGE_OPEN;
         
         if (result.otaResult.success) {
-            page += "<h1 class=\"success\">✓ Update Successful</h1>";
+            page += "<h1 class=\"success\">&#10004; Update Successful</h1>";
             page += "<p>Firmware file: <span class=\"filename\">" + result.otaResult.filename + "</span></p>";
             page += "<p>Bytes written: " + String(result.otaResult.bytesWritten) + "</p>";
             page += "<p><strong>STAC is restarting...</strong></p>";
             page += "<p>Please wait for the device to reboot.</p>";
         } else {
-            page += "<h1 class=\"error\">✗ Update Failed</h1>";
+            page += "<h1 class=\"error\">&#10008; Update Failed</h1>";
             page += "<p class=\"error\">" + result.otaResult.statusMessage + "</p>";
             page += "<p>Firmware file: <span class=\"filename\">" + result.otaResult.filename + "</span></p>";
             page += "<p>Bytes written: " + String(result.otaResult.bytesWritten) + "</p>";
