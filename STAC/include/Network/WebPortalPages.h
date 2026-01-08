@@ -278,7 +278,10 @@ namespace WebPortal {
       <button class="tab" onclick="showTab('maintenance')" id="tab-maintenance">Maintenance</button>
     </div>
     <div id="portal-notice" class="info-text" style="display:none; margin: 15px 20px; background: #fff3cd; border: 1px solid #ffc107;">
-      <strong>Note:</strong> For firmware updates, open <strong>http://192.168.6.14</strong> in your browser after connecting to STAC WiFi.
+      <strong>Note:</strong> For firmware updates, please:<br>
+      1. Stay connected to STAC WiFi<br>
+      2. Open <strong>Chrome</strong> or <strong>Firefox</strong><br>
+      3. Go to: <strong>http://stac.local</strong> or <strong>http://192.168.6.14</strong>
     </div>
 )=====";
 
@@ -418,12 +421,6 @@ namespace WebPortal {
         </div>
         
         <form id="factory-reset-form" method="post" action="/factory-reset">
-          <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border: 2px solid #f44336; border-radius: 4px;">
-            <label style="display: flex; align-items: center; cursor: pointer; font-size: 15px; font-weight: bold; color: #333;">
-              <input type="checkbox" id="confirm-reset" name="confirm" value="yes" required style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
-              <span>I understand this will PERMANENTLY ERASE all configuration data and cannot be undone</span>
-            </label>
-          </div>
           <input type="submit" id="reset-btn" value="Perform Factory Reset" style="background: #f44336; margin-top: 15px; padding: 12px 30px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white;">
         </form>
       </div>

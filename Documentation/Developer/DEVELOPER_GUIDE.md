@@ -76,6 +76,12 @@ Version 3.0 represents a major refactoring of the STAC codebase with significant
 - Visual parity with v2.x baseline
 - Automatic captive portal popup on connection (all platforms)
 
+**Captive Portal Platform Behavior:**
+- **iOS/iPadOS:** Auto-popup on first connection; caches "known good" networks preventing auto-popup on subsequent connections (user must use browser or "forget" network)
+- **Android:** Auto-popup shows Setup tab; captive portal WebView blocks file uploads (user must open browser for Maintenance/OTA)
+- **macOS/Windows/Linux:** Reliable captive portal detection; mDNS (http://stac.local) works natively (Windows may require Bonjour)
+- **All platforms:** Fallback IP access at http://192.168.6.14
+
 **Peripheral Mode Enhancements:**
 - Settings persistence (camera mode, brightness)
 - Long-press button to adjust settings

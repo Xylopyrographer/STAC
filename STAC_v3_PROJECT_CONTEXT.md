@@ -269,7 +269,7 @@ if (buttonB->wasPressed()) {
 
 ## Recent Changes
 
-### January 7, 2026 - Unified Web Portal with Captive Portal Support & Cross-Platform Testing
+### January 7-8, 2026 - Unified Web Portal with Captive Portal Support & Cross-Platform Testing
 - **Major architectural change:** Combined provisioning and OTA into single unified web portal
 - Replaced separate `WebConfigServer` and `OTAUpdateServer` with unified `WebPortalServer`
 - Deleted 6 obsolete files: WebConfigServer.{h,cpp}, OTAUpdateServer.{h,cpp}, WebConfigPages.h, OTAUpdatePages.h (1,521 lines removed)
@@ -278,10 +278,12 @@ if (buttonB->wasPressed()) {
   - Auto-popup captive portal on iOS/iPadOS/Android/Windows devices
   - DNSServer integration for DNS redirect to 192.168.6.14
   - Captive portal detection endpoints: `/hotspot-detect.html` (iOS), `/generate_204` (Android), `/connecttest.txt` (Windows)
+  - mDNS support: Access portal at **http://stac.local** (hostname: "stac")
   - Fallback direct access: `http://192.168.6.14`
 - **Platform-Specific Behavior:**
   - **iOS/iPadOS captive portal:** Auto-redirect to Safari after 1.5s (captive portal restrictions bypass), full functionality in Safari
-  - **Android captive portal:** Setup tab only, notice directs users to browser for OTA (WebView blocks file input for security)
+  - **iOS/iPadOS caching:** After first successful setup, iOS caches network as "known good" and won't show captive portal on reconnection (user must use browser or "forget" network)
+  - **Android captive portal:** Setup tab only with instructions to open browser for OTA (WebView blocks file input for security, navigation attempts blocked)
   - **Android browser (Chrome/Firefox):** Full functionality, both tabs visible, file upload works
   - **Desktop browsers:** Full functionality with both tabs
   - Browser detection: Identifies Chrome/Firefox/Safari vs WebView (checks User-Agent for browser name + absence of `wv`/`WebView`)
@@ -299,7 +301,10 @@ if (buttonB->wasPressed()) {
   - Max channels (V-60HD/V-160HD): Required, 1-8
   - Poll interval: Required, 175-2000ms
   - V-160HD LAN credentials: Required, max 32 characters each
-  - Factory reset: Requires checkbox confirmation
+- **UX Improvements:**
+  - Factory reset: Simplified to single button click (removed checkbox confirmation requirement)
+  - Android captive portal: Step-by-step instructions to open browser at http://stac.local or http://192.168.6.14
+  - All platforms: Consistent mDNS + IP fallback guidance
 - **Form Defaults:**
   - V-60HD: port=80, maxChan=6, poll=300ms
   - V-160HD: port=80, poll=300ms, LAN user="admin", LAN pass="admin", HDMI/SDI channels=8
@@ -313,11 +318,12 @@ if (buttonB->wasPressed()) {
   - Fixed display artifacts when transitioning from peripheral mode to normal mode (added clear() calls)
   - Web-based factory reset calls `ESP.restart()` directly (no orange glyph artifact)
 - **Documentation:**
-  - Updated DEVELOPER_GUIDE.md with unified portal architecture
-  - Updated user documentation with new portal workflow and platform-specific notes
+  - Updated DEVELOPER_GUIDE.md with unified portal architecture and platform-specific captive portal behavior
+  - Updated "Installing STAC v3.x Unified Portal.md" with comprehensive platform-specific notes section
+  - Documented iOS caching behavior, Android WebView restrictions, mDNS compatibility requirements
   - Serial monitor shows "Portal: Captive (auto-popup)" and "Fallback: http://192.168.6.14"
-- **Testing:** Validated on iOS/iPadOS (captive portal + Safari), Android (captive portal + Chrome browser), desktop browsers
-- **Memory:** Flash 67.1% (1,305,927 bytes), RAM 15.7% (51,348 bytes)
+- **Testing:** Validated on iOS/iPadOS (captive portal + Safari, caching behavior confirmed), Android (captive portal + Chrome browser), desktop browsers
+- **Memory:** Flash 67.1% (1,305,735 bytes), RAM 15.7% (51,348 bytes)
 
 ### December 1, 2025 - TFT Display Startup Artifact Fix
 - Fixed display artifacts (stale pixels) showing during soft reset on TFT displays

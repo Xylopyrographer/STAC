@@ -186,7 +186,7 @@ namespace Net {
 
     private:
         // WiFi Access Point configuration
-        static constexpr const char* AP_HOSTNAME = "setup";
+        static constexpr const char* AP_HOSTNAME = "stac";
         static constexpr const char* AP_PASSWORD = "1234567890";
         static constexpr uint8_t AP_CHANNEL = 1;
         static constexpr bool AP_HIDE_SSID = false;

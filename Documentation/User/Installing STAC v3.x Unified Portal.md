@@ -37,7 +37,7 @@
 2. Connect to STAC-XXXXX WiFi network (password: 1234567890)
 3. Browser should auto-open to portal page (captive portal)
    - Works on iOS, Android, Windows, macOS
-   - If not automatic: visit http://192.168.6.14
+   - If not automatic: visit **http://stac.local** or **http://192.168.6.14**
 4. Click "Setup" tab (default view)
 5. Select your Roland switcher model (V-60HD or V-160HD)
 6. Enter WiFi credentials and switcher IP address
@@ -45,15 +45,40 @@
 8. Click Submit Configuration
 9. STAC will reboot and connect to your network
 
+### Platform-Specific Notes
+
+**iOS/iPadOS:**
+- Captive portal auto-opens on first connection
+- After first successful setup, iOS caches the network as "known good"
+- On subsequent connections: captive portal may not appear automatically
+- **Solution:** Open Safari and go to **http://stac.local** or **http://192.168.6.14**
+- **Alternative:** "Forget" the STAC network in WiFi settings to reset captive portal detection
+
+**Android:**
+- Captive portal auto-opens for Setup tab
+- Captive portal WebView blocks file uploads (security restriction)
+- **For firmware updates:** Open Chrome/Firefox and go to **http://stac.local** or **http://192.168.6.14**
+- Full browser access provides both Setup and Maintenance tabs
+
+**macOS/Windows/Linux:**
+- Captive portal detection works reliably
+- mDNS (**http://stac.local**) works on most systems
+- Windows may require Bonjour/iTunes installed for mDNS support
+- IP address (**http://192.168.6.14**) works on all systems
+
 ### Maintenance Operations
 
 **Firmware Updates:**
 1. Hold button 2-4 seconds to enter portal mode
 2. Connect to STAC-XXXXX WiFi
-3. Click "Maintenance" tab
-4. Click "Choose File" under Firmware Update
-5. Select .bin file and click Update Firmware
-6. Wait for completion and automatic reboot
+3. **Open your web browser** (required for Android, recommended for iOS/iPadOS after first setup)
+   - Go to: **http://stac.local** or **http://192.168.6.14**
+4. Click "Maintenance" tab
+5. Click "Choose File" under Firmware Update
+6. Select .bin file and click Update Firmware
+7. Wait for completion and automatic reboot
+
+**Note for Android users:** The captive portal cannot upload files - you must use Chrome/Firefox browser.
 
 **Factory Reset:**
 1. Hold button 2-4 seconds to enter portal mode
