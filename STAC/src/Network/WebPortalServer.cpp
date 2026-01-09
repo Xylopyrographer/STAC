@@ -9,6 +9,7 @@
 #include "Network/WebPortalServer.h"
 #include "Network/WebPortalPages.h"
 #include "Device_Config.h"
+#include "build_info.h"
 #include <esp_wifi.h>
 #include <esp_mac.h>
 

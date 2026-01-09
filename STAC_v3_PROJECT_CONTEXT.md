@@ -1,9 +1,9 @@
 # STAC v3 Project Context
 
-**Version:** v3.0.0-RC.9  
+**Version:** v3.0.0-RC.13  
 **Branch:** `v3-unified-portal`  
 **Updated:** January 8, 2026  
-**Status:** Unified Web Portal - All Platforms Tested
+**Status:** Unified Web Portal - OTA Updates Production Ready
 
 ---
 
@@ -268,6 +268,32 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### January 8, 2026 - OTA Update UX Improvements & Build System Enhancements
+- **OTA Progress Tracking (RC.11):**
+  - Added JavaScript XMLHttpRequest-based upload with real-time progress bar
+  - Visual progress: 0-100% animated green bar, percentage text display
+  - Works across all browsers including mobile (Android Chrome/Edge tested)
+  - Flash impact: +2.7KB for JavaScript code
+- **Symbol Encoding Fix (RC.11):**
+  - Replaced UTF-8 symbols (✓, ✗, ⚠️) with HTML entities (&#10004;, &#10008;, &#9888;)
+  - Fixes rendering issues on Android WebView and captive portals
+  - Universal browser compatibility without font dependencies
+- **Version Display Enhancement (RC.11):**
+  - Changed from hardcoded "3.0.0-unified" to `STAC_SOFTWARE_VERSION` macro
+  - Version now updates correctly after OTA firmware updates
+  - Single source of truth in `Device_Config.h`
+- **Build Number & Git Info Display (RC.12):**
+  - Serial console: Renamed "Build:" to "Git:" to avoid confusion with build number
+  - Web portal: Now displays `BUILD_FULL_VERSION` (e.g., "3.0.0-RC.12 (7259c9)")
+  - Added Git commit info to web portal matching serial console format
+  - Build number = MD5 hash of source files (tracks code changes)
+  - Git commit = repository SHA (tracks commits)
+- **Build System Automation (RC.13):**
+  - Fixed `build_version.py` to auto-generate `build_info.h` before compilation
+  - Version changes in `Device_Config.h` now automatically update build artifacts
+  - Script runs immediately when loaded, ensures build_info.h exists before compilation starts
+  - Eliminated manual build_info.h regeneration requirement
 
 ### January 8, 2026 - Multi-Platform Glyph Compatibility Fixes & Complete Platform Validation
 - **Waveshare ESP32-S3-Matrix (8×8 LED):** Added GLF_X alias to GLF_BX (existing Big X glyph at index 18)

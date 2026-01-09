@@ -196,8 +196,5 @@ def generate_build_info():
     print("=" * 60)
 
 
-# Run before compilation
-env.AddPreAction("buildprog", lambda source, target, env: generate_build_info())
-
-# Also run before filesystem image creation (if needed)
-env.AddPreAction("buildfs", lambda source, target, env: generate_build_info())
+# Generate build_info.h immediately when script loads (before any build actions)
+generate_build_info()

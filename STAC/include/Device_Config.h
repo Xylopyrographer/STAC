@@ -47,7 +47,7 @@
 // ============================================================================
 
 // FIXME(Claude): This is better in STACApp or ??
-#define STAC_SOFTWARE_VERSION "3.0.0-RC.12"  // Software version string
+#define STAC_SOFTWARE_VERSION "3.0.0-RC.13"  // Software version string
 
 #endif // DEVICE_CONFIG_H
 
