@@ -1,9 +1,9 @@
 # STAC v3 Project Context
 
-**Version:** v3.0.0-RC.13  
+**Version:** v3.0.0-RC.14  
 **Branch:** `v3-unified-portal`  
 **Updated:** January 8, 2026  
-**Status:** Unified Web Portal - OTA Updates Production Ready
+**Status:** Unified Web Portal - Cross-Platform Validated (iOS, macOS, Android, Windows, Linux)
 
 ---
 
@@ -294,6 +294,16 @@ if (buttonB->wasPressed()) {
   - Version changes in `Device_Config.h` now automatically update build artifacts
   - Script runs immediately when loaded, ensures build_info.h exists before compilation starts
   - Eliminated manual build_info.h regeneration requirement
+- **Captive Portal Platform Detection (RC.14):**
+  - Enhanced JavaScript detection for macOS, iOS, Android, Windows, and Linux
+  - **iOS captive portal:** Full functionality (Setup + Maintenance tabs) - file uploads work natively
+  - **macOS captive portal:** Setup tab only + notice - file uploads don't work in captive portal WebView
+  - **Android captive portal:** Setup tab only + notice - file uploads don't work in WebView
+  - **Desktop browsers (all platforms):** Full functionality when user manually navigates to portal
+  - Updated notice text to mention Safari for macOS users
+  - Fixed stuck "Opening in browser..." issue - now always shows appropriate content
+  - Detection logic: Uses `CaptiveNetworkSupport` presence + platform detection (iPhone/iPad/iPod vs Mac OS X)
+  - Validated on: iOS (iPhone), macOS (Safari captive portal + manual Safari), Android (Chrome), Windows (Edge/Chrome), Debian 13 (Firefox)
 
 ### January 8, 2026 - Multi-Platform Glyph Compatibility Fixes & Complete Platform Validation
 - **Waveshare ESP32-S3-Matrix (8×8 LED):** Added GLF_X alias to GLF_BX (existing Big X glyph at index 18)

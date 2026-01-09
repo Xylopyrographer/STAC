@@ -280,7 +280,7 @@ namespace WebPortal {
     <div id="portal-notice" class="info-text" style="display:none; margin: 15px 20px; background: #fff3cd; border: 1px solid #ffc107;">
       <strong>Note:</strong> For firmware updates, please:<br>
       1. Stay connected to STAC WiFi<br>
-      2. Open <strong>Chrome</strong> or <strong>Firefox</strong><br>
+      2. Open a full browser (<strong>Safari</strong>, <strong>Chrome</strong>, or <strong>Firefox</strong>)<br>
       3. Go to: <strong>http://stac.local</strong> or <strong>http://192.168.6.14</strong>
     </div>
 )=====";
@@ -468,15 +468,18 @@ namespace WebPortal {
       const alreadyOpened = urlParams.get('open') === '1';
       
       // Detect captive portal environments
-      const isIOSCaptivePortal = /CaptiveNetworkSupport/i.test(navigator.userAgent);
+      const isIOSCaptivePortal = /CaptiveNetworkSupport/i.test(navigator.userAgent) && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isMacOSCaptivePortal = /CaptiveNetworkSupport/i.test(navigator.userAgent) && /Mac OS X|Macintosh/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
+      const hasCaptiveNetworkSupport = /CaptiveNetworkSupport/i.test(navigator.userAgent);
       
       // Check if we're in a full browser (has Chrome, Firefox, Safari in UA) vs captive portal WebView
       const isFullBrowser = /Chrome|Firefox|Safari|Edge|OPR/i.test(navigator.userAgent) && 
-                           !/wv|WebView/i.test(navigator.userAgent);
+                           !/wv|WebView/i.test(navigator.userAgent) &&
+                           !hasCaptiveNetworkSupport;
       
-      // Show both tabs if: redirected, desktop browser, or full mobile browser
-      if (alreadyOpened || !isIOSCaptivePortal && !isAndroid || (isAndroid && isFullBrowser)) {
+      // Show both tabs if: redirected, full browser, or iOS captive portal (file uploads work on iOS)
+      if (alreadyOpened || isFullBrowser || isIOSCaptivePortal) {
         document.getElementById('landing').style.display = 'none';
         document.getElementById('tabs').style.display = 'flex';
         document.getElementById('tab-maintenance').style.display = 'inline-block';
@@ -484,24 +487,13 @@ namespace WebPortal {
         return;
       }
       
-      if (isIOSCaptivePortal) {
-        // iOS captive portal - try auto-redirect
-        document.getElementById('landing-message').textContent = 'Opening in browser...';
-        setTimeout(function() {
-          document.getElementById('btn-continue').style.display = 'block';
-          document.getElementById('landing-message').textContent = 'Tap Continue to open setup in Safari';
-        }, 2000);
-        setTimeout(function() {
-          openInBrowser();
-        }, 1500);
-      } else if (isAndroid && !isFullBrowser) {
-        // Android captive portal - show Setup only, hide Maintenance (file inputs don't work)
-        document.getElementById('landing').style.display = 'none';
-        document.getElementById('tabs').style.display = 'flex';
-        document.getElementById('tab-maintenance').style.display = 'none';
-        document.getElementById('portal-notice').style.display = 'block';
-        showTab('setup');
-      }
+      // macOS captive portal, Android captive portal, or any other restricted environment
+      // Show Setup only, hide Maintenance (file inputs may not work)
+      document.getElementById('landing').style.display = 'none';
+      document.getElementById('tabs').style.display = 'flex';
+      document.getElementById('tab-maintenance').style.display = 'none';
+      document.getElementById('portal-notice').style.display = 'block';
+      showTab('setup');
     }
     
     // Initialize page after DOM is loaded
