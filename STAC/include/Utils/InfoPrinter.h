@@ -49,7 +49,7 @@ public:
         }
         
         Serial.println();
-        Serial.print("    Build: ");
+        Serial.print("    Git: ");
         Serial.print(BUILD_GIT_COMMIT);
         Serial.print(" @ ");
         Serial.println(BUILD_DATE);

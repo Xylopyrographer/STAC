@@ -392,7 +392,8 @@ namespace Net {
 
     String WebPortalServer::buildIndexPage() const {
         // Get firmware version info
-        String fwVersion = STAC_SOFTWARE_VERSION;
+        String fwVersion = BUILD_FULL_VERSION;  // "3.0.0-RC.11 (b826c4)"
+        String gitInfo = String(BUILD_GIT_COMMIT) + " @ " + String(BUILD_DATE);
         String coreVersion = String(ESP_ARDUINO_VERSION_MAJOR) + "." +
                              String(ESP_ARDUINO_VERSION_MINOR) + "." +
                              String(ESP_ARDUINO_VERSION_PATCH);
@@ -407,6 +408,7 @@ namespace Net {
         page += "<p><strong>Device:</strong> " + deviceID + "</p>";
         page += "<p><strong>MAC:</strong> " + macAddress + "</p>";
         page += "<p><strong>Firmware:</strong> " + fwVersion + "</p>";
+        page += "<p><strong>Git:</strong> " + gitInfo + "</p>";
         page += "<p><strong>Core:</strong> " + coreVersion + "</p>";
         page += "<p><strong>SDK:</strong> " + sdkVersion + "</p>";
         page += WebPortal::DEVICE_INFO_CLOSE;
