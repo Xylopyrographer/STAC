@@ -6,8 +6,8 @@
  * @date 2026-01-07
  */
 
-#include "Network/WebPortalServer.h"
-#include "Network/WebPortalPages.h"
+#include "Network/WebConfigServer.h"
+#include "Network/WebConfigPages.h"
 #include "Device_Config.h"
 #include "build_info.h"
 #include <esp_wifi.h>
@@ -16,7 +16,7 @@
 
 namespace Net {
 
-    WebPortalServer::WebPortalServer(const String& deviceID)
+    WebConfigServer::WebConfigServer(const String& deviceID)
         : apIP(192, 168, 6, 14)
         , apGateway(0, 0, 0, 0)
         , apNetmask(255, 255, 255, 0)
@@ -39,11 +39,11 @@ namespace Net {
         macAddress = String(macStr);
     }
 
-    WebPortalServer::~WebPortalServer() {
+    WebConfigServer::~WebConfigServer() {
         end();
     }
 
-    bool WebPortalServer::begin() {
+    bool WebConfigServer::begin() {
         log_i("Starting web portal server");
 
         // Turn off WiFi radio first
@@ -84,11 +84,11 @@ namespace Net {
 
         log_i("AP started - SSID: %s, IP: %s", deviceID.c_str(), apIP.toString().c_str());
 
-        // Start DNS server for captive portal
-        // This redirects all DNS requests to our AP IP
+        // Start DNS server for local hostname resolution (NOT captive portal)
+        // Only responds to stac.local queries, doesn't intercept all DNS
         dnsServer = new DNSServer();
-        dnsServer->start(DNS_PORT, "*", apIP);
-        log_i("DNS server started for captive portal");
+        dnsServer->start(DNS_PORT, AP_HOSTNAME, apIP);
+        log_i("DNS server started for local hostname resolution");
 
         // Create and configure web server
         server = new WebServer(80);
@@ -102,7 +102,7 @@ namespace Net {
         return true;
     }
 
-    WebPortalServer::PortalResult WebPortalServer::waitForCompletion() {
+    WebConfigServer::PortalResult WebConfigServer::waitForCompletion() {
         if (!serverRunning) {
             log_e("Server not running - call begin() first");
             return result;
@@ -143,7 +143,7 @@ namespace Net {
         return result;
     }
 
-    void WebPortalServer::end() {
+    void WebConfigServer::end() {
         if (!serverRunning) {
             return;
         }
@@ -175,33 +175,15 @@ namespace Net {
         log_i("Web portal server stopped");
     }
 
-    void WebPortalServer::registerEndpoints() {
+    void WebConfigServer::registerEndpoints() {
         // GET / - Serve tabbed portal index page
         server->on("/", HTTP_GET, [this]() {
             handleRoot();
         });
 
         // Captive portal detection endpoints
-        // Android
-        server->on("/generate_204", HTTP_GET, [this]() {
-            server->sendHeader("Location", "http://" + apIP.toString(), true);
-            server->send(302, "text/plain", "");
-        });
-        
-        // Microsoft/Windows
-        server->on("/connecttest.txt", HTTP_GET, [this]() {
-            server->sendHeader("Location", "http://" + apIP.toString(), true);
-            server->send(302, "text/plain", "");
-        });
-        server->on("/ncsi.txt", HTTP_GET, [this]() {
-            server->send(200, "text/plain", "Microsoft NCSI");
-        });
-        
         // Apple/iOS/macOS
         server->on("/hotspot-detect.html", HTTP_GET, [this]() {
-            handleRoot();
-        });
-        server->on("/library/test/success.html", HTTP_GET, [this]() {
             handleRoot();
         });
         
@@ -214,7 +196,7 @@ namespace Net {
                 server->send(302, "text/plain", "");
             } else {
                 // Regular 404
-                server->send(404, "text/html", WebPortal::NOT_FOUND);
+                server->send(404, "text/html", WebConfig::NOT_FOUND);
             }
         });
 
@@ -241,17 +223,17 @@ namespace Net {
         );
     }
 
-    void WebPortalServer::handleRoot() {
+    void WebConfigServer::handleRoot() {
         String page = buildIndexPage();
         server->send(200, "text/html", page);
         log_v("Served portal index page");
     }
 
-    void WebPortalServer::handleConfigSubmit() {
+    void WebConfigServer::handleConfigSubmit() {
         log_i("Processing configuration submission");
 
         // Send confirmation page immediately
-        server->send(200, "text/html", WebPortal::CONFIG_RECEIVED);
+        server->send(200, "text/html", WebConfig::CONFIG_RECEIVED);
         
         // Ensure response is sent before continuing
         delay(100);
@@ -299,11 +281,11 @@ namespace Net {
         operationComplete = true;
     }
 
-    void WebPortalServer::handleFactoryReset() {
+    void WebConfigServer::handleFactoryReset() {
         log_i("Processing factory reset request from web portal");
 
         // Send confirmation page immediately
-        server->send(200, "text/html", WebPortal::FACTORY_RESET_RECEIVED);
+        server->send(200, "text/html", WebConfig::FACTORY_RESET_RECEIVED);
         
         // Ensure response is sent before continuing
         delay(100);
@@ -314,7 +296,7 @@ namespace Net {
         operationComplete = true;
     }
 
-    void WebPortalServer::handleUpdateComplete() {
+    void WebConfigServer::handleUpdateComplete() {
         // Build and send result page
         String resultPage = buildOTAResultPage();
         server->send(200, "text/html", resultPage);
@@ -329,7 +311,7 @@ namespace Net {
         operationComplete = true;
     }
 
-    void WebPortalServer::handleFileUpload() {
+    void WebConfigServer::handleFileUpload() {
         HTTPUpload& upload = server->upload();
 
         if (upload.status == UPLOAD_FILE_START) {
@@ -391,7 +373,7 @@ namespace Net {
     }
 
 
-    String WebPortalServer::buildIndexPage() const {
+    String WebConfigServer::buildIndexPage() const {
         // Get firmware version info
         String fwVersion = BUILD_FULL_VERSION;  // "3.0.0-RC.11 (b826c4)"
         String gitInfo = String(BUILD_GIT_COMMIT) + " @ " + String(BUILD_DATE);
@@ -404,30 +386,38 @@ namespace Net {
         String page;
         page.reserve(8192);  // Pre-allocate to reduce fragmentation
         
-        page += WebPortal::PAGE_HEAD;
-        page += WebPortal::DEVICE_INFO_OPEN;
+        page += WebConfig::PAGE_HEAD;
+        page += WebConfig::DEVICE_INFO_OPEN;
         page += "<p><strong>Device:</strong> " + deviceID + "</p>";
         page += "<p><strong>MAC:</strong> " + macAddress + "</p>";
         page += "<p><strong>Firmware:</strong> " + fwVersion + "</p>";
-        page += "<p><strong>Git:</strong> " + gitInfo + "</p>";
-        page += "<p><strong>Core:</strong> " + coreVersion + "</p>";
-        page += "<p><strong>SDK:</strong> " + sdkVersion + "</p>";
-        page += WebPortal::DEVICE_INFO_CLOSE;
-        page += WebPortal::LANDING_PAGE;
-        page += WebPortal::TAB_BUTTONS;
-        page += WebPortal::TAB_SETUP;
-        page += WebPortal::TAB_MAINTENANCE;
-        page += WebPortal::PAGE_SCRIPT;
-        page += WebPortal::PAGE_FOOTER;
+        page += WebConfig::DEVICE_INFO_CLOSE;
+        
+        // Hidden geek info for modal (accessed by JavaScript)
+        page += "<div id='geek-info' style='display:none;'>";
+        page += "<strong>Device:</strong> " + deviceID + "<br>";
+        page += "<strong>MAC:</strong> " + macAddress + "<br>";
+        page += "<strong>Firmware:</strong> " + fwVersion + "<br>";
+        page += "<strong>Git:</strong> " + gitInfo + "<br>";
+        page += "<strong>Core:</strong> " + coreVersion + "<br>";
+        page += "<strong>SDK:</strong> " + sdkVersion;
+        page += "</div>";
+        
+        page += WebConfig::LANDING_PAGE;
+        page += WebConfig::TAB_BUTTONS;
+        page += WebConfig::TAB_SETUP;
+        page += WebConfig::TAB_MAINTENANCE;
+        page += WebConfig::PAGE_SCRIPT;
+        page += WebConfig::PAGE_FOOTER;
 
         return page;
     }
 
-    String WebPortalServer::buildOTAResultPage() const {
+    String WebConfigServer::buildOTAResultPage() const {
         String page;
         page.reserve(1024);
         
-        page += WebPortal::OTA_PAGE_OPEN;
+        page += WebConfig::OTA_PAGE_OPEN;
         
         if (result.otaResult.success) {
             page += "<h1 class=\"success\">&#10004; Update Successful</h1>";
@@ -443,12 +433,12 @@ namespace Net {
             page += "<p><a href=\"/\">Return to Portal</a></p>";
         }
         
-        page += WebPortal::OTA_PAGE_CLOSE;
+        page += WebConfig::OTA_PAGE_CLOSE;
         
         return page;
     }
 
-    void WebPortalServer::shutdownSequence() {
+    void WebConfigServer::shutdownSequence() {
         // Pause to allow HTTP response to be sent
         unsigned long pauseTime = millis() + 500UL;
         while (millis() < pauseTime) {

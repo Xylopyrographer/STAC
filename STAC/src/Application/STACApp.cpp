@@ -7,7 +7,7 @@
 #include "Hardware/Input/ButtonFactory.h"
 #include "Hardware/Interface/InterfaceFactory.h"
 #include "Network/Protocol/RolandClientFactory.h"
-#include "Network/WebPortalServer.h"
+#include "Network/WebConfigServer.h"
 #include "Utils/InfoPrinter.h"
 
 // Add these 'using' declarations
@@ -899,9 +899,9 @@ namespace Application {
         log_i( "Provisioning color: %s", wasProvisioned ? "ORANGE (already provisioned)" : "RED (not provisioned)" );
 
         // Create and start unified web portal server immediately
-        Net::WebPortalServer portalServer( stacID );
+        Net::WebConfigServer configServer( stacID );
 
-        if ( !portalServer.begin() ) {
+        if ( !configServer.begin() ) {
             log_e( "Failed to start portal server" );
             return;
         }
@@ -939,20 +939,20 @@ namespace Application {
 
         // Set up pulsing config glyph display callback using brightness modulation
         bool pulseState = false;
-        portalServer.setDisplayUpdateCallback( [ this, cfgGlyph, provisionColor, normalBrightness, dimBrightness, &pulseState ]() {
+        configServer.setDisplayUpdateCallback( [ this, cfgGlyph, provisionColor, normalBrightness, dimBrightness, &pulseState ]() {
             display->pulseDisplay( cfgGlyph, provisionColor, Display::StandardColors::BLACK,
                                    pulseState, normalBrightness, dimBrightness );
         } );
 
         // Set up Button B reset check callback (for M5StickC Plus)
         #if defined(BUTTON_B_PIN)
-            portalServer.setResetCheckCallback( [ this ]() {
+            configServer.setResetCheckCallback( [ this ]() {
                 buttonB->read();
                 return buttonB->wasReleased();
             } );
 
             // Set up pre-restart callback to turn off backlight on TFT displays
-            portalServer.setPreRestartCallback( [ this ]() {
+            configServer.setPreRestartCallback( [ this ]() {
                 display->setBrightness( 0 );
             } );
         #endif
@@ -962,35 +962,35 @@ namespace Application {
         display->drawGlyph( cfgGlyph, provisionColor, Display::StandardColors::BLACK, Config::Display::SHOW );
 
         // Wait for either configuration or OTA to complete
-        Net::WebPortalServer::PortalResult result = portalServer.waitForCompletion();
+        Net::WebConfigServer::PortalResult result = configServer.waitForCompletion();
 
         // Handle result based on type
-        if ( result.type == Net::WebPortalServer::PortalResultType::OTA_SUCCESS ) {
+        if ( result.type == Net::WebConfigServer::PortalResultType::OTA_SUCCESS ) {
             // OTA succeeded - server will restart automatically
             log_i( "OTA update successful - restarting..." );
             const uint8_t *checkmarkGlyph = glyphManager->getGlyph( Display::GLF_CK );
             display->drawGlyph( checkmarkGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 1000 );
-            portalServer.end();
+            configServer.end();
             display->setBrightness( 0 );
             ESP.restart();
             // Never returns
         }
-        else if ( result.type == Net::WebPortalServer::PortalResultType::OTA_FAILED ) {
+        else if ( result.type == Net::WebConfigServer::PortalResultType::OTA_FAILED ) {
             // OTA failed - show error and restart
             log_e( "OTA update failed: %s", result.otaResult.statusMessage.c_str() );
             const uint8_t *xGlyph = glyphManager->getGlyph( Display::GLF_X );
             display->drawGlyph( xGlyph, Display::StandardColors::RED, Display::StandardColors::BLACK, Config::Display::SHOW );
             delay( 3000 );
-            portalServer.end();
+            configServer.end();
             display->setBrightness( 0 );
             ESP.restart();
             // Never returns
         }
-        else if ( result.type == Net::WebPortalServer::PortalResultType::FACTORY_RESET ) {
+        else if ( result.type == Net::WebConfigServer::PortalResultType::FACTORY_RESET ) {
             // Factory reset requested from web portal
             log_i( "Factory reset requested from web portal" );
-            portalServer.end();
+            configServer.end();
             
             // Print factory reset notification to serial
             Utils::InfoPrinter::printReset();
@@ -1018,7 +1018,7 @@ namespace Application {
         delay( 1000 );
 
         // Stop the web server
-        portalServer.end();
+        configServer.end();
 
         // Save configuration to NVS
         log_i( "Saving configuration to NVS" );

@@ -1,19 +1,18 @@
 /**
- * @file WebPortalServer.h
- * @brief Unified web portal for STAC configuration and OTA updates
+ * @file WebConfigServer.h
+ * @brief Web configuration server for AP mode setup
  * 
- * Provides a single web-based interface with tabbed navigation for:
- * - Device commissioning (WiFi and Roland switch configuration)
+ * Provides a web-based interface for initial device configuration:
+ * - WiFi network credentials
+ * - Roland switcher connection settings
  * - OTA firmware updates
- * 
- * Replaces separate WebConfigServer and OTAUpdateServer with unified approach.
  * 
  * @author Rob Lake (@Xylopyrographer)
  * @date 2026-01-07
  */
 
-#ifndef STAC_WEB_PORTAL_SERVER_H
-#define STAC_WEB_PORTAL_SERVER_H
+#ifndef STAC_WEB_CONFIG_SERVER_H
+#define STAC_WEB_CONFIG_SERVER_H
 
 #include <WebServer.h>
 #include <ESPmDNS.h>
@@ -74,7 +73,7 @@ namespace Net {
      * portal.end();
      * @endcode
      */
-    class WebPortalServer {
+    class WebConfigServer {
     public:
         /**
          * @brief Type of result from portal operation
@@ -118,12 +117,12 @@ namespace Net {
          * @brief Constructor
          * @param deviceID Unique STAC device identifier (used as AP SSID)
          */
-        explicit WebPortalServer(const String& deviceID);
+        explicit WebConfigServer(const String& deviceID);
 
         /**
          * @brief Destructor - ensures clean shutdown
          */
-        ~WebPortalServer();
+        ~WebConfigServer();
 
         /**
          * @brief Start the web portal server
@@ -282,7 +281,7 @@ namespace Net {
 
 } // namespace Net
 
-#endif // STAC_WEB_PORTAL_SERVER_H
+#endif // STAC_WEB_CONFIG_SERVER_H
 
 
 //  --- EOF --- //

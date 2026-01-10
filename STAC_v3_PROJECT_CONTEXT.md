@@ -1,9 +1,9 @@
 # STAC v3 Project Context
 
-**Version:** v3.0.0-RC.14  
-**Branch:** `v3-unified-portal`  
-**Updated:** January 8, 2026  
-**Status:** Unified Web Portal - Cross-Platform Validated (iOS, macOS, Android, Windows, Linux)
+**Version:** v3.0.0-RC.22  
+**Branch:** `v3-config-import-export`  
+**Updated:** January 9, 2026  
+**Status:** Config Import/Export Feature Complete - Web Portal Renamed to WebConfig
 
 ---
 
@@ -92,8 +92,8 @@ A WiFi-enabled tally light system for Roland video switchers (V-60HD, V-160HD) u
 **Network Layer:**
 - `WiFiManager` → Connection management
 - `RolandClientBase` → `V60HDClient`, `V160HDClient`
-- `WebPortalServer` → Unified captive portal with Setup/Maintenance tabs
-- `DNSServer` → Captive portal DNS redirect
+- `WebConfigServer` → Web-based configuration (no captive portal)
+- `DNSServer` → Local hostname resolution (stac.local)
 
 **State Management:**
 - `SystemState` → Central state coordinator
@@ -304,6 +304,47 @@ if (buttonB->wasPressed()) {
   - Fixed stuck "Opening in browser..." issue - now always shows appropriate content
   - Detection logic: Uses `CaptiveNetworkSupport` presence + platform detection (iPhone/iPad/iPod vs Mac OS X)
   - Validated on: iOS (iPhone), macOS (Safari captive portal + manual Safari), Android (Chrome), Windows (Edge/Chrome), Debian 13 (Firefox)
+
+### January 9, 2026 - Configuration Import/Export & Captive Portal Removal
+- **Configuration Import/Export Feature:**
+  - Added JSON-based configuration export/import for multi-device deployment
+  - Export options: Copy to clipboard or download as file (`stac-v60hd-config.json` / `stac-v160hd-config.json`)
+  - Import options: Upload file or paste from clipboard
+  - HTTP-compatible clipboard paste using `execCommand()` (works without HTTPS)
+  - Model mismatch validation with user confirmation dialog
+  - Auto-updates export JSON as user types in forms
+  - Enables quick cloning of settings across multiple STAC devices
+- **Captive Portal Removal:**
+  - Abandoned captive portal approach - iOS has no intuitive exit method, Android/iOS still show "no internet" warnings
+  - DNS server changed from wildcard redirect (`*`) to hostname-only (`stac.local`)
+  - Users now manually connect to STAC AP, then navigate to http://stac.local or http://192.168.6.14
+  - Updated boot banner: "Access: http://stac.local (or http://192.168.6.14)"
+  - Removed captive portal detection endpoints (simplified from 8+ endpoints to just 1 for macOS compatibility)
+  - Simpler, more reliable user experience across all platforms
+- **Geek Info Modal:**
+  - Added "Show Geek Info" button on Maintenance tab
+  - Displays Device, MAC, Firmware, Git commit, Core version, SDK version
+  - Modal dialog with Copy and OK buttons
+  - Line breaks properly rendered in display and preserved when copied
+- **WebPortal → WebConfig Rename:**
+  - Renamed `WebPortalServer` → `WebConfigServer` (no longer a "portal" since captive portal removed)
+  - Renamed `WebPortalPages` → `WebConfigPages`
+  - Updated all namespace references: `WebPortal` → `WebConfig`
+  - Updated include guards, file headers, comments for consistency
+  - Removed dead code: `openInBrowser()` function, portal-notice div
+- **UX Improvements:**
+  - Page title: "STAC Portal" → "STAC Setup"
+  - Import: Replaced textarea with "Paste Settings" button
+  - Export: "Copy Settings" and "Save Settings" buttons (below Configure STAC)
+  - Button order: Configure STAC, then Reset/Back on second row
+  - Factory reset confirmation dialog
+  - Landing page simplified (removed captive portal exit instructions)
+- **Technical Details:**
+  - Version: 3.0.0-RC.22
+  - Branch: v3-config-import-export (from v3-unified-portal at commit 1534119)
+  - Flash: 67.8% (1,319,735 bytes), RAM: 15.7% (51,348 bytes)
+  - Tested on: iOS, Android, macOS
+  - Git commits: RC.19-RC.22 progression
 
 ### January 8, 2026 - Multi-Platform Glyph Compatibility Fixes & Complete Platform Validation
 - **Waveshare ESP32-S3-Matrix (8×8 LED):** Added GLF_X alias to GLF_BX (existing Big X glyph at index 18)
