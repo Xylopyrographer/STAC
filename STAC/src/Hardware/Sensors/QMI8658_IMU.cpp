@@ -77,12 +77,15 @@
             }
 
             // Scale accelerometer values
-            float scaledAccX = acc.x * ACCL_SCALE;
-            float scaledAccY = acc.y * ACCL_SCALE;
-            float scaledAccZ = acc.z * ACCL_SCALE;
+            // QMI8658 orientation on Waveshare (rear view, home position):
+            // Sensor +X = UP (away from USB), Sensor +Y = LEFT
+            // Board +Y = UP (away from USB), Board +X = RIGHT
+            float scaledAccX = -(acc.y * ACCL_SCALE);     // Board X (RIGHT) = -Sensor Y (LEFT)
+            float scaledAccY = acc.x * ACCL_SCALE;        // Board Y (UP) = Sensor X (UP)
+            float scaledAccZ = acc.z * ACCL_SCALE;        // Board Z = Sensor Z
 
             // Determine raw orientation based on accelerometer readings
-            // The USB port is the reference point
+            // The USB port is the reference point (home = vertical, USB down)
             Orientation rawOrientation = Orientation::UNKNOWN;
 
             if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {

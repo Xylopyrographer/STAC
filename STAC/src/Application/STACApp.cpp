@@ -114,7 +114,14 @@ namespace Application {
                             );
         #endif
 
-        // Note: Don't call updateDisplay() here - display shows only power pixel until WiFi connects
+        // LED Matrix: Show green power glyph to indicate successful startup completion
+        #if defined(DISPLAY_TYPE_LED_MATRIX)
+        const uint8_t *powerGlyph = glyphManager->getGlyph( Display::GLF_PO );
+        display->drawGlyph( powerGlyph, Display::StandardColors::GREEN, Display::StandardColors::BLACK, Config::Display::SHOW );
+        delay( 750 );  // Hold green power glyph for 750ms before entering normal operation
+        #endif
+
+        // Note: Display shows green power glyph (LED) or remains off (TFT) until WiFi connects
 
         return true;
     }
@@ -163,17 +170,12 @@ namespace Application {
             log_e( "Display initialization failed" );
             return false;
         }
-        log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
-
-        // Clear display buffer (backlight is still OFF from begin())
-        display->clear( Config::Display::NO_SHOW );
         
-        // Draw power glyph to buffer BEFORE turning on backlight
+        // Immediately show orange power glyph (display is already on from begin())
         const uint8_t *earlyPowerGlyph = Display::BASE_GLYPHS[ Display::GLF_PO ];
-        display->drawGlyphOverlay( earlyPowerGlyph, Display::StandardColors::ORANGE, Config::Display::SHOW );
+        display->drawGlyph( earlyPowerGlyph, Display::StandardColors::ORANGE, Display::StandardColors::BLACK, Config::Display::SHOW );
         
-        // NOW turn on backlight - display already shows the power glyph
-        display->setBrightness( Config::Display::BRIGHTNESS_MAP[ 1 ], Config::Display::NO_SHOW );
+        log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
 
         // IMU - only read orientation once at startup for glyph rotation
         imu = IMUFactory::create();
@@ -660,8 +662,7 @@ namespace Application {
             if ( initializeRolandClient( switchIP, switchPort, username, passwordSwitch ) ) {
                 rolandClientInitialized = true;
                 log_i( "Roland client initialized" );
-                // Don't update display yet - wait for first valid tally response
-                // Display will remain black (with power pixel) until tally state is known
+                // Display will be updated by first tally response
             }
         }
 

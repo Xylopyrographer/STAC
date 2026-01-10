@@ -2,7 +2,7 @@
 
 **Version:** v3.0.0-RC.22  
 **Branch:** `v3-config-import-export`  
-**Updated:** January 9, 2026  
+**Updated:** January 10, 2026  
 **Status:** Config Import/Export Feature Complete - Web Portal Renamed to WebConfig
 
 ---
@@ -456,6 +456,21 @@ if (buttonB->wasPressed()) {
 - Added configurable `TFT_READABLE` and `TFT_BUS_SHARED` options
 - LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
 - AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
+
+### January 10, 2026 - Waveshare IMU Orientation Fix & Startup LED Enhancements
+- **Fixed QMI8658 axis remapping** on Waveshare ESP32-S3-Matrix
+  - Root cause: Incorrect sign mapping in axis transformation
+  - Physical sensor orientation: +X=UP (away from USB), +Y=LEFT (rear view)
+  - Correct mapping: Board X (RIGHT) = -Sensor Y, Board Y (UP) = Sensor X
+  - With OFFSET_90, all edge orientations now display correctly
+- **Improved startup LED feedback sequence:**
+  - Orange POG displays immediately after `display->begin()` 
+  - Green POG shows for 750ms at end of successful setup
+  - Red POG shows on system halt for error indication
+  - Removed early LED clearing (caused RMT channel conflict)
+- **Cleaned up debug logging:**
+  - Converted startup messages to `log_i()` (debug-only, suppressed in release builds)
+  - Removed non-existent `Logger.h` include, uses Arduino ESP32 built-in logging
 
 ### November 29, 2025 - Provisioning Mode Color Fix
 - Button held at boot: ORANGE if provisioned, RED if not

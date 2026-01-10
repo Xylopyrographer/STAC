@@ -66,7 +66,8 @@
 
         // IMU orientation offset
         // Defines which physical direction corresponds to "UP" orientation
-        #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_180
+        // Note: OFFSET_90 compensates for 90° rotation (clockwise adjustment needed)
+        #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
 
         // Note: QMI8658 library doesn't allow setting I2C clock (uses default 100kHz)
     #endif // IMU_HAS_IMU
