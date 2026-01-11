@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 11, 2026  
-**Status:** IMU Architecture Redesign Planned - Calibration Tool in Development
+**Status:** IMU Calibration Tool Implemented and Tested
 
 ---
 
@@ -457,7 +457,7 @@ if (buttonB->wasPressed()) {
 - LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
 - AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
 
-### January 11, 2026 - IMU Architecture Redesign & Calibration Tool Development
+### January 11, 2026 - IMU Calibration Tool Implementation
 - **Identified fundamental IMU orientation issue:**
   - Current implementation assumes 4 possible IMU orientations (0°/90°/180°/270° rotation)
   - Reality: IMU can be mounted in 8 configurations (2 Z-axis directions × 4 rotations)
@@ -465,19 +465,46 @@ if (buttonB->wasPressed()) {
     * Rotated 0°, 90°, 180°, or 270° relative to board Home position
   - Different boards (ATOM vs Waveshare) have different physical mountings
   - See `IMU_Analysis.md` for detailed analysis
-- **Planned solution: Interactive IMU calibration tool**
+- **Implemented interactive calibration tool:**
   - Development-time offline calibration utility (not runtime NVS-based)
-  - New PlatformIO environments: `<board>-calibrate` for each platform
+  - New PlatformIO environments: `atom-matrix-calibrate`, `waveshare-s3-calibrate`, `m5stickc-plus-calibrate`, `lilygo-t-display-calibrate`, `aipi-lite-calibrate`
+  - Minimal builds: Exclude Network, State, Storage, Application layers (343KB flash, 23KB RAM)
   - Interactive procedure via serial monitor:
     1. Place board in Home position (USB down)
-    2. Tool illuminates reference pixel/marker at known position
-    3. User reports pixel location (Top/Bottom/Left/Right)
+    2. Tool shows reference marker (white pixel on LED / arrow on TFT)
+    3. User reports marker location (Top/Bottom/Left/Right)
     4. Rotate board 90° clockwise, repeat 3 more times
-  - Tool calculates and outputs board config values:
-    * Axis remapping formulas
-    * Z-axis direction (FORWARD/AFT)
-    * Rotation offset
-  - Developer copies values into board config header file
+  - Algorithm analyzes accelerometer data at each rotation:
+    * Identifies dominant sensor axis (X/Y/Z) at each position
+    * Determines axis polarity (+ or -)
+    * Detects standard vs swapped axis mapping
+    * Calculates rotation offset from marker progression
+  - Outputs complete board config values:
+    ```cpp
+    #define IMU_AXIS_REMAP_X    (acc.x)      // or (-acc.y), etc.
+    #define IMU_AXIS_REMAP_Y    (acc.y)      // or (acc.x), etc.
+    #define IMU_AXIS_REMAP_Z    (acc.z)
+    #define IMU_FACE_DIRECTION  IMU_FACE_FORWARD  // Future: auto-detect
+    #define IMU_ROTATION_OFFSET OFFSET_0     // or OFFSET_90/180/270
+    ```
+- **Implementation details:**
+  - Display-agnostic architecture: `CalibrationDisplay` base class
+  - `CalibrationDisplayLED`: Shows white pixel at top-center (5×5, 8×8 matrices)
+  - `CalibrationDisplayTFT`: Shows upward arrow marker (TFT displays)
+  - `main_calibrate.cpp`: 9-state interactive state machine
+  - `getRawAcceleration()` added to IIMU interface (MPU6886, QMI8658)
+  - Display clears on completion
+- **Testing:**
+  - Validated on ATOM Matrix (MPU6886): Standard mapping, OFFSET_0
+  - Results: Board X = acc.x, Board Y = acc.y (no remapping needed)
+  - Future: Test on Waveshare (expected: swapped axes) to validate algorithm
+- **Documentation:** `Documentation/Developer/IMU_CALIBRATION_TOOL.md`
+- **Benefits:**
+  - Self-discovering: No manual sensor orientation analysis
+  - Manufacturing-agnostic: Works regardless of PCB assembly variations
+  - Comprehensive: Handles both axis remapping and rotation offset
+  - Version-controlled: Config values committed to git, survive flash erases
+  - One-time: Only needed during hardware bring-up
   - Supports both LED matrix (pixel marker) and TFT displays (visual marker)
 - **Benefits:**
   - Self-discovering: No manual sensor orientation analysis

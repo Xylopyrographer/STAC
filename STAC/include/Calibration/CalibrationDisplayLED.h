@@ -40,16 +40,22 @@ namespace Calibration {
             // Initialize LED matrix
             led.begin(PIN_DISPLAY_DATA, numLeds);
             led.brightness(128); // Medium brightness
-            clear();
+            led.clear();
+            led.show();
             return true;
         }
 
         void showTopMarker() override {
-            clear();
+            led.clear();
+            led.show();
+            delay(100); // Ensure clear is visible
             
             // Calculate linear index for top-center pixel
             // Matrix layout: row-major, top-left is 0
             uint8_t pixelIndex = topCenterY * width + topCenterX;
+            
+            Serial.printf("DEBUG: Showing pixel at index %d (x=%d, y=%d, width=%d)\n", 
+                         pixelIndex, topCenterX, topCenterY, width);
             
             // Light up top-center pixel in bright white
             // crgb_t is uint32_t with format 0x00RRGGBB

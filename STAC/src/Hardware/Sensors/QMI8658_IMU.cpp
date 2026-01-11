@@ -117,6 +117,30 @@
         return corrected;
     }
 
+        bool QMI8658_IMU::getRawAcceleration(float &accX, float &accY, float &accZ) {
+            if (!initialized) {
+                return false;
+            }
+
+            IMUdata acc;
+            
+            // Read accelerometer data with timeout
+            uint32_t timeout = millis() + DATA_WAIT_TIMEOUT_MS;
+            while (!sensor.getAccelerometer(acc.x, acc.y, acc.z)) {
+                if (millis() > timeout) {
+                    return false;
+                }
+                delay(10);
+            }
+            
+            // Return raw accelerometer values (sensor units)
+            accX = acc.x;
+            accY = acc.y;
+            accZ = acc.z;
+            
+            return true;
+        }
+
         bool QMI8658_IMU::isAvailable() const {
             return initialized;
         }

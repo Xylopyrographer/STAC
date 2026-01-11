@@ -30,6 +30,7 @@
             // IIMU interface implementation
             bool begin() override;
             Orientation getOrientation() override;
+            bool getRawAcceleration(float &accX, float &accY, float &accZ) override;
             bool isAvailable() const override;
             const char *getType() const override;
 

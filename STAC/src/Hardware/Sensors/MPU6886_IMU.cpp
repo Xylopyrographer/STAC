@@ -89,6 +89,22 @@
             return corrected;
         }
 
+        bool MPU6886_IMU::getRawAcceleration(float &accX, float &accY, float &accZ) {
+            if (!initialized) {
+                return false;
+            }
+
+            float ax, ay, az;
+            sensor.getAccel(&ax, &ay, &az);
+            
+            // Return raw accelerometer values in g's
+            accX = ax;
+            accY = ay;
+            accZ = az;
+            
+            return true;
+        }
+
         bool MPU6886_IMU::isAvailable() const {
             return initialized;
         }

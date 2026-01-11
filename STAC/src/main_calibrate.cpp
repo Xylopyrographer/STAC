@@ -71,7 +71,7 @@ void waitForEnter();
 char waitForResponse();
 void takeMeasurement(int index);
 void calculateConfiguration();
-void printConfiguration();
+void printConfiguration(const char* remapX, const char* remapY, const char* remapZ, int rotationOffset);
 
 void setup() {
     Serial.begin(115200);
@@ -79,7 +79,7 @@ void setup() {
     
     Serial.println("\n\n");
     Serial.println("╔════════════════════════════════════════════╗");
-    Serial.println("║     STAC IMU Calibration Tool v1.0.0      ║");
+    Serial.println("║     STAC IMU Calibration Tool v1.0.0       ║");
     Serial.println("╚════════════════════════════════════════════╝");
     Serial.println();
 
@@ -91,8 +91,12 @@ void setup() {
         while (true) delay(1000);
     }
     Serial.println("✓ Display initialized");
-    display->showMessage("CALIBRATE", COLOR_GREEN);
-    delay(1000);
+    #if defined(DISPLAY_TYPE_LED_MATRIX)
+        display->clear(); // LED can't show text, just clear
+    #else
+        display->showMessage("CALIBRATE", COLOR_GREEN);
+        delay(1000);
+    #endif
 
     // Initialize IMU
     imu = Hardware::IMUFactory::create();
@@ -177,7 +181,7 @@ void loop() {
             break;
 
         case STATE_COMPLETE:
-            display->showMessage("DONE!", COLOR_GREEN);
+            display->clear();  // Clear display when done
             Serial.println("\n════════════════════════════════════════════");
             Serial.println("Calibration complete!");
             Serial.println("Copy the values above into your board config.");
@@ -254,18 +258,19 @@ char waitForResponse() {
 }
 
 void takeMeasurement(int index) {
-    // Read raw IMU accelerometer data
-    // Note: This is a placeholder - actual implementation depends on IMU interface
-    // We'll need to add a getRawAcceleration() method to IIMU interface
-    
     Serial.println("\nReading IMU data...");
     
-    // For now, store zeros - actual implementation will read from IMU
-    measurements[index].accX = 0.0f;
-    measurements[index].accY = 0.0f;
-    measurements[index].accZ = 0.0f;
+    // Read raw accelerometer data from IMU
+    if (!imu->getRawAcceleration(measurements[index].accX, 
+                                  measurements[index].accY, 
+                                  measurements[index].accZ)) {
+        Serial.println("ERROR: Failed to read IMU data");
+        measurements[index].accX = 0.0f;
+        measurements[index].accY = 0.0f;
+        measurements[index].accZ = 0.0f;
+    }
     
-    Serial.printf("  AccX: %.3f  AccY: %.3f  AccZ: %.3f\n",
+    Serial.printf("  AccX: %7.3f  AccY: %7.3f  AccZ: %7.3f\n",
                   measurements[index].accX,
                   measurements[index].accY,
                   measurements[index].accZ);
@@ -285,29 +290,129 @@ void calculateConfiguration() {
         Serial.printf("  User saw marker at: %c\n", measurements[i].userResponse);
     }
     
-    // TODO: Implement calculation algorithm
-    // This will analyze the accelerometer readings and user responses
-    // to determine:
-    //   1. Axis mapping (which sensor axis maps to which board axis)
-    //   2. Axis polarity (positive or negative for each axis)
-    //   3. Z-axis direction (FORWARD or AFT)
-    //   4. Rotation offset (0, 90, 180, or 270)
+    Serial.println("\n════════════════════════════════════════════");
+    Serial.println("ANALYSIS:");
+    Serial.println("════════════════════════════════════════════");
     
-    printConfiguration();
+    // Analyze which sensor axis corresponds to which board axis
+    // At 0° (USB down), marker at top, gravity should be along board Y-axis
+    // At 90° CW, marker rotates, gravity should be along board X-axis
+    
+    // Find dominant axis at each rotation
+    char axisMap[4]; // Which sensor axis (X/Y/Z) is dominant at each rotation
+    bool axisSign[4]; // Sign of dominant axis (true = positive)
+    
+    for (int i = 0; i < 4; i++) {
+        float absX = abs(measurements[i].accX);
+        float absY = abs(measurements[i].accY);
+        float absZ = abs(measurements[i].accZ);
+        
+        if (absX > absY && absX > absZ) {
+            axisMap[i] = 'X';
+            axisSign[i] = (measurements[i].accX > 0);
+        } else if (absY > absX && absY > absZ) {
+            axisMap[i] = 'Y';
+            axisSign[i] = (measurements[i].accY > 0);
+        } else {
+            axisMap[i] = 'Z';
+            axisSign[i] = (measurements[i].accZ > 0);
+        }
+        
+        Serial.printf("  Rotation %d°: Dominant axis = %c%c, Marker at %c\n",
+                      i * 90, 
+                      axisSign[i] ? '+' : '-',
+                      axisMap[i],
+                      measurements[i].userResponse);
+    }
+    
+    // Determine axis remapping
+    // At 0° (USB down): marker at top = board needs Y-axis up when sensor shows dominant axis
+    // At 90° (USB right): marker rotates = board needs X-axis right when sensor shows dominant axis
+    
+    const char* remapX = "acc.x";  // Default: no remapping
+    const char* remapY = "acc.y";
+    const char* remapZ = "acc.z";
+    int rotationOffset = 0;
+    
+    // Determine mapping from 0° and 90° measurements
+    if (axisMap[0] == 'Y' && axisMap[1] == 'X') {
+        // Standard mapping: Board Y = Sensor Y, Board X = Sensor X
+        if (axisSign[0]) {
+            remapY = "acc.y";
+        } else {
+            remapY = "(-acc.y)";
+        }
+        
+        if (axisSign[1]) {
+            remapX = "acc.x";
+        } else {
+            remapX = "(-acc.x)";
+        }
+        
+        // Check if marker position matches expected
+        if (measurements[0].userResponse == 'T' && measurements[1].userResponse == 'R') {
+            rotationOffset = 0;
+        } else if (measurements[0].userResponse == 'R' && measurements[1].userResponse == 'B') {
+            rotationOffset = 90;
+        } else if (measurements[0].userResponse == 'B' && measurements[1].userResponse == 'L') {
+            rotationOffset = 180;
+        } else if (measurements[0].userResponse == 'L' && measurements[1].userResponse == 'T') {
+            rotationOffset = 270;
+        }
+    } else if (axisMap[0] == 'X' && axisMap[1] == 'Y') {
+        // Swapped: Board Y = Sensor X, Board X = Sensor Y
+        if (axisSign[0]) {
+            remapY = "acc.x";
+        } else {
+            remapY = "(-acc.x)";
+        }
+        
+        if (axisSign[1]) {
+            remapX = "acc.y";
+        } else {
+            remapX = "(-acc.y)";
+        }
+        
+        // Determine rotation offset based on marker positions
+        if (measurements[0].userResponse == 'T' && measurements[1].userResponse == 'R') {
+            rotationOffset = 0;
+        } else if (measurements[0].userResponse == 'R' && measurements[1].userResponse == 'B') {
+            rotationOffset = 90;
+        } else if (measurements[0].userResponse == 'B' && measurements[1].userResponse == 'L') {
+            rotationOffset = 180;
+        } else if (measurements[0].userResponse == 'L' && measurements[1].userResponse == 'T') {
+            rotationOffset = 270;
+        }
+    }
+    
+    remapZ = "acc.z"; // Z is typically not remapped
+    
+    Serial.printf("\nCalculated mapping:\n");
+    Serial.printf("  Board X = Sensor %s\n", remapX);
+    Serial.printf("  Board Y = Sensor %s\n", remapY);
+    Serial.printf("  Board Z = Sensor %s\n", remapZ);
+    Serial.printf("  Rotation offset = %d°\n", rotationOffset);
+    
+    printConfiguration(remapX, remapY, remapZ, rotationOffset);
 }
 
-void printConfiguration() {
+void printConfiguration(const char* remapX, const char* remapY, const char* remapZ, int rotationOffset) {
     Serial.println("\n╔════════════════════════════════════════════╗");
     Serial.println("║         BOARD CONFIGURATION VALUES         ║");
     Serial.println("╚════════════════════════════════════════════╝");
     Serial.println("\nAdd these lines to your board config header:");
     Serial.println("\n// IMU Configuration (from calibration tool)");
-    Serial.println("// TODO: Actual calculated values will go here");
-    Serial.println("#define IMU_AXIS_REMAP_X    ???");
-    Serial.println("#define IMU_AXIS_REMAP_Y    ???");
-    Serial.println("#define IMU_AXIS_REMAP_Z    ???");
-    Serial.println("#define IMU_FACE_DIRECTION  IMU_FACE_??? // FORWARD or AFT");
-    Serial.println("#define IMU_ROTATION_OFFSET OFFSET_???  // 0, 90, 180, or 270");
+    Serial.printf("#define IMU_AXIS_REMAP_X    (%s)\n", remapX);
+    Serial.printf("#define IMU_AXIS_REMAP_Y    (%s)\n", remapY);
+    Serial.printf("#define IMU_AXIS_REMAP_Z    (%s)\n", remapZ);
+    Serial.println("#define IMU_FACE_DIRECTION  IMU_FACE_FORWARD  // Assuming forward");
+    
+    const char* offsetName = "OFFSET_0";
+    if (rotationOffset == 90) offsetName = "OFFSET_90";
+    else if (rotationOffset == 180) offsetName = "OFFSET_180";
+    else if (rotationOffset == 270) offsetName = "OFFSET_270";
+    
+    Serial.printf("#define IMU_ROTATION_OFFSET %s\n", offsetName);
     Serial.println("\n════════════════════════════════════════════\n");
 }
 

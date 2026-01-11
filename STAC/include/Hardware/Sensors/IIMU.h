@@ -30,6 +30,15 @@
             virtual Orientation getOrientation() = 0;
 
             /**
+             * @brief Get raw accelerometer readings
+             * @param accX Output: X-axis acceleration (g)
+             * @param accY Output: Y-axis acceleration (g)
+             * @param accZ Output: Z-axis acceleration (g)
+             * @return true if reading succeeded
+             */
+            virtual bool getRawAcceleration(float &accX, float &accY, float &accZ) = 0;
+
+            /**
              * @brief Check if IMU is available and working
              * @return true if IMU is functional
              */
