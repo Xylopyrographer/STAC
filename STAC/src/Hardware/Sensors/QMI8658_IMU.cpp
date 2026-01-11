@@ -64,9 +64,9 @@
                 return Orientation::UNKNOWN;
             }
 
+            // Read raw accelerometer data from sensor
             IMUdata acc;
 
-            // Read accelerometer data
             uint32_t timeout = millis() + DATA_WAIT_TIMEOUT_MS;
             while ( !sensor.getAccelerometer( acc.x, acc.y, acc.z ) ) {
                 if ( millis() > timeout ) {
@@ -76,13 +76,16 @@
                 delay( 10 );
             }
 
-            // Scale accelerometer values
-            // QMI8658 orientation on Waveshare (rear view, home position):
-            // Sensor +X = UP (away from USB), Sensor +Y = LEFT
-            // Board +Y = UP (away from USB), Board +X = RIGHT
-            float scaledAccX = -(acc.y * ACCL_SCALE);     // Board X (RIGHT) = -Sensor Y (LEFT)
-            float scaledAccY = acc.x * ACCL_SCALE;        // Board Y (UP) = Sensor X (UP)
-            float scaledAccZ = acc.z * ACCL_SCALE;        // Board Z = Sensor Z
+            // Apply axis remapping from board config
+            // This allows the same IMU chip to be mounted in different orientations
+            float boardX = IMU_AXIS_REMAP_X;
+            float boardY = IMU_AXIS_REMAP_Y;
+            float boardZ = IMU_AXIS_REMAP_Z;
+
+            // Scale remapped accelerometer values
+            float scaledAccX = boardX * ACCL_SCALE;
+            float scaledAccY = boardY * ACCL_SCALE;
+            float scaledAccZ = boardZ * ACCL_SCALE;
 
             // Determine raw orientation based on accelerometer readings
             // The USB port is the reference point (home = vertical, USB down)
@@ -110,9 +113,23 @@
             rawOrientation = Orientation::RIGHT;
         }
 
-        // Apply orientation offset correction
-        OrientationOffset offset = static_cast<OrientationOffset>( IMU_ORIENTATION_OFFSET );
+        // Apply orientation offset correction from board config
+        OrientationOffset offset = static_cast<OrientationOffset>( IMU_ROTATION_OFFSET );
         Orientation corrected = applyOrientationOffset( rawOrientation, offset );
+
+        // Debug output to verify correction is applied
+        const char *rawStr = ( rawOrientation == Orientation::UP ) ? "UP (0°)" :
+                             ( rawOrientation == Orientation::DOWN ) ? "DOWN (180°)" :
+                             ( rawOrientation == Orientation::LEFT ) ? "LEFT (270°)" :
+                             ( rawOrientation == Orientation::RIGHT ) ? "RIGHT (90°)" :
+                             ( rawOrientation == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
+        const char *corrStr = ( corrected == Orientation::UP ) ? "UP (0°)" :
+                              ( corrected == Orientation::DOWN ) ? "DOWN (180°)" :
+                              ( corrected == Orientation::LEFT ) ? "LEFT (270°)" :
+                              ( corrected == Orientation::RIGHT ) ? "RIGHT (90°)" :
+                              ( corrected == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
+
+        log_d( "Display orientation: raw=%s, offset=%d, corrected=%s", rawStr, IMU_ROTATION_OFFSET, corrStr );
 
         return corrected;
     }

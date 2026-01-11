@@ -182,9 +182,12 @@ namespace Application {
         if ( imu->begin() ) {
             log_i( "✓ IMU (%s)", imu->getType() );
             delay( 100 );  // Allow IMU readings to stabilize after power-on
-            Orientation detectedOrientation = imu->getOrientation();
-            const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-            log_i( "  Display orientation: %s", orientationNames[ static_cast<int>( detectedOrientation ) ] );
+            Orientation displayOrientation = imu->getOrientation();
+            // Map display orientation to physical device orientation
+            // Display UP means device is at 0° (USB down - home position)
+            // Display RIGHT means device rotated 90° CW, Display DOWN = 180°, Display LEFT = 270°
+            const char *deviceOrientationNames[] = { "0°", "180°", "90°", "270°", "FLAT", "UNKNOWN" };
+            log_i( "  Device orientation: %s", deviceOrientationNames[ static_cast<int>( displayOrientation ) ] );
         }
         else {
             log_w( "⚠ IMU unavailable" );

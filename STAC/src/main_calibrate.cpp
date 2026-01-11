@@ -405,12 +405,11 @@ void printConfiguration(const char* remapX, const char* remapY, const char* rema
     Serial.printf("#define IMU_AXIS_REMAP_X    (%s)\n", remapX);
     Serial.printf("#define IMU_AXIS_REMAP_Y    (%s)\n", remapY);
     Serial.printf("#define IMU_AXIS_REMAP_Z    (%s)\n", remapZ);
-    Serial.println("#define IMU_FACE_DIRECTION  IMU_FACE_FORWARD  // Assuming forward");
     
-    const char* offsetName = "OFFSET_0";
-    if (rotationOffset == 90) offsetName = "OFFSET_90";
-    else if (rotationOffset == 180) offsetName = "OFFSET_180";
-    else if (rotationOffset == 270) offsetName = "OFFSET_270";
+    const char* offsetName = "OrientationOffset::OFFSET_0";
+    if (rotationOffset == 90) offsetName = "OrientationOffset::OFFSET_90";
+    else if (rotationOffset == 180) offsetName = "OrientationOffset::OFFSET_180";
+    else if (rotationOffset == 270) offsetName = "OrientationOffset::OFFSET_270";
     
     Serial.printf("#define IMU_ROTATION_OFFSET %s\n", offsetName);
     Serial.println("\n════════════════════════════════════════════\n");

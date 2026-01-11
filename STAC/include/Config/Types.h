@@ -12,15 +12,26 @@
     // ============================================================================
 
     /**
-     * @brief Device orientation as detected by IMU
+     * @brief Display orientation - which edge of the display should be "up" for correct character display
+     * 
+     * Values represent the display rotation needed to show characters upright:
+     * - UP (0°): Display upright, no rotation needed
+     * - DOWN (180°): Display inverted 180°
+     * - LEFT (270°): Display rotated 270° CW (or 90° CCW)
+     * - RIGHT (90°): Display rotated 90° CW
+     * - FLAT: Device lying flat (face up or down)
+     * - UNKNOWN: Unable to determine orientation
+     * 
+     * Note: This represents display orientation after applying board config offset,
+     * not the raw physical device orientation.
      */
     enum class Orientation : uint8_t {
-        UP = 0,
-        DOWN,
-        LEFT,
-        RIGHT,
-        FLAT,
-        UNKNOWN
+        UP = 0,      // Display upright (0° rotation)
+        DOWN,        // Display inverted (180° rotation)
+        LEFT,        // Display rotated 270° CW
+        RIGHT,       // Display rotated 90° CW
+        FLAT,        // Device lying flat
+        UNKNOWN      // Unable to determine
     };
 
     /**

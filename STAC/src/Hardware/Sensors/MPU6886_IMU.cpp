@@ -33,17 +33,24 @@
                 return Orientation::UNKNOWN;
             }
 
-            float accX, accY, accZ;
+            // Read raw accelerometer data from sensor
+            float acc_x, acc_y, acc_z;
             float gyroX, gyroY, gyroZ;
 
-            // Read accelerometer data
-            sensor.getAccel( &accX, &accY, &accZ );
+            sensor.getAccel( &acc_x, &acc_y, &acc_z );
             sensor.getGyro( &gyroX, &gyroY, &gyroZ );
 
-            // Scale accelerometer values
-            float scaledAccX = accX * ACCL_SCALE;
-            float scaledAccY = accY * ACCL_SCALE;
-            float scaledAccZ = accZ * ACCL_SCALE;
+            // Apply axis remapping from board config
+            // This allows the same IMU chip to be mounted in different orientations
+            struct { float x, y, z; } acc = { acc_x, acc_y, acc_z };
+            float boardX = IMU_AXIS_REMAP_X;
+            float boardY = IMU_AXIS_REMAP_Y;
+            float boardZ = IMU_AXIS_REMAP_Z;
+
+            // Scale remapped accelerometer values
+            float scaledAccX = boardX * ACCL_SCALE;
+            float scaledAccY = boardY * ACCL_SCALE;
+            float scaledAccZ = boardZ * ACCL_SCALE;
 
             // Determine raw orientation based on accelerometer readings
             Orientation rawOrientation = Orientation::UNKNOWN;
@@ -68,23 +75,23 @@
                 rawOrientation = Orientation::FLAT;
             }
 
-            // Apply orientation offset correction
-            OrientationOffset offset = static_cast<OrientationOffset>( IMU_ORIENTATION_OFFSET );
+            // Apply orientation offset correction from board config
+            OrientationOffset offset = static_cast<OrientationOffset>( IMU_ROTATION_OFFSET );
             Orientation corrected = applyOrientationOffset( rawOrientation, offset );
 
             // Debug output to verify correction is applied
-            const char *rawStr = ( rawOrientation == Orientation::UP ) ? "UP" :
-                                 ( rawOrientation == Orientation::DOWN ) ? "DOWN" :
-                                 ( rawOrientation == Orientation::LEFT ) ? "LEFT" :
-                                 ( rawOrientation == Orientation::RIGHT ) ? "RIGHT" :
+            const char *rawStr = ( rawOrientation == Orientation::UP ) ? "UP (0°)" :
+                                 ( rawOrientation == Orientation::DOWN ) ? "DOWN (180°)" :
+                                 ( rawOrientation == Orientation::LEFT ) ? "LEFT (270°)" :
+                                 ( rawOrientation == Orientation::RIGHT ) ? "RIGHT (90°)" :
                                  ( rawOrientation == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
-            const char *corrStr = ( corrected == Orientation::UP ) ? "UP" :
-                                  ( corrected == Orientation::DOWN ) ? "DOWN" :
-                                  ( corrected == Orientation::LEFT ) ? "LEFT" :
-                                  ( corrected == Orientation::RIGHT ) ? "RIGHT" :
+            const char *corrStr = ( corrected == Orientation::UP ) ? "UP (0°)" :
+                                  ( corrected == Orientation::DOWN ) ? "DOWN (180°)" :
+                                  ( corrected == Orientation::LEFT ) ? "LEFT (270°)" :
+                                  ( corrected == Orientation::RIGHT ) ? "RIGHT (90°)" :
                                   ( corrected == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
 
-            log_d( "Orientation: raw=%s, offset=%d, corrected=%s", rawStr, IMU_ORIENTATION_OFFSET, corrStr );
+            log_d( "Display orientation: raw=%s, offset=%d, corrected=%s", rawStr, IMU_ROTATION_OFFSET, corrStr );
 
             return corrected;
         }

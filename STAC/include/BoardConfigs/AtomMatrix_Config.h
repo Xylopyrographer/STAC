@@ -62,7 +62,14 @@
         // IMU orientation offset
         //  Defines which physical direction corresponds to "UP" orientation
         //  Use OrientationOffset enum values from Types.h
-        #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
+        // #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
+
+        // IMU Configuration (from calibration tool)
+        #define IMU_AXIS_REMAP_X    (acc.x)
+        #define IMU_AXIS_REMAP_Y    (acc.y)
+        #define IMU_AXIS_REMAP_Z    (acc.z)
+        #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_90
+
     #endif // IMU_HAS_IMU
 
     // ============================================================================

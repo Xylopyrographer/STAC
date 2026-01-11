@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 11, 2026  
-**Status:** IMU Calibration Tool Implemented and Tested
+**Status:** IMU Calibration System Complete - Axis Remapping & Display Rotation Validated
 
 ---
 
@@ -457,9 +457,9 @@ if (buttonB->wasPressed()) {
 - LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
 - AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
 
-### January 11, 2026 - IMU Calibration Tool Implementation
+### January 11, 2026 - IMU Calibration System Complete
 - **Identified fundamental IMU orientation issue:**
-  - Current implementation assumes 4 possible IMU orientations (0°/90°/180°/270° rotation)
+  - Current implementation assumed 4 possible IMU orientations (0°/90°/180°/270° rotation)
   - Reality: IMU can be mounted in 8 configurations (2 Z-axis directions × 4 rotations)
     * Z+ toward display (FORWARD) or Z+ away from display (AFT)
     * Rotated 0°, 90°, 180°, or 270° relative to board Home position
@@ -479,25 +479,54 @@ if (buttonB->wasPressed()) {
     * Determines axis polarity (+ or -)
     * Detects standard vs swapped axis mapping
     * Calculates rotation offset from marker progression
-  - Outputs complete board config values:
+  - Outputs complete board config values with proper syntax:
     ```cpp
     #define IMU_AXIS_REMAP_X    (acc.x)      // or (-acc.y), etc.
     #define IMU_AXIS_REMAP_Y    (acc.y)      // or (acc.x), etc.
     #define IMU_AXIS_REMAP_Z    (acc.z)
-    #define IMU_FACE_DIRECTION  IMU_FACE_FORWARD  // Future: auto-detect
-    #define IMU_ROTATION_OFFSET OFFSET_0     // or OFFSET_90/180/270
+    #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_0     // or OFFSET_90/180/270
     ```
+  - Removed unused IMU_FACE_DIRECTION (not implemented in code)
+- **Axis remapping integration:**
+  - Added `getRawAcceleration()` to IIMU interface (MPU6886, QMI8658)
+  - Updated IMU drivers to read and apply `IMU_AXIS_REMAP_X/Y/Z` from board config
+  - Axis remapping expressions evaluated at runtime (compile-time defined, runtime evaluated)
+  - Supports standard mapping (X→X, Y→Y) and swapped mapping (X→Y, Y→X)
+  - Supports polarity inversions (e.g., -acc.y)
+  - Changed `IMU_ORIENTATION_OFFSET` → `IMU_ROTATION_OFFSET` for clarity
+- **Display rotation validation:**
+  - Display now correctly rotates based on physical device orientation
+  - ATOM Matrix requires `OFFSET_90` (raw IMU LEFT becomes display UP)
+  - Tested all 4 rotations (0°/90°/180°/270°) plus FLAT detection
+- **Enhanced debugging and logging:**
+  - Updated `Orientation` enum documentation in Types.h
+    * Clarifies enum represents which display edge should be "up" for correct character display
+    * Documents rotation degrees for each value (UP=0°, DOWN=180°, LEFT=270°, RIGHT=90°)
+    * Explains difference between display orientation (after offset) and device orientation
+  - Enhanced debug logging in IMU drivers:
+    * Shows both direction names AND rotation degrees (e.g., "UP (0°)", "RIGHT (90°)")
+    * Format: `Display orientation: raw=LEFT (270°), offset=1, corrected=UP (0°)`
+  - User-facing log shows physical device orientation:
+    * Reports device rotation in degrees: "Device orientation: 0°" (USB down - home)
+    * Mapping: Display UP→Device 0°, DOWN→180°, LEFT→90°, RIGHT→270°, FLAT→FLAT
+    * More meaningful than abstract directions (UP/DOWN/LEFT/RIGHT)
 - **Implementation details:**
   - Display-agnostic architecture: `CalibrationDisplay` base class
   - `CalibrationDisplayLED`: Shows white pixel at top-center (5×5, 8×8 matrices)
   - `CalibrationDisplayTFT`: Shows upward arrow marker (TFT displays)
   - `main_calibrate.cpp`: 9-state interactive state machine
-  - `getRawAcceleration()` added to IIMU interface (MPU6886, QMI8658)
   - Display clears on completion
-- **Testing:**
-  - Validated on ATOM Matrix (MPU6886): Standard mapping, OFFSET_0
-  - Results: Board X = acc.x, Board Y = acc.y (no remapping needed)
-  - Future: Test on Waveshare (expected: swapped axes) to validate algorithm
+  - Build system: Excluded main_calibrate.cpp from normal builds (prevents linker conflicts)
+- **Testing and validation:**
+  - ATOM Matrix (MPU6886): Standard mapping (acc.x, acc.y, acc.z) with OFFSET_90
+  - Display rotation matches device orientation in all positions
+  - Device orientation logging verified accurate: 0°/90°/180°/270°/FLAT
+  - End-to-end validation: Calibration tool → board config → runtime → correct display rotation
+- **Architecture achievement:**
+  - Self-discovering IMU calibration system
+  - Manufacturing-agnostic solution (same IMU chip, different physical mounting)
+  - Solves the 8-orientation problem (2 Z-axis directions × 4 rotations)
+  - Ready for Waveshare testing (expected: different axis mapping)
 - **Documentation:** `Documentation/Developer/IMU_CALIBRATION_TOOL.md`
 - **Benefits:**
   - Self-discovering: No manual sensor orientation analysis
