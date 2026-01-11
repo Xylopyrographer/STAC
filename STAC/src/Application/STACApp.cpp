@@ -181,9 +181,10 @@ namespace Application {
         imu = IMUFactory::create();
         if ( imu->begin() ) {
             log_i( "✓ IMU (%s)", imu->getType() );
+            delay( 100 );  // Allow IMU readings to stabilize after power-on
             Orientation detectedOrientation = imu->getOrientation();
             const char *orientationNames[] = { "UP", "DOWN", "LEFT", "RIGHT", "FLAT", "UNKNOWN" };
-            log_i( "  Initial orientation: %s", orientationNames[ static_cast<int>( detectedOrientation ) ] );
+            log_i( "  Display orientation: %s", orientationNames[ static_cast<int>( detectedOrientation ) ] );
         }
         else {
             log_w( "⚠ IMU unavailable" );

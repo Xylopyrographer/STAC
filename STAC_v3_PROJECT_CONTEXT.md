@@ -1,9 +1,9 @@
 # STAC v3 Project Context
 
-**Version:** v3.0.0-RC.22  
+**Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
-**Updated:** January 10, 2026  
-**Status:** Config Import/Export Feature Complete - Web Portal Renamed to WebConfig
+**Updated:** January 11, 2026  
+**Status:** IMU Architecture Redesign Planned - Calibration Tool in Development
 
 ---
 
@@ -456,6 +456,51 @@ if (buttonB->wasPressed()) {
 - Added configurable `TFT_READABLE` and `TFT_BUS_SHARED` options
 - LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
 - AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
+
+### January 11, 2026 - IMU Architecture Redesign & Calibration Tool Development
+- **Identified fundamental IMU orientation issue:**
+  - Current implementation assumes 4 possible IMU orientations (0°/90°/180°/270° rotation)
+  - Reality: IMU can be mounted in 8 configurations (2 Z-axis directions × 4 rotations)
+    * Z+ toward display (FORWARD) or Z+ away from display (AFT)
+    * Rotated 0°, 90°, 180°, or 270° relative to board Home position
+  - Different boards (ATOM vs Waveshare) have different physical mountings
+  - See `IMU_Analysis.md` for detailed analysis
+- **Planned solution: Interactive IMU calibration tool**
+  - Development-time offline calibration utility (not runtime NVS-based)
+  - New PlatformIO environments: `<board>-calibrate` for each platform
+  - Interactive procedure via serial monitor:
+    1. Place board in Home position (USB down)
+    2. Tool illuminates reference pixel/marker at known position
+    3. User reports pixel location (Top/Bottom/Left/Right)
+    4. Rotate board 90° clockwise, repeat 3 more times
+  - Tool calculates and outputs board config values:
+    * Axis remapping formulas
+    * Z-axis direction (FORWARD/AFT)
+    * Rotation offset
+  - Developer copies values into board config header file
+  - Supports both LED matrix (pixel marker) and TFT displays (visual marker)
+- **Benefits:**
+  - Self-discovering: No manual sensor orientation analysis
+  - Manufacturing-agnostic: Works regardless of PCB assembly variations
+  - Version-controlled: Config values committed to git, survive flash erases
+  - One-time: Only needed during hardware bring-up
+
+### January 10, 2026 - v3.0.0-RC.23 Release & Build System Improvements
+- **Version bump:** RC.22 → RC.23
+- **Enhanced build_all.sh script:**
+  - Added ATOM Matrix to release build sequence
+  - Added `-t clean` flag to all environments for guaranteed clean builds
+  - Ensures no stale artifacts from previous builds
+- **Fixed merged binary generation:**
+  - Corrected bootloader offset in `custom_targets.py`
+  - Changed from 0x1000 to 0x0 (esptool pads to 0x1000 automatically)
+  - Prevents 0xFF padding that corrupts ESP32 image header
+  - All `_FULL.bin` files now have valid 0xE9 magic byte
+- **IMU improvements for Waveshare QMI8658:**
+  - Added 100ms settling delay after IMU initialization
+  - Clarified debug message: "Initial orientation" → "Display orientation"
+  - Fixed FLAT orientation handling: Returns RIGHT raw value (becomes DOWN after OFFSET_90)
+  - Matches vertical USB-down home position when board is horizontal
 
 ### January 10, 2026 - Waveshare IMU Orientation Fix & Startup LED Enhancements
 - **Fixed QMI8658 axis remapping** on Waveshare ESP32-S3-Matrix

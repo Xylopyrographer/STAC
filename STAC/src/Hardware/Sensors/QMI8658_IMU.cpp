@@ -98,22 +98,24 @@
             }
             else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccX > 0 ) {
-                    rawOrientation = Orientation::DOWN;  // USB port at the top
+                    rawOrientation = Orientation::UP;    // USB port at the bottom
                 }
                 else {
-                    rawOrientation = Orientation::UP;    // USB port at the bottom
+                    rawOrientation = Orientation::DOWN;  // USB port at the top
                 }
             }
             else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
-                rawOrientation = Orientation::FLAT;      // Device is horizontal
-            }
-
-            // Apply orientation offset correction
-            OrientationOffset offset = static_cast<OrientationOffset>( IMU_ORIENTATION_OFFSET );
-            Orientation corrected = applyOrientationOffset( rawOrientation, offset );
-
-            return corrected;
+            // Device is horizontal - return RIGHT so OFFSET_90 correction makes it DOWN
+            // This matches vertical USB-down orientation (home position)
+            rawOrientation = Orientation::RIGHT;
         }
+
+        // Apply orientation offset correction
+        OrientationOffset offset = static_cast<OrientationOffset>( IMU_ORIENTATION_OFFSET );
+        Orientation corrected = applyOrientationOffset( rawOrientation, offset );
+
+        return corrected;
+    }
 
         bool QMI8658_IMU::isAvailable() const {
             return initialized;
