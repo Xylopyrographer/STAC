@@ -108,10 +108,9 @@
                 }
             }
             else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
-            // Device is horizontal - return RIGHT so OFFSET_90 correction makes it DOWN
-            // This matches vertical USB-down orientation (home position)
-            rawOrientation = Orientation::RIGHT;
-        }
+                // Device is horizontal (lying flat)
+                rawOrientation = Orientation::FLAT;
+            }
 
         // Apply orientation offset correction from board config
         OrientationOffset offset = static_cast<OrientationOffset>( IMU_ROTATION_OFFSET );

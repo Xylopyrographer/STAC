@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
-**Updated:** January 11, 2026  
-**Status:** IMU Calibration System Complete - Axis Remapping & Display Rotation Validated
+**Updated:** January 12, 2026  
+**Status:** IMU Calibration System - Corner-Based Rotation Method - In Progress
 
 ---
 
@@ -456,6 +456,58 @@ if (buttonB->wasPressed()) {
 - Added configurable `TFT_READABLE` and `TFT_BUS_SHARED` options
 - LovyanGFX requires develop branch (1.2.9+) for ESP32-S3/ESP-IDF 5.5 compatibility
 - AIPI-Lite specific settings: offset_rotation=2, rotation_offset=3, 27MHz SPI, BGR
+
+### January 12, 2026 - IMU Calibration Redesign - Corner-Based Rotation Method
+- **Redesigned calibration tool with corner-based approach:**
+  - Previous method used edge-based pixel placement (TOP/RIGHT/BOTTOM/LEFT) - too confusing
+  - New method: Light single pixel at buffer index 0, rotate device to place at 4 corners
+  - Clearer instructions: "Rotate device until pixel is at TOP-LEFT corner"
+  - Measurements taken at: TOP-LEFT (0°), TOP-RIGHT (90°), BOTTOM-RIGHT (180°), BOTTOM-LEFT (270°)
+- **Added automatic OFFSET detection:**
+  - Analyzes gravity magnitude at each rotation: |g| = √(accX² + accY² + accZ²)
+  - Rotation with strongest gravity = device UP (vertical, home position)
+  - Calculates OFFSET automatically - no manual adjustment needed
+  - Outputs: `#define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_270`
+- **Waveshare ESP32-S3-Matrix calibration completed:**
+  - Axis mapping: X=((-acc.y)), Y=((-acc.x)), Z=(acc.z)
+  - Detected OFFSET: OFFSET_270 (gravity magnitude 1.399g at 270° measurement)
+  - DEVICE_ORIENTATION_MAP: Maps display Orientation enum to physical device degrees
+  - Board-specific mapping: { "90°", "270°", "0°", "180°", "FLAT", "UNKNOWN" }
+- **Enhanced orientation logging:**
+  - Dual logging: "Display rotation applied" vs "Physical device orientation"
+  - Display rotation: Glyph rotation (0°/90°/180°/270°) applied to buffer
+  - Physical orientation: Actual device position (0°/90°/180°/270°/FLAT)
+  - DEVICE_ORIENTATION_MAP bridges Display enum to physical degrees
+- **Fixed FLAT orientation detection:**
+  - QMI8658_IMU.cpp: Now returns Orientation::FLAT when Z-axis dominant
+  - Previously returned RIGHT (causing FLAT to show as 180°)
+  - FLAT special handling: Uses OFFSET rotation directly for display
+- **Identified fundamental calibration methodology issue:**
+  - Current approach has double rotation compensation (OFFSET + runtime adjustment)
+  - Calibration measurements show device was not consistently vertical
+  - Measurement 0: Z=1.085g (device flat), Measurement 3: Z=0.000g (device vertical)
+  - Root cause: Calibration reference frame based on pixel position, not device home
+  - OFFSET compensates for sensor mounting relative to calibration frame, not device frame
+- **Outstanding issues to resolve:**
+  - Display rotation working correctly (90° compensation applied in STACApp.cpp)
+  - Physical orientation logging inverted (shows 270° when device at 0°)
+  - FLAT orientation 180° out of phase (should match home rotation)
+  - End-to-end methodology needs revision to eliminate trial-and-error
+  - Suspect Z-axis mapping or sensor coordinate system mismatch
+  - Need to verify SensorLib returns axes in expected order
+- **Next steps:**
+  - Verify raw sensor axis order from QMI8658 via SensorLib
+  - Add debug output showing which physical direction each axis points
+  - Redesign calibration to explicitly define device home position (vertical, USB down)
+  - Ensure device held vertical during all measurements (gravity in XY plane, Z≈0)
+  - Validate Z-axis is perpendicular to display after remapping
+- **Files modified:**
+  - `src/main_calibrate.cpp`: Redesigned state machine for corner-based rotation
+  - `include/Calibration/CalibrationDisplayLED.h`: Added `showPixelAtIndex()`
+  - `include/BoardConfigs/WaveshareS3_Config.h`: Applied calibration values
+  - `src/Application/STACApp.cpp`: Added FLAT handling and dual orientation logging
+  - `src/Hardware/Sensors/QMI8658_IMU.cpp`: Fixed FLAT detection
+- **Testing status:** Waveshare rotation working, but calibration methodology under review
 
 ### January 11, 2026 - IMU Calibration System Complete
 - **Identified fundamental IMU orientation issue:**

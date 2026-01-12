@@ -64,10 +64,15 @@
         // #define PIN_IMU_INT1 10
         // #define PIN_IMU_INT2 13
 
-        // IMU orientation offset
-        // Defines which physical direction corresponds to "UP" orientation
-        // Note: OFFSET_90 compensates for 90° rotation (clockwise adjustment needed)
-        #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
+        // IMU Configuration (from calibration tool)
+        #define IMU_AXIS_REMAP_X    ((-acc.y))
+        #define IMU_AXIS_REMAP_Y    ((-acc.x))
+        #define IMU_AXIS_REMAP_Z    (acc.z)
+        #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_270
+
+        // Device orientation mapping (maps Display rotation enum to physical device orientation)
+        // When display rotation is 180°, device is physically at 0° (home/UP position)
+        #define DEVICE_ORIENTATION_MAP { "0°", "90°", "180°", "270°", "FLAT", "UNKNOWN" }
 
         // Note: QMI8658 library doesn't allow setting I2C clock (uses default 100kHz)
     #endif // IMU_HAS_IMU

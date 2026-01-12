@@ -70,6 +70,11 @@
         #define IMU_AXIS_REMAP_Z    (acc.z)
         #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_90
 
+        // Device orientation mapping (maps Display orientation to physical Device orientation)
+        // Based on USB port position: USB at bottom = 0°, USB at top = 180°, USB at right = 90°, USB at left = 270°
+        // FLAT orientation uses no rotation (display stays as-is)
+        #define DEVICE_ORIENTATION_MAP { "0°", "180°", "90°", "270°", "FLAT", "UNKNOWN" }
+
     #endif // IMU_HAS_IMU
 
     // ============================================================================
