@@ -12,26 +12,25 @@
     // ============================================================================
 
     /**
-     * @brief Display orientation - which edge of the display should be "up" for correct character display
+     * @brief Display rotation angles
+     * Defines the rotation applied to the display based on physical device orientation.
+     * The enum value directly represents the clockwise rotation angle in degrees.
      * 
-     * Values represent the display rotation needed to show characters upright:
-     * - UP (0°): Display upright, no rotation needed
-     * - DOWN (180°): Display inverted 180°
-     * - LEFT (270°): Display rotated 270° CW (or 90° CCW)
-     * - RIGHT (90°): Display rotated 90° CW
-     * - FLAT: Device lying flat (face up or down)
+     * Physical device positions (using USB port as reference):
+     * - ROTATE_0   (0°):   USB port down (home position)
+     * - ROTATE_90  (90°):  USB port left  
+     * - ROTATE_180 (180°): USB port up
+     * - ROTATE_270 (270°): USB port right
+     * - FLAT: Device lying horizontal (display facing up/down)
      * - UNKNOWN: Unable to determine orientation
-     * 
-     * Note: This represents display orientation after applying board config offset,
-     * not the raw physical device orientation.
      */
     enum class Orientation : uint8_t {
-        UP = 0,      // Display upright (0° rotation)
-        DOWN,        // Display inverted (180° rotation)
-        LEFT,        // Display rotated 270° CW
-        RIGHT,       // Display rotated 90° CW
-        FLAT,        // Device lying flat
-        UNKNOWN      // Unable to determine
+        ROTATE_0 = 0,    // 0° display rotation (USB down)
+        ROTATE_90,       // 90° CW display rotation (USB left)
+        ROTATE_180,      // 180° display rotation (USB up)
+        ROTATE_270,      // 270° CW display rotation (USB right)
+        FLAT,            // Device horizontal
+        UNKNOWN          // Unable to determine
     };
 
     /**

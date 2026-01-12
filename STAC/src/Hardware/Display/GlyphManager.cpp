@@ -64,19 +64,19 @@
 
         template<uint8_t SIZE>
         const uint8_t* GlyphManager<SIZE>::getRotationLUT() const {
-            // LUTs are now defined in the glyph header files (Glyphs5x5.h or Glyphs8x8.h)\n            // and accessible via Display::Rotation namespace
+            // LUTs map Orientation (rotation angle) to the appropriate pixel remapping
             switch ( currentOrientation ) {
-                case Orientation::DOWN:
-                    return Display::Rotation::LUT_DOWN;
-                case Orientation::LEFT:
-                    return Display::Rotation::LUT_LEFT;
-                case Orientation::RIGHT:
-                    return Display::Rotation::LUT_RIGHT;
-                case Orientation::UP:
+                case Orientation::ROTATE_90:
+                    return Display::Rotation::LUT_ROTATE_90;
+                case Orientation::ROTATE_180:
+                    return Display::Rotation::LUT_ROTATE_180;
+                case Orientation::ROTATE_270:
+                    return Display::Rotation::LUT_ROTATE_270;
+                case Orientation::ROTATE_0:
                 case Orientation::FLAT:
                 case Orientation::UNKNOWN:
                 default:
-                    return Display::Rotation::LUT_UP;
+                    return Display::Rotation::LUT_ROTATE_0;
             }
         }
 

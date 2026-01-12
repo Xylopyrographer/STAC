@@ -924,28 +924,26 @@ namespace Display {
     }
 
     void DisplayTFT::setOrientationRotation(Orientation orientation) {
-        // Map IMU orientation to TFT rotation values
-        // M5StickC Plus default orientation: USB port at bottom = UP
-        // LovyanGFX rotation: 0=portrait(USB bottom), 1=landscape(USB right), 
-        //                     2=portrait inverted(USB top), 3=landscape(USB left)
+        // Map device rotation to TFT rotation values
+        // LovyanGFX rotation: 0=0\u00b0, 1=90\u00b0 CW, 2=180\u00b0, 3=270\u00b0 CW
         uint8_t rotation;
         switch (orientation) {
-            case Orientation::UP:
-                rotation = 0;  // Portrait, USB at bottom
+            case Orientation::ROTATE_0:
+                rotation = 0;  // 0\u00b0 rotation
                 break;
-            case Orientation::RIGHT:
-                rotation = 3;  // Landscape, USB at right (was 1, swapped)
+            case Orientation::ROTATE_90:
+                rotation = 1;  // 90\u00b0 CW rotation
                 break;
-            case Orientation::DOWN:
-                rotation = 2;  // Portrait inverted, USB at top
+            case Orientation::ROTATE_180:
+                rotation = 2;  // 180\u00b0 rotation
                 break;
-            case Orientation::LEFT:
-                rotation = 1;  // Landscape, USB at left (was 3, swapped)
+            case Orientation::ROTATE_270:
+                rotation = 3;  // 270\u00b0 CW rotation
                 break;
             case Orientation::FLAT:
             case Orientation::UNKNOWN:
             default:
-                rotation = 0;  // Default to portrait
+                rotation = 0;  // Default to 0\u00b0
                 break;
         }
         // Apply board-specific rotation offset (modulo 4 to keep in valid range)

@@ -68,12 +68,18 @@
         #define IMU_AXIS_REMAP_X    (acc.x)
         #define IMU_AXIS_REMAP_Y    (acc.y)
         #define IMU_AXIS_REMAP_Z    (acc.z)
-        #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_90
-
-        // Device orientation mapping (maps Display orientation to physical Device orientation)
-        // Based on USB port position: USB at bottom = 0°, USB at top = 180°, USB at right = 90°, USB at left = 270°
-        // FLAT orientation uses no rotation (display stays as-is)
-        #define DEVICE_ORIENTATION_MAP { "0°", "180°", "90°", "270°", "FLAT", "UNKNOWN" }
+        
+        // Display LUT mapping for physical orientations
+        // AtomMatrix has Z+ toward display, so LUTs map directly to physical orientation
+        // This maps: physical orientation → which LUT to use for display
+        #define DEVICE_ORIENTATION_TO_LUT_MAP { \
+            Orientation::ROTATE_0,    /* Physical 0°   → use LUT_ROTATE_0   */ \
+            Orientation::ROTATE_90,   /* Physical 90°  → use LUT_ROTATE_90  */ \
+            Orientation::ROTATE_180,  /* Physical 180° → use LUT_ROTATE_180 */ \
+            Orientation::ROTATE_270,  /* Physical 270° → use LUT_ROTATE_270 */ \
+            Orientation::ROTATE_0,    /* FLAT          → use same as home (LUT_ROTATE_0) */ \
+            Orientation::ROTATE_0     /* UNKNOWN       → use same as home (LUT_ROTATE_0) */ \
+        }
 
     #endif // IMU_HAS_IMU
 

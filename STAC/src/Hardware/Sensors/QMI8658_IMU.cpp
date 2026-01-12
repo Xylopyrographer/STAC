@@ -86,25 +86,30 @@
             float scaledAccX = boardX * ACCL_SCALE;
             float scaledAccY = boardY * ACCL_SCALE;
             float scaledAccZ = boardZ * ACCL_SCALE;
+            
+            // Debug: Show raw sensor values and board-mapped values
+            log_i( "Raw IMU: acc.x=%.3f, acc.y=%.3f, acc.z=%.3f → boardX=%.3f, boardY=%.3f, boardZ=%.3f", 
+                   acc.x * ACCL_SCALE, acc.y * ACCL_SCALE, acc.z * ACCL_SCALE,
+                   scaledAccX, scaledAccY, scaledAccZ );
 
             // Determine raw orientation based on accelerometer readings
-            // The USB port is the reference point (home = vertical, USB down)
+            // The USB port is the reference point (home = vertical, USB down = 0°)
             Orientation rawOrientation = Orientation::UNKNOWN;
 
             if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccY > 0 ) {
-                    rawOrientation = Orientation::LEFT;  // USB port to the left
+                    rawOrientation = Orientation::ROTATE_180;  // boardY positive (+0.979 at 180°)
                 }
                 else {
-                    rawOrientation = Orientation::RIGHT; // USB port to the right
+                    rawOrientation = Orientation::ROTATE_0; // boardY negative (-0.998 at 0°, home)
                 }
             }
             else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccX > 0 ) {
-                    rawOrientation = Orientation::UP;    // USB port at the bottom
+                    rawOrientation = Orientation::ROTATE_90;  // boardX positive (+1.099 at 90°)
                 }
                 else {
-                    rawOrientation = Orientation::DOWN;  // USB port at the top
+                    rawOrientation = Orientation::ROTATE_270;    // boardX negative (-0.903 at 270°)
                 }
             }
             else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
@@ -112,25 +117,16 @@
                 rawOrientation = Orientation::FLAT;
             }
 
-        // Apply orientation offset correction from board config
-        OrientationOffset offset = static_cast<OrientationOffset>( IMU_ROTATION_OFFSET );
-        Orientation corrected = applyOrientationOffset( rawOrientation, offset );
-
-        // Debug output to verify correction is applied
-        const char *rawStr = ( rawOrientation == Orientation::UP ) ? "UP (0°)" :
-                             ( rawOrientation == Orientation::DOWN ) ? "DOWN (180°)" :
-                             ( rawOrientation == Orientation::LEFT ) ? "LEFT (270°)" :
-                             ( rawOrientation == Orientation::RIGHT ) ? "RIGHT (90°)" :
+        // Debug output showing raw physical orientation
+        const char *rawStr = ( rawOrientation == Orientation::ROTATE_0 ) ? "0°" :
+                             ( rawOrientation == Orientation::ROTATE_90 ) ? "90°" :
+                             ( rawOrientation == Orientation::ROTATE_180 ) ? "180°" :
+                             ( rawOrientation == Orientation::ROTATE_270 ) ? "270°" :
                              ( rawOrientation == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
-        const char *corrStr = ( corrected == Orientation::UP ) ? "UP (0°)" :
-                              ( corrected == Orientation::DOWN ) ? "DOWN (180°)" :
-                              ( corrected == Orientation::LEFT ) ? "LEFT (270°)" :
-                              ( corrected == Orientation::RIGHT ) ? "RIGHT (90°)" :
-                              ( corrected == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
 
-        log_d( "Display orientation: raw=%s, offset=%d, corrected=%s", rawStr, IMU_ROTATION_OFFSET, corrStr );
+        log_d( "Physical orientation detected: %s", rawStr );
 
-        return corrected;
+        return rawOrientation;  // Return raw physical orientation (offset will be applied at display level)
     }
 
         bool QMI8658_IMU::getRawAcceleration(float &accX, float &accY, float &accZ) {

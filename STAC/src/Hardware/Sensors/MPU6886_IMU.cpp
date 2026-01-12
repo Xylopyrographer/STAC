@@ -57,43 +57,34 @@
 
             if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccY > 0 ) {
-                    rawOrientation = Orientation::LEFT;
+                    rawOrientation = Orientation::ROTATE_270;  // USB port to the left
                 }
                 else {
-                    rawOrientation = Orientation::RIGHT;
+                    rawOrientation = Orientation::ROTATE_90;  // USB port to the right
                 }
             }
             else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
                 if ( scaledAccX > 0 ) {
-                    rawOrientation = Orientation::DOWN;
+                    rawOrientation = Orientation::ROTATE_180;  // USB port at the top
                 }
                 else {
-                    rawOrientation = Orientation::UP;
+                    rawOrientation = Orientation::ROTATE_0;  // USB port at the bottom
                 }
             }
             else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
                 rawOrientation = Orientation::FLAT;
             }
 
-            // Apply orientation offset correction from board config
-            OrientationOffset offset = static_cast<OrientationOffset>( IMU_ROTATION_OFFSET );
-            Orientation corrected = applyOrientationOffset( rawOrientation, offset );
-
-            // Debug output to verify correction is applied
-            const char *rawStr = ( rawOrientation == Orientation::UP ) ? "UP (0°)" :
-                                 ( rawOrientation == Orientation::DOWN ) ? "DOWN (180°)" :
-                                 ( rawOrientation == Orientation::LEFT ) ? "LEFT (270°)" :
-                                 ( rawOrientation == Orientation::RIGHT ) ? "RIGHT (90°)" :
+            // Debug output showing raw physical orientation
+            const char *rawStr = ( rawOrientation == Orientation::ROTATE_0 ) ? "0°" :
+                                 ( rawOrientation == Orientation::ROTATE_90 ) ? "90°" :
+                                 ( rawOrientation == Orientation::ROTATE_180 ) ? "180°" :
+                                 ( rawOrientation == Orientation::ROTATE_270 ) ? "270°" :
                                  ( rawOrientation == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
-            const char *corrStr = ( corrected == Orientation::UP ) ? "UP (0°)" :
-                                  ( corrected == Orientation::DOWN ) ? "DOWN (180°)" :
-                                  ( corrected == Orientation::LEFT ) ? "LEFT (270°)" :
-                                  ( corrected == Orientation::RIGHT ) ? "RIGHT (90°)" :
-                                  ( corrected == Orientation::FLAT ) ? "FLAT" : "UNKNOWN";
 
-            log_d( "Display orientation: raw=%s, offset=%d, corrected=%s", rawStr, IMU_ROTATION_OFFSET, corrStr );
+            log_d( "Physical orientation detected: %s", rawStr );
 
-            return corrected;
+            return rawOrientation;  // Return raw physical orientation (offset will be applied at display level)
         }
 
         bool MPU6886_IMU::getRawAcceleration(float &accX, float &accY, float &accZ) {

@@ -64,15 +64,24 @@
         // #define PIN_IMU_INT1 10
         // #define PIN_IMU_INT2 13
 
-        // IMU Configuration (from calibration tool)
-        #define IMU_AXIS_REMAP_X    ((-acc.y))
-        #define IMU_AXIS_REMAP_Y    ((-acc.x))
+        // IMU Configuration (from calibration tool - January 12, 2026)
+        #define IMU_AXIS_REMAP_X    (acc.y)
+        #define IMU_AXIS_REMAP_Y    (acc.x)
         #define IMU_AXIS_REMAP_Z    (acc.z)
-        #define IMU_ROTATION_OFFSET OrientationOffset::OFFSET_270
-
-        // Device orientation mapping (maps Display rotation enum to physical device orientation)
-        // When display rotation is 180°, device is physically at 0° (home/UP position)
-        #define DEVICE_ORIENTATION_MAP { "0°", "90°", "180°", "270°", "FLAT", "UNKNOWN" }
+        
+        // Display LUT mapping for physical orientations
+        // Axis remapping already handles Z-axis orientation
+        // Direct mapping: physical orientation → same LUT
+        // Map physical orientation to display rotation LUT
+        // Z-axis points away from display, requires Y-axis rotation LUT swap (0°↔180°)
+        #define DEVICE_ORIENTATION_TO_LUT_MAP { \
+            Orientation::ROTATE_180,  /* Physical 0°   → use LUT_ROTATE_180 */ \
+            Orientation::ROTATE_90,   /* Physical 90°  → use LUT_ROTATE_90  */ \
+            Orientation::ROTATE_0,    /* Physical 180° → use LUT_ROTATE_0   */ \
+            Orientation::ROTATE_270,  /* Physical 270° → use LUT_ROTATE_270 */ \
+            Orientation::ROTATE_180,  /* FLAT          → use same as 0° (LUT_ROTATE_180) */ \
+            Orientation::ROTATE_180   /* UNKNOWN       → use same as 0° (LUT_ROTATE_180) */ \
+        }
 
         // Note: QMI8658 library doesn't allow setting I2C clock (uses default 100kHz)
     #endif // IMU_HAS_IMU

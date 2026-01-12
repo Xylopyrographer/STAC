@@ -63,41 +63,17 @@
                     return raw;
                 }
 
-                // Map orientations to rotation indices (UP=0, RIGHT=1, DOWN=2, LEFT=3)
-                int rawIdx = 0;
-                switch ( raw ) {
-                    case Orientation::UP:
-                        rawIdx = 0;
-                        break;
-                    case Orientation::RIGHT:
-                        rawIdx = 1;
-                        break;
-                    case Orientation::DOWN:
-                        rawIdx = 2;
-                        break;
-                    case Orientation::LEFT:
-                        rawIdx = 3;
-                        break;
-                    default:
-                        return raw;
-                }
+                // Map orientations to rotation indices (ROTATE_0=0, ROTATE_90=1, ROTATE_180=2, ROTATE_270=3)
+                // Enum is already ordered this way, so can cast directly
+                int rawIdx = static_cast<int>( raw );
 
-                // Apply offset (rotate clockwise)
-                int correctedIdx = ( rawIdx + static_cast<int>( offset ) ) % 4;
+                // Apply offset (subtract to correct sensor mounting)
+                // OFFSET represents how much the sensor coordinate system is rotated from device coordinates
+                // If sensor reads 90° when device is at 0°, OFFSET_90 means subtract 90° to get true device position
+                int correctedIdx = ( rawIdx - static_cast<int>( offset ) + 4 ) % 4;
 
                 // Map back to orientation
-                switch ( correctedIdx ) {
-                    case 0:
-                        return Orientation::UP;
-                    case 1:
-                        return Orientation::RIGHT;
-                    case 2:
-                        return Orientation::DOWN;
-                    case 3:
-                        return Orientation::LEFT;
-                    default:
-                        return Orientation::UNKNOWN;
-                }
+                return static_cast<Orientation>( correctedIdx );
             }
         };  // ← This is the closing brace of the class
 

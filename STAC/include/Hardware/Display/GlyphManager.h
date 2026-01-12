@@ -28,9 +28,9 @@ namespace Display {
 
             /**
              * @brief Construct GlyphManager with initial orientation
-             * @param orientation Initial device orientation
+             * @param orientation Initial device orientation (rotation angle)
              */
-            explicit GlyphManager( Orientation orientation = Orientation::UP );
+            explicit GlyphManager( Orientation orientation = Orientation::ROTATE_0 );
 
             ~GlyphManager() = default;
 

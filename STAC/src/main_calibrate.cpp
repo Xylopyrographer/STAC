@@ -39,6 +39,10 @@ enum CalibrationState {
     STATE_WAIT_INPUT_180,
     STATE_POSITION_270,
     STATE_WAIT_INPUT_270,
+    STATE_FLAT_UP,
+    STATE_WAIT_INPUT_FLAT_UP,
+    STATE_FLAT_DOWN,
+    STATE_WAIT_INPUT_FLAT_DOWN,
     STATE_CALCULATE,
     STATE_COMPLETE
 };
@@ -54,7 +58,7 @@ struct Measurement {
 CalibrationDisplayType *display = nullptr;
 std::unique_ptr<IIMU> imu;
 CalibrationState currentState = STATE_WELCOME;
-Measurement measurements[ 4 ]; // 0°, 90°, 180°, 270°
+Measurement measurements[ 6 ]; // 0°, 90°, 180°, 270°, FLAT_UP, FLAT_DOWN
 int currentRotation = 0;
 
 // Color constants
@@ -124,7 +128,6 @@ void loop() {
             break;
 
         case STATE_POSITION_0:
-            ((CalibrationDisplayType*)display)->showPixelAtIndex( 0 );  // Buffer index 0
             printInstructions( 0 );
             currentState = STATE_WAIT_INPUT_0;
             break;
@@ -136,7 +139,6 @@ void loop() {
             break;
 
         case STATE_POSITION_90:
-            // Pixel stays at index 0, user rotates device
             printInstructions( 90 );
             currentState = STATE_WAIT_INPUT_90;
             break;
@@ -148,7 +150,6 @@ void loop() {
             break;
 
         case STATE_POSITION_180:
-            // Pixel stays at index 0, user rotates device
             printInstructions( 180 );
             currentState = STATE_WAIT_INPUT_180;
             break;
@@ -160,13 +161,32 @@ void loop() {
             break;
 
         case STATE_POSITION_270:
-            // Pixel stays at index 0, user rotates device
             printInstructions( 270 );
             currentState = STATE_WAIT_INPUT_270;
             break;
 
         case STATE_WAIT_INPUT_270:
             takeMeasurement( 3 );
+            currentState = STATE_FLAT_UP;
+            break;
+
+        case STATE_FLAT_UP:
+            printInstructions( -1 );  // -1 = FLAT_UP
+            currentState = STATE_WAIT_INPUT_FLAT_UP;
+            break;
+
+        case STATE_WAIT_INPUT_FLAT_UP:
+            takeMeasurement( 4 );
+            currentState = STATE_FLAT_DOWN;
+            break;
+
+        case STATE_FLAT_DOWN:
+            printInstructions( -2 );  // -2 = FLAT_DOWN
+            currentState = STATE_WAIT_INPUT_FLAT_DOWN;
+            break;
+
+        case STATE_WAIT_INPUT_FLAT_DOWN:
+            takeMeasurement( 5 );
             currentState = STATE_CALCULATE;
             break;
 
@@ -192,30 +212,51 @@ void loop() {
 }
 
 void printWelcome() {
-    Serial.println( "\nThis tool measures IMU readings with the display in each orientation." );
-    Serial.println( "\nYou will:" );
-    Serial.println( "  1. See a GREEN pixel lit at the top-left of the display buffer" );
-    Serial.println( "  2. ROTATE device to place that pixel at each physical corner" );
-    Serial.println( "     (top-left, top-right, bottom-right, bottom-left)" );
-    Serial.println( "  3. Press ENTER at each position to record measurement" );
-    Serial.println( "  4. The pixel stays at buffer index 0, you rotate the device" );
-    Serial.println( "\nThe tool will then calculate configuration values that work" );
-    Serial.println( "with OFFSET_0 (no manual adjustment needed)." );
+    Serial.println( "\n╔════════════════════════════════════════════╗" );
+    Serial.println( "║       IMU CALIBRATION TOOL                 ║" );
+    Serial.println( "╚════════════════════════════════════════════╝" );
+    Serial.println( "\nThis tool will measure accelerometer readings as you" );
+    Serial.println( "rotate and tilt the device through 6 positions." );
+    Serial.println( "\nIMPORTANT: For rotations 0°-270°, keep device VERTICAL." );
+    Serial.println( "           Only rotate around the vertical axis (Z-axis)." );
+    Serial.println( "\nExpected: Z-axis stays ~0g, X/Y rotate between -1g and +1g" );
     Serial.println( "\n════════════════════════════════════════════" );
     Serial.println( "\nPress ENTER to begin..." );
 }
 
 void printInstructions( int rotation ) {
-    const char *corner[] = {"TOP-LEFT", "TOP-RIGHT", "BOTTOM-RIGHT", "BOTTOM-LEFT"};
-    int step = rotation / 90;
-
     Serial.println( "\n════════════════════════════════════════════" );
-    Serial.printf( "STEP %d/4: %d° rotation\n", step + 1, rotation );
-    Serial.println( "════════════════════════════════════════════" );
+    
+    if ( rotation == -1 ) {
+        // FLAT UP
+        Serial.println( "STEP 5/6: Device FLAT, display facing UP" );
+        Serial.println( "════════════════════════════════════════════" );
+        Serial.println( "\n3. Lay device FLAT on table, display facing UP" );
+        Serial.println( "   (Gravity pointing DOWN through display)" );
+    } else if ( rotation == -2 ) {
+        // FLAT DOWN
+        Serial.println( "STEP 6/6: Device FLAT, display facing DOWN" );
+        Serial.println( "════════════════════════════════════════════" );
+        Serial.println( "\n4. Flip device FLAT, display facing DOWN" );
+        Serial.println( "   (Gravity pointing UP through display)" );
+    } else {
+        // Vertical rotations
+        int step = rotation / 90;
+        Serial.printf( "STEP %d/6: Device rotated %d° clockwise\n", step + 1, rotation );
+        Serial.println( "════════════════════════════════════════════" );
 
-    Serial.println( "\nThe GREEN pixel is at buffer index 0 (top-left of buffer)." );
-    Serial.printf( "\nROTATE the device until this pixel is at the physical %s corner.\n", corner[ step ] );
-    Serial.printf( "\nPress ENTER when pixel is at %s corner...\n", corner[ step ] );
+        if ( rotation == 0 ) {
+            Serial.println( "\n1. Hold device VERTICAL with USB port DOWN" );
+            Serial.println( "   (This is your HOME position - 0°)" );
+        } else {
+            Serial.printf( "\n2. Rotate device %d° CLOCKWISE (keep vertical!)\n", rotation );
+            Serial.printf( "   (USB port now pointing %s)\n", 
+                          rotation == 90 ? "LEFT" : 
+                          rotation == 180 ? "UP" : "RIGHT" );
+        }
+    }
+
+    Serial.println( "\nPress ENTER when ready..." );
     waitForEnter();
 }
 
@@ -242,32 +283,87 @@ void takeMeasurement( int index ) {
         measurements[ index ].accZ = 0.0f;
     }
 
-    Serial.printf( "  ✓ AccX: %7.3f  AccY: %7.3f  AccZ: %7.3f\n",
-                   measurements[ index ].accX,
-                   measurements[ index ].accY,
-                   measurements[ index ].accZ );
+    Serial.println( "\n┌────────────────────────────────────────┐" );
+    Serial.printf(  "│ Raw Sensor Values (no remapping):     │\n" );
+    Serial.println( "├────────────────────────────────────────┤" );
+    Serial.printf(  "│  Sensor X: %7.3f g                   │\n", measurements[ index ].accX );
+    Serial.printf(  "│  Sensor Y: %7.3f g                   │\n", measurements[ index ].accY );
+    Serial.printf(  "│  Sensor Z: %7.3f g                   │\n", measurements[ index ].accZ );
+    Serial.println( "└────────────────────────────────────────┘" );
 }
 
 void calculateConfiguration() {
-    Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "COLLECTED MEASUREMENTS:" );
-    Serial.println( "════════════════════════════════════════════" );
-    Serial.println( "(Pixel at buffer index 0, device rotated to each corner)\n" );
+    Serial.println( "\n╔════════════════════════════════════════════╗" );
+    Serial.println( "║         MEASUREMENT SUMMARY                ║" );
+    Serial.println( "╚════════════════════════════════════════════╝\n" );
 
-    const char *corner[] = {"TOP-LEFT", "TOP-RIGHT", "BOTTOM-RIGHT", "BOTTOM-LEFT"};
-    const char *rotation[] = {"0°", "90°", "180°", "270°"};
+    Serial.println( "VERTICAL ROTATIONS:" );
+    Serial.println( "┌────────────┬──────────┬──────────┬──────────┐" );
+    Serial.println( "│ Angle      │ Sensor X │ Sensor Y │ Sensor Z │" );
+    Serial.println( "├────────────┼──────────┼──────────┼──────────┤" );
     for ( int i = 0; i < 4; i++ ) {
-        Serial.printf( "%3s rotation (pixel at %12s): AccX=%7.3f, AccY=%7.3f, AccZ=%7.3f\n",
-                       rotation[ i ],
-                       corner[ i ],
+        Serial.printf( "│  %3d°      │ %7.3fg │ %7.3fg │ %7.3fg │\n",
+                       i * 90,
                        measurements[ i ].accX,
                        measurements[ i ].accY,
                        measurements[ i ].accZ );
     }
+    Serial.println( "└────────────┴──────────┴──────────┴──────────┘\n" );
 
-    Serial.println( "\n════════════════════════════════════════════" );
+    Serial.println( "FLAT ORIENTATIONS:" );
+    Serial.println( "┌────────────┬──────────┬──────────┬──────────┐" );
+    Serial.println( "│ Position   │ Sensor X │ Sensor Y │ Sensor Z │" );
+    Serial.println( "├────────────┼──────────┼──────────┼──────────┤" );
+    Serial.printf( "│ FLAT UP    │ %7.3fg │ %7.3fg │ %7.3fg │\n",
+                   measurements[ 4 ].accX,
+                   measurements[ 4 ].accY,
+                   measurements[ 4 ].accZ );
+    Serial.printf( "│ FLAT DOWN  │ %7.3fg │ %7.3fg │ %7.3fg │\n",
+                   measurements[ 5 ].accX,
+                   measurements[ 5 ].accY,
+                   measurements[ 5 ].accZ );
+    Serial.println( "└────────────┴──────────┴──────────┴──────────┘\n" );
+
+    // Check if Z-axis remained relatively constant (device was vertical)
+    float maxZ = -999.0f;
+    float minZ = 999.0f;
+    for ( int i = 0; i < 4; i++ ) {
+        if ( measurements[ i ].accZ > maxZ ) maxZ = measurements[ i ].accZ;
+        if ( measurements[ i ].accZ < minZ ) minZ = measurements[ i ].accZ;
+    }
+    float zVariation = maxZ - minZ;
+
+    Serial.println( "════════════════════════════════════════════" );
     Serial.println( "ANALYSIS:" );
     Serial.println( "════════════════════════════════════════════\n" );
+
+    Serial.printf( "Z-axis variation (vertical): %.3f g (max=%.3f, min=%.3f)\n", zVariation, maxZ, minZ );
+    
+    if ( zVariation > 0.3f ) {
+        Serial.println( "\n⚠ WARNING: Z-axis varied significantly!" );
+        Serial.println( "  Device was NOT held vertical consistently." );
+        Serial.println( "  Expected: Z ≈ 0g at all rotations (perpendicular to gravity)" );
+        Serial.println( "  Please repeat calibration, keeping device VERTICAL." );
+    } else {
+        Serial.println( "\n✓ Z-axis remained stable - device was held vertical" );
+    }
+
+    // Analyze FLAT measurements
+    Serial.printf( "\nZ-axis when FLAT UP:   %.3f g\n", measurements[ 4 ].accZ );
+    Serial.printf( "Z-axis when FLAT DOWN: %.3f g\n", measurements[ 5 ].accZ );
+    
+    float zDelta = measurements[ 4 ].accZ - measurements[ 5 ].accZ;
+    Serial.printf( "Z-axis delta (UP - DOWN): %.3f g\n", zDelta );
+    
+    if ( zDelta > 1.5f ) {
+        Serial.println( "→ Sensor Z+ points AWAY from display (toward user when facing screen)" );
+    } else if ( zDelta < -1.5f ) {
+        Serial.println( "→ Sensor Z+ points TOWARD display (away from user when facing screen)" );
+    } else {
+        Serial.println( "⚠ WARNING: Cannot determine Z-axis direction - delta too small" );
+    }
+
+    Serial.println( "\n════════════════════════════════════════════" );
 
     // Measurement 0 (0°): Buffer top-left at physical top-left (reference)
     // Measurement 2 (180°): Buffer top-left at physical bottom-right (device rotated 180°)
@@ -330,6 +426,7 @@ void calculateConfiguration() {
     
     int upRotation = 0;
     float maxGravity = 0.0f;
+    const char *rotationLabels[] = {"0°", "90°", "180°", "270°"};
     
     for ( int i = 0; i < 4; i++ ) {
         // Calculate total gravity magnitude for this orientation
@@ -337,7 +434,7 @@ void calculateConfiguration() {
                              measurements[ i ].accY * measurements[ i ].accY +
                              measurements[ i ].accZ * measurements[ i ].accZ );
         
-        Serial.printf( "  %3s° rotation: |g| = %5.3f\n", rotation[ i ], totalG );
+        Serial.printf( "  %3s rotation: |g| = %5.3f\n", rotationLabels[ i ], totalG );
         
         if ( totalG > maxGravity ) {
             maxGravity = totalG;
@@ -348,7 +445,7 @@ void calculateConfiguration() {
     const char *offsetNames[] = {"OFFSET_0", "OFFSET_90", "OFFSET_180", "OFFSET_270"};
     int offsetValue = upRotation * 90;
     
-    Serial.printf( "\n  → Device is UP at %s° rotation\n", rotation[ upRotation ] );
+    Serial.printf( "\n  → Device is UP at %s rotation\n", rotationLabels[ upRotation ] );
     Serial.printf( "  → Glyph map needs %s to align with UP\n", offsetNames[ upRotation ] );
 
     Serial.printf( "\nCalculated mapping:\n" );

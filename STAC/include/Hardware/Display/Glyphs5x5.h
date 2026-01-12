@@ -157,8 +157,8 @@ namespace Display {
      * for each 90° rotation. Format: destPixel = sourceLUT[sourcePixel]
      */
     namespace Rotation {
-        // No rotation (UP orientation)
-        constexpr uint8_t LUT_UP[25] = {
+        // 0° rotation (no rotation needed)
+        constexpr uint8_t LUT_ROTATE_0[25] = {
             0,1,2,3,4,
             5,6,7,8,9,
             10,11,12,13,14,
@@ -166,8 +166,8 @@ namespace Display {
             20,21,22,23,24
         };
 
-        // 90° clockwise (RIGHT orientation)
-        constexpr uint8_t LUT_RIGHT[25] = {
+        // 90° clockwise rotation
+        constexpr uint8_t LUT_ROTATE_90[25] = {
             20,15,10,5,0,
             21,16,11,6,1,
             22,17,12,7,2,
@@ -175,8 +175,8 @@ namespace Display {
             24,19,14,9,4
         };
 
-        // 180° (DOWN orientation)
-        constexpr uint8_t LUT_DOWN[25] = {
+        // 180° rotation
+        constexpr uint8_t LUT_ROTATE_180[25] = {
             24,23,22,21,20,
             19,18,17,16,15,
             14,13,12,11,10,
@@ -184,8 +184,8 @@ namespace Display {
             4,3,2,1,0
         };
 
-        // 270° clockwise / 90° counter-clockwise (LEFT orientation)
-        constexpr uint8_t LUT_LEFT[25] = {
+        // 270° clockwise rotation
+        constexpr uint8_t LUT_ROTATE_270[25] = {
             4,9,14,19,24,
             3,8,13,18,23,
             2,7,12,17,22,

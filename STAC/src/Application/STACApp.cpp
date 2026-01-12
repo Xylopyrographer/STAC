@@ -177,26 +177,27 @@ namespace Application {
         
         log_i( "✓ Display (%s)", DisplayFactory::getDisplayType() );
 
-        // IMU - only read orientation once at startup for glyph rotation
+        // IMU - read orientation once at startup for glyph rotation
         imu = IMUFactory::create();
+        Orientation displayOrientation = Orientation::ROTATE_0;  // Default if IMU unavailable
+        
         if ( imu->begin() ) {
             log_i( "✓ IMU (%s)", imu->getType() );
             delay( 100 );  // Allow IMU readings to stabilize after power-on
+            
             Orientation detectedOrientation = imu->getOrientation();
-            Orientation displayOrientation = detectedOrientation;
-
-            if ( detectedOrientation == Orientation::FLAT ) {
-                // When device is flat, use the OFFSET rotation directly
-                displayOrientation = static_cast<Orientation>( IMU_ROTATION_OFFSET );
+            
+            if ( detectedOrientation != Orientation::UNKNOWN ) {
+                // Apply board-specific LUT mapping: physical orientation → display rotation
+                static const Orientation lutMap[] = DEVICE_ORIENTATION_TO_LUT_MAP;
+                displayOrientation = lutMap[ static_cast<int>( detectedOrientation ) ];
+                
+                // Log orientation info
+                const char *lutNames[] = {"LUT_ROTATE_0", "LUT_ROTATE_90", "LUT_ROTATE_180", "LUT_ROTATE_270", "LUT_FLAT", "LUT_UNKNOWN"};
+                const char *physicalOrientationNames[] = {"0°", "90°", "180°", "270°", "FLAT", "UNKNOWN"};
+                log_i( "  LUT being used: %s", lutNames[ static_cast<int>( displayOrientation ) ] );
+                log_i( "  Physical device orientation: %s", physicalOrientationNames[ static_cast<int>( detectedOrientation ) ] );
             }
-            
-            // Display the rotation being applied to the glyphs
-            const char *displayOrientationNames[] = {"0°", "90°", "180°", "270°", "FLAT", "UNKNOWN"};
-            log_i( "  Display rotation applied: %s", displayOrientationNames[ static_cast<int>( displayOrientation ) ] );
-            
-            // Map to physical device orientation using board-specific mapping
-            const char *deviceOrientationNames[] = DEVICE_ORIENTATION_MAP;
-            log_i( "  Physical device orientation: %s", deviceOrientationNames[ static_cast<int>( detectedOrientation ) ] );
         }
         else {
             log_w( "⚠ IMU unavailable" );
@@ -234,20 +235,11 @@ namespace Application {
             log_i( "✓ Button B (reset)" );
         #endif
 
-        // GlyphManager - initialize with current orientation from IMU
-        Orientation initialOrientation = Orientation::UP;  // Default if IMU unavailable
-        if ( imu ) {
-            Orientation detectedOrientation = imu->getOrientation();
-            if ( detectedOrientation != Orientation::UNKNOWN ) {
-                initialOrientation = detectedOrientation;
-            }
-        }
+        // Set display rotation (TFT displays rotate, LED matrix uses rotated glyphs)
+        display->setOrientationRotation( displayOrientation );
 
-        // Set display rotation based on detected orientation (TFT displays rotate, LED matrix uses rotated glyphs)
-        display->setOrientationRotation( initialOrientation );
-
-        // GlyphManager - initialize with current orientation from IMU (dimension-agnostic using type alias)
-        glyphManager = std::make_unique<Display::GlyphManagerType>( initialOrientation );
+        // GlyphManager - initialize with mapped display orientation (dimension-agnostic using type alias)
+        glyphManager = std::make_unique<Display::GlyphManagerType>( displayOrientation );
         log_i( "✓ GlyphManager" );
 
         #if HAS_PERIPHERAL_MODE_CAPABILITY

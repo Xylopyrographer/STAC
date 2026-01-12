@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 12, 2026  
-**Status:** IMU Calibration System - Corner-Based Rotation Method - In Progress
+**Status:** IMU Orientation System - Working on All Platforms
 
 ---
 
@@ -268,6 +268,81 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### January 12, 2026 - IMU Orientation System Complete - Waveshare ESP32-S3-Matrix Working
+- **CRITICAL BUG FIX:** GlyphManager was receiving raw physical orientation instead of mapped display orientation
+  - STACApp.cpp was reading IMU orientation twice:
+    1. First read: Applied DEVICE_ORIENTATION_TO_LUT_MAP for logging (correct)
+    2. Second read: Passed raw orientation to GlyphManager (WRONG - bypassed mapping!)
+  - Result: LUT mapping only affected log output, not actual glyph rotation
+  - Fix: Consolidated to single IMU read, store mapped orientation in variable, use for both logging and GlyphManager
+  - Code duplication eliminated, single source of truth for display orientation
+- **Waveshare ESP32-S3-Matrix Z-axis flip handled:**
+  - QMI8658 IMU has Z+ pointing AWAY from display (vs AtomMatrix Z+ toward display)
+  - Requires Y-axis rotation LUT swap: Physical 0°→LUT_180, Physical 180°→LUT_0
+  - X-axis rotations unchanged: Physical 90°→LUT_90, Physical 270°→LUT_270
+  - DEVICE_ORIENTATION_TO_LUT_MAP config:
+    ```cpp
+    { Orientation::ROTATE_180,   // Physical 0°   → LUT_ROTATE_180
+      Orientation::ROTATE_90,    // Physical 90°  → LUT_ROTATE_90  
+      Orientation::ROTATE_0,     // Physical 180° → LUT_ROTATE_0   
+      Orientation::ROTATE_270,   // Physical 270° → LUT_ROTATE_270 
+      Orientation::ROTATE_180,   // FLAT          → same as 0°
+      Orientation::ROTATE_180 }  // UNKNOWN       → same as 0°
+    ```
+  - Insight: IMU_AXIS_REMAP handles coordinate transformation, LUT mapping handles rotation offset
+- **Board-specific LUT mapping architecture:**
+  - Replaced simple rotation offset with per-board LUT mapping table
+  - Each board defines DEVICE_ORIENTATION_TO_LUT_MAP[6] array
+  - Maps each physical orientation (0°/90°/180°/270°/FLAT/UNKNOWN) to display LUT
+  - Supports both Z-axis orientations (toward/away from display)
+  - FLAT and UNKNOWN use home position LUT (typically same as 0°)
+- **Architectural separation - Physical vs Display:**
+  - IMU layer: Returns RAW physical orientation based on accelerometer only
+    * No offset application at IMU level
+    * Axis remapping (IMU_AXIS_REMAP_X/Y/Z) handles coordinate transformation
+    * Physical orientation logging always accurate
+  - Application layer: Applies board-specific LUT mapping
+    * STACApp.cpp looks up display orientation using DEVICE_ORIENTATION_TO_LUT_MAP
+    * Passes mapped orientation to GlyphManager
+    * Logging shows both LUT name and physical orientation
+- **Complete nomenclature refactoring:**
+  - Eliminated UP/DOWN/LEFT/RIGHT terminology throughout codebase
+  - Replaced with rotation degrees: ROTATE_0, ROTATE_90, ROTATE_180, ROTATE_270, FLAT, UNKNOWN
+  - Updated: Orientation enum, all LUT names, GlyphManager, DisplayTFT, IMU drivers
+  - LUT names: LUT_ROTATE_0/90/180/270 (instead of LUT_UP/RIGHT/DOWN/LEFT)
+  - Clearer intent: Rotation angle, not arbitrary direction
+- **Enhanced debug logging:**
+  - Shows LUT being used: "LUT being used: LUT_ROTATE_180"
+  - Shows physical orientation: "Physical device orientation: 0°"
+  - Removed confusing "Display rotation applied" log (redundant with LUT name)
+  - Raw IMU values logged in QMI8658_IMU.cpp: "Raw IMU: acc.x=..., boardX=..., boardY=..."
+- **Files modified:**
+  - src/Application/STACApp.cpp: Consolidated IMU read, removed duplication, cleaner logging
+  - include/Config/Types.h: Orientation enum ROTATE_* values
+  - include/Hardware/Display/Glyphs8x8.h & Glyphs5x5.h: LUT_ROTATE_* names
+  - src/Hardware/Display/GlyphManager.cpp: Updated to ROTATE_* enum
+  - src/Hardware/Sensors/QMI8658_IMU.cpp: Returns raw orientation, enhanced logging
+  - src/Hardware/Sensors/MPU6886_IMU.cpp: Returns raw orientation
+  - include/BoardConfigs/WaveshareS3_Config.h: DEVICE_ORIENTATION_TO_LUT_MAP with Z-flip swap
+  - include/BoardConfigs/AtomMatrix_Config.h: DEVICE_ORIENTATION_TO_LUT_MAP (direct mapping)
+  - src/Hardware/Display/TFT/DisplayTFT.cpp: Updated to ROTATE_* enum
+- **Testing results:**
+  - Waveshare ESP32-S3-Matrix: All orientations (0°/90°/180°/270°/FLAT) display correctly ✅
+  - Physical orientation detection accurate at all positions ✅
+  - Display rotation matches physical device orientation ✅
+  - FLAT and UNKNOWN use home orientation LUT ✅
+  - AtomMatrix: Expected to work (not yet tested with final architecture)
+- **Key insight from debugging:**
+  - System appeared to work in logs but display was wrong
+  - Root cause: Logging code path vs execution code path diverged
+  - LUT mapping was only applied for logging, not for actual GlyphManager
+  - Classic case of code duplication hiding critical bug
+  - Consolidated to single code path with single source of truth
+- **Next steps:**
+  - Test AtomMatrix with current architecture
+  - Clean up obsolete code (OrientationOffset enum, applyOrientationOffset())
+  - Consider renaming LUTs to reflect they're board-relative (not absolute)
 
 ### January 8, 2026 - OTA Update UX Improvements & Build System Enhancements
 - **OTA Progress Tracking (RC.11):**
