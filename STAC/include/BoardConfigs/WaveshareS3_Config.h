@@ -65,25 +65,25 @@
 // #define PIN_IMU_INT2 13
 
 // IMU Configuration (from calibration tool)
-#define IMU_AXIS_REMAP_X    (acc.x)
-#define IMU_AXIS_REMAP_Y    ((-acc.y))
+#define IMU_AXIS_REMAP_X    ((-acc.y))
+#define IMU_AXIS_REMAP_Y    ((-acc.x))
 #define IMU_AXIS_REMAP_Z    (acc.z)
 
 #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-    Orientation::ROTATE_90,   /* getOrientation()=ROTATE_0 → LUT_90 */ \
-    Orientation::ROTATE_0,    /* getOrientation()=ROTATE_90 → LUT_0 */ \
-    Orientation::ROTATE_270,  /* getOrientation()=ROTATE_180 → LUT_270 */ \
-    Orientation::ROTATE_180,  /* getOrientation()=ROTATE_270 → LUT_180 */ \
-    Orientation::ROTATE_180,  /* FLAT → same as device home */ \
-    Orientation::ROTATE_180   /* UNKNOWN → same as device home */ \
+    Orientation::ROTATE_90,   /* getOrientation()=ROTATE_0 → LUT_90 (TEST: rotated by 270°) */ \
+    Orientation::ROTATE_0,    /* getOrientation()=ROTATE_90 → LUT_0 (TEST: rotated by 270°) */ \
+    Orientation::ROTATE_270,  /* getOrientation()=ROTATE_180 → LUT_270 (TEST: rotated by 270°) */ \
+    Orientation::ROTATE_180,  /* getOrientation()=ROTATE_270 → LUT_180 (TEST: rotated by 270°) */ \
+    Orientation::ROTATE_90,   /* FLAT → same as device home */ \
+    Orientation::ROTATE_90    /* UNKNOWN → same as device home */ \
 }
 
 // Reverse mapping for debug logging: enum → physical angle
 #define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
-    90,  /* ROTATE_0 → Physical 90° */ \
-    180, /* ROTATE_90 → Physical 180° */ \
-    270, /* ROTATE_180 → Physical 270° */ \
-    0,   /* ROTATE_270 → Physical 0° */ \
+    0,   /* ROTATE_0 → Physical 0° (TEST: fixed reverse mapping) */ \
+    90,  /* ROTATE_90 → Physical 90° (TEST: fixed reverse mapping) */ \
+    180, /* ROTATE_180 → Physical 180° (TEST: fixed reverse mapping) */ \
+    270, /* ROTATE_270 → Physical 270° (TEST: fixed reverse mapping) */ \
     -1,  /* FLAT */ \
     -1   /* UNKNOWN */ \
 }

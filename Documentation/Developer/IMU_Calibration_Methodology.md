@@ -105,13 +105,14 @@ This gives us:
 
 ### Step 4: Identify Device Home Rotation
 
-From Step 3, we now know which of the 4 rotations produces the pattern's starting point.
+From Step 3, we now know which measurement matched the pattern's starting point (position 0).
 
-For Pattern 1: Device home is the rotation where (boardX ≈ -1g, boardY ≈ 0g)
+For Pattern 1: Pattern position 0 occurs where (boardX ≈ -1g, boardY ≈ 0g)  
+For Pattern 2: Pattern position 0 occurs where (boardX ≈ +1g, boardY ≈ 0g)
 
-For Pattern 2: Device home is the rotation where (boardX ≈ +1g, boardY ≈ 0g)
+**Device home** = rotation index (0, 1, 2, or 3) where pattern position 0 occurs.
 
-**Device home** = rotation index (0, 1, 2, or 3) where this occurs.
+**Important:** Device home can be any of the 4 rotation positions depending on which orientation the user chose during calibration. The calibration tool adapts all calculations to treat the chosen home as physical 0°.
 
 ### Step 5: Measure Display Rotation Offset
 
@@ -133,24 +134,44 @@ For Pattern 2: Device home is the rotation where (boardX ≈ +1g, boardY ≈ 0g)
 
 **CRITICAL INSIGHT**: Display rotation LUTs rotate content in the **same** direction as their name (e.g., `LUT_ROTATE_90` rotates pixels 90° clockwise). But when the device rotates, we need to rotate the content in the **opposite** direction to keep it upright. Therefore, the LUT calculation must **invert** the rotation direction.
 
-For each device rotation (0°, 90°, 180°, 270°):
+**For the four vertical orientations:**
 
+For each physical position (0, 1, 2, 3):
+1. Determine what `getOrientation()` returns at that position (from Step 3 axis remap simulation)
+2. Calculate LUT angle: `lutAngle = (360 - physicalAngle + displayOffset) % 360`
+3. Convert to LUT index: `lutIndex = lutAngle / 90`
+4. Store in LUT: `lut[enumValue] = lutIndex`
+
+The `360 - physicalAngle` term inverts the rotation direction so content rotates counter to device.
+
+**For FLAT and UNKNOWN orientations:**
+
+When the device is physically flat (not vertical), `getOrientation()` always returns `ROTATE_0` regardless of which vertical position was chosen as calibration home. Therefore:
+
+```cpp
+lut[FLAT] = lut[0];      // Use the LUT value for ROTATE_0
+lut[UNKNOWN] = lut[0];   // Use the LUT value for ROTATE_0
 ```
-LUT[rotation] = (360 - rotation + display_offset + device_home) % 360
-```
 
-The `360 - rotation` term inverts the rotation direction so that content rotates counter to the device.
+**Example:**
 
-Example:
+- Device home = 0° (user's chosen orientation matched pattern position 0)
+- Display offset = 90° (pixel 0 appeared at bottom-left corner)
+- Axis remap rotation = 90° (X from Y axis)
+- Final display offset = 180° (90° base + 90° remap)
 
-- Device home = 0° (device at rotation index 0)
-- Display offset = 0° (pixel 0 appeared at top-left)
-- LUT[0°] = (360 - 0 + 0 + 0) % 360 = 0° → `ROTATE_0`
-- LUT[90°] = (360 - 90 + 0 + 0) % 360 = 270° → `ROTATE_270`
-- LUT[180°] = (360 - 180 + 0 + 0) % 360 = 180° → `ROTATE_180`
-- LUT[270°] = (360 - 270 + 0 + 0) % 360 = 90° → `ROTATE_90`
+For physical position 0 (home):
+- `getOrientation()` returns ROTATE_270 (enum value 3)
+- `lutAngle = (360 - 0 + 180) % 360 = 180°`
+- `lutIndex = 180 / 90 = 2` (ROTATE_180)
+- `lut[3] = 2`
 
-This produces the correct inverse mapping where device rotating CW makes content rotate CCW.
+For FLAT:
+- `getOrientation()` returns ROTATE_0 (enum value 0)
+- `lut[0]` was calculated for physical position where enum=0
+- `lut[FLAT] = lut[0]`
+
+This produces the correct inverse mapping where device rotating CW makes content rotate CCW, and FLAT displays correctly regardless of calibration home choice.
 
 ## Output Format
 
@@ -162,15 +183,25 @@ The calibration tool outputs directly copy/paste-able configuration:
 #define IMU_AXIS_REMAP_Y    ((-acc.x))  // Example
 #define IMU_AXIS_REMAP_Z    (acc.z)     // Example
 
-// Display Rotation LUT
-// Device home at physical 0°, display offset = 90°
+// Display Rotation LUT (indexed by Orientation enum value)
+// Device home at physical 0°, display offset = 180°
 #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-    Orientation::ROTATE_90,   /* Physical 0° → LUT_90 */ \
-    Orientation::ROTATE_180,  /* Physical 90° → LUT_180 */ \
-    Orientation::ROTATE_270,  /* Physical 180° → LUT_270 */ \
-    Orientation::ROTATE_0,    /* Physical 270° → LUT_0 */ \
-    Orientation::ROTATE_90,   /* FLAT → same as device home */ \
-    Orientation::ROTATE_90    /* UNKNOWN → same as device home */ \
+    Orientation::ROTATE_90,   /* getOrientation()=ROTATE_0 → LUT_90 */ \
+    Orientation::ROTATE_0,    /* getOrientation()=ROTATE_90 → LUT_0 */ \
+    Orientation::ROTATE_270,  /* getOrientation()=ROTATE_180 → LUT_270 */ \
+    Orientation::ROTATE_180,  /* getOrientation()=ROTATE_270 → LUT_180 */ \
+    Orientation::ROTATE_90,   /* FLAT → uses lut[0] */ \
+    Orientation::ROTATE_90    /* UNKNOWN → uses lut[0] */ \
+}
+
+// Reverse mapping for debug logging: enum → physical angle
+#define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
+    90,   /* Orientation::ROTATE_0 → Physical 90° */ \
+    180,  /* Orientation::ROTATE_90 → Physical 180° */ \
+    270,  /* Orientation::ROTATE_180 → Physical 270° */ \
+    0,    /* Orientation::ROTATE_270 → Physical 0° */ \
+    -1,   /* FLAT */ \
+    -1    /* UNKNOWN */ \
 }
 ```
 

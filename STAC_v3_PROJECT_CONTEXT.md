@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 13, 2026  
-**Status:** IMU Calibration Tool - Production Ready (Enum-Indexed LUT)
+**Status:** IMU Calibration Tool - Production Ready (Arbitrary Home Position Support)
 
 ---
 
@@ -268,6 +268,39 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### January 13, 2026 - IMU Calibration Tool - Arbitrary Home Position Support Complete
+
+**Issue:** Calibration tool required USB DOWN as home position, failed with other orientations
+- Validation test with USB LEFT as home revealed three bugs:
+  1. Reverse mapping showed home at 90° instead of 0°
+  2. Step 6 prompt required double ENTER press
+  3. Display rotation LUT values wrong for FLAT/UNKNOWN orientations
+
+**Root Cause Analysis:**
+- deviceHome offset not applied to reverse mapping calculation
+- Step 6 instruction case used `break` instead of `return`, falling through to waitForEnter()
+- FLAT/UNKNOWN incorrectly used home vertical orientation instead of lut[0]
+- Key insight: When device is physically flat, getOrientation() always returns ROTATE_0, regardless of which vertical position was chosen as calibration home
+
+**Fixes Applied:**
+- Reverse mapping: `physicalAngle = ((physPos - deviceHome) * 90 + 360) % 360`
+- Step 6 prompt: Changed to `return` to skip waitForEnter()
+- Instructions: Made hardware-agnostic (removed "USB port" references)
+- FLAT/UNKNOWN: Use `lut[0]` instead of `lut[orientationEnums[deviceHome]]`
+
+**Testing:**
+- USB LEFT as home with Bottom-Left pixel corner: All orientations correct ✅
+- Generates LUT matching working manual config ✅
+- Physical angle logging shows 0° for chosen home ✅
+
+**Files Modified:**
+- `src/main_calibrate.cpp`: Fixed reverse mapping, double ENTER, FLAT calculation
+- All three bugs resolved, calibration tool now works for any home position choice
+
+**Commit:** (pending)
+
+---
 
 ### January 12, 2026 - IMU Orientation System Complete - Waveshare Working, Calibration Tool Updated
 

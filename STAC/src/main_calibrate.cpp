@@ -273,7 +273,7 @@ void printInstructions( int step ) {
         case 1:  // 0°
             Serial.println( "STEP 2/6: Device rotated 0° (HOME position)" );
             Serial.println( "════════════════════════════════════════════" );
-            Serial.println( "\n2. Hold device VERTICAL with USB port DOWN" );
+            Serial.println( "\n2. Hold device VERTICAL in your chosen orientation" );
             Serial.println( "   (This is your HOME position - 0°)" );
             break;
             
@@ -281,31 +281,31 @@ void printInstructions( int step ) {
             Serial.println( "STEP 3/6: Device rotated 90° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
             Serial.println( "\n3. Rotate device 90° CLOCKWISE (keep vertical!)" );
-            Serial.println( "   (USB port now pointing LEFT)" );
+            Serial.println( "   (90° from your home position)" );
             break;
             
         case 3:  // 180°
             Serial.println( "STEP 4/6: Device rotated 180° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
             Serial.println( "\n4. Rotate device 180° CLOCKWISE (keep vertical!)" );
-            Serial.println( "   (USB port now pointing UP)" );
+            Serial.println( "   (180° from your home position)" );
             break;
             
         case 4:  // 270°
             Serial.println( "STEP 5/6: Device rotated 270° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
             Serial.println( "\n5. Rotate device 270° CLOCKWISE (keep vertical!)" );
-            Serial.println( "   (USB port now pointing RIGHT)" );
+            Serial.println( "   (270° from your home position)" );
             break;
             
         case 5:  // DISPLAY ALIGN
             Serial.println( "STEP 6/6: Display Alignment" );
             Serial.println( "════════════════════════════════════════════" );
             Serial.println( "\n6. You should see ONE PIXEL lit" );
-            Serial.println( "   Rotate device to HOME position (USB port DOWN)" );
-            Serial.println( "   Then identify which corner the lit pixel is in" );
-            Serial.println( "   We will ask you after you press ENTER" );
-            break;
+            Serial.println( "   Rotate device back to HOME position" );
+            Serial.println( "   Then we will ask which corner the pixel is in" );
+            // No ENTER prompt here - go straight to corner selection
+            return;
     }
 
     Serial.println( "\nPress ENTER when ready..." );
@@ -499,14 +499,31 @@ void calculateConfiguration() {
     Serial.println( "════════════════════════════════════════════\n" );
     
     const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
-    Serial.printf( "Device home: Physical rotation %d°\n", deviceHome * 90 );
+    Serial.printf( "Device home: measurement index %d (matches pattern position 0)\n", deviceHome );
     Serial.printf( "Pixel 0 corner: %s\n", cornerNames[displayCorner] );
     
-    // Display offset: TL=0°, TR=270°, BR=180°, BL=90°
-    int displayOffsets[] = {0, 270, 180, 90};
-    int displayOffset = displayOffsets[displayCorner];
+    // Detect rotation in the axis remap
+    // Check if X maps from Y axis (90° rotation)
+    bool xFromY = (strstr(remaps[bestRemap].exprX, "acc.y") != nullptr);
+    // Check for negations (additional 180° rotation)
+    bool xNegated = (strstr(remaps[bestRemap].exprX, "(-") != nullptr);
+    bool yNegated = (strstr(remaps[bestRemap].exprY, "(-") != nullptr);
     
-    Serial.printf( "Display offset: %d°\n", displayOffset );
+    // Only apply axis swap rotation (90°), not the negations
+    // The negations don't affect corner positions
+    int remapRotation = xFromY ? 90 : 0;
+    
+    Serial.printf( "Axis remap rotation: %d° (X from %s, negations: X=%s Y=%s)\n", 
+                   remapRotation, xFromY ? "Y" : "X", xNegated ? "yes" : "no", yNegated ? "yes" : "no" );
+    
+    // Display offset: TL=0°, TR=270°, BR=180°, BL=90°
+    // Add remap rotation (axis swap affects corner positions)
+    int displayOffsets[] = {0, 270, 180, 90};
+    int baseDisplayOffset = displayOffsets[displayCorner];
+    int displayOffset = (baseDisplayOffset + remapRotation) % 360;
+    
+    Serial.printf( "Base display offset: %d°, remap rotation: %d°, final: %d°\n", 
+                   baseDisplayOffset, remapRotation, displayOffset );
     Serial.println( "\nNOTE: LUT rotations are inverted from physical rotation" );
     Serial.println( "      (device rotates CW → content rotates CCW to stay upright)" );
     
@@ -564,25 +581,29 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
         int enumValue = orientationEnums[physPos];  // What getOrientation() returns
         int physicalAngle = physPos * 90;
         
-        // Calculate LUT value: invert rotation and apply offsets
-        int lutAngle = (360 - physicalAngle + displayOffset + (deviceHome * 90)) % 360;
+        // Calculate LUT value: invert rotation and apply display offset
+        // deviceHome offset is already included in displayOffset
+        int lutAngle = (360 - physicalAngle + displayOffset) % 360;
         int lutIndex = lutAngle / 90;
         
         lut[enumValue] = lutIndex;  // Map enum value to LUT
     }
     
-    // FLAT and UNKNOWN use same LUT as device home
+    // FLAT and UNKNOWN: When device is physically flat (not vertical),
+    // getOrientation() returns ROTATE_0, so always use lut[0]
     int homeEnumValue = orientationEnums[deviceHome];
-    lut[4] = lut[homeEnumValue];  // FLAT
-    lut[5] = lut[homeEnumValue];  // UNKNOWN
+    lut[4] = lut[0];  // FLAT → use lut[0] (what to display when getOrientation()=ROTATE_0)
+    lut[5] = lut[0];  // UNKNOWN → use lut[0]
+    Serial.printf( "DEBUG: deviceHome=%d, orientationEnums[%d]=%d, lut[%d]=%d, lut[0]=%d (FLAT)\n",
+                   deviceHome, deviceHome, homeEnumValue, homeEnumValue, lut[homeEnumValue], lut[0] );
     
     // Print the LUT array
     for ( int i = 0; i < 4; i++ ) {
         Serial.printf( "    %s,  /* getOrientation()=%s → LUT_%d */ \\\n",
                        lutNames[lut[i]], lutNames[i], lut[i] * 90 );
     }
-    Serial.printf( "    %s,  /* FLAT → same as device home */ \\\n", lutNames[lut[4]] );
-    Serial.printf( "    %s   /* UNKNOWN → same as device home */ \\\n", lutNames[lut[5]] );
+    Serial.printf( "    %s,  /* FLAT → uses lut[0] */ \\\n", lutNames[lut[4]] );
+    Serial.printf( "    %s   /* UNKNOWN → uses lut[0] */ \\\n", lutNames[lut[5]] );
     
     Serial.println( "}" );
     
@@ -594,9 +615,11 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
     for ( int i = 0; i < 6; i++ ) enumToPhysical[i] = -1;  // Initialize
     
     // Build reverse mapping from the forward mapping we created
+    // Adjust so chosen home position becomes physical 0°
     for ( int physPos = 0; physPos < 4; physPos++ ) {
         int enumValue = orientationEnums[physPos];
-        enumToPhysical[enumValue] = physPos * 90;  // Map enum to physical angle
+        int physicalAngle = ((physPos - deviceHome) * 90 + 360) % 360;
+        enumToPhysical[enumValue] = physicalAngle;  // Map enum to physical angle
     }
     enumToPhysical[4] = -1;  // FLAT has no angle
     enumToPhysical[5] = -1;  // UNKNOWN has no angle
