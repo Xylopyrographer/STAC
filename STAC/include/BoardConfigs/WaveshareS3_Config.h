@@ -65,18 +65,28 @@
 // #define PIN_IMU_INT2 13
 
 // IMU Configuration (from calibration tool)
-#define IMU_AXIS_REMAP_X    (acc.y)
-#define IMU_AXIS_REMAP_Y    (acc.x)
+#define IMU_AXIS_REMAP_X    (acc.x)
+#define IMU_AXIS_REMAP_Y    ((-acc.y))
 #define IMU_AXIS_REMAP_Z    (acc.z)
 
 #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-        Orientation::ROTATE_180,  /* Physical 0°   → LUT_180 (Y-axis swap) */ \
-                    Orientation::ROTATE_90,   /* Physical 90°  → LUT_90 */ \
-                    Orientation::ROTATE_0,    /* Physical 180° → LUT_0 (Y-axis swap) */ \
-                    Orientation::ROTATE_270,  /* Physical 270° → LUT_270 */ \
-                    Orientation::ROTATE_180,  /* FLAT → same as 0° */ \
-                    Orientation::ROTATE_180   /* UNKNOWN → same as 0° */ \
-    }
+    Orientation::ROTATE_90,   /* getOrientation()=ROTATE_0 → LUT_90 */ \
+    Orientation::ROTATE_0,    /* getOrientation()=ROTATE_90 → LUT_0 */ \
+    Orientation::ROTATE_270,  /* getOrientation()=ROTATE_180 → LUT_270 */ \
+    Orientation::ROTATE_180,  /* getOrientation()=ROTATE_270 → LUT_180 */ \
+    Orientation::ROTATE_180,  /* FLAT → same as device home */ \
+    Orientation::ROTATE_180   /* UNKNOWN → same as device home */ \
+}
+
+// Reverse mapping for debug logging: enum → physical angle
+#define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
+    90,  /* ROTATE_0 → Physical 90° */ \
+    180, /* ROTATE_90 → Physical 180° */ \
+    270, /* ROTATE_180 → Physical 270° */ \
+    0,   /* ROTATE_270 → Physical 0° */ \
+    -1,  /* FLAT */ \
+    -1   /* UNKNOWN */ \
+}
 
 // Note: QMI8658 library doesn't allow setting I2C clock (uses default 100kHz)
 #endif // IMU_HAS_IMU

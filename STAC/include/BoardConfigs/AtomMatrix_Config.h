@@ -80,6 +80,17 @@
             Orientation::ROTATE_0,    /* FLAT → same as home (0°) */ \
             Orientation::ROTATE_0     /* UNKNOWN → same as home (0°) */ \
         }
+        
+        // Reverse mapping for debug logging: enum → physical angle
+        // AtomMatrix: getOrientation() enums happen to match physical angles
+        #define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
+            0,   /* ROTATE_0 → Physical 0° */ \
+            90,  /* ROTATE_90 → Physical 90° */ \
+            180, /* ROTATE_180 → Physical 180° */ \
+            270, /* ROTATE_270 → Physical 270° */ \
+            -1,  /* FLAT */ \
+            -1   /* UNKNOWN */ \
+        }
 
     #endif // IMU_HAS_IMU
 

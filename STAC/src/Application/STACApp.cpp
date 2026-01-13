@@ -194,9 +194,16 @@ namespace Application {
                 
                 // Log orientation info
                 const char *lutNames[] = {"LUT_ROTATE_0", "LUT_ROTATE_90", "LUT_ROTATE_180", "LUT_ROTATE_270", "LUT_FLAT", "LUT_UNKNOWN"};
-                const char *physicalOrientationNames[] = {"0°", "90°", "180°", "270°", "FLAT", "UNKNOWN"};
+                static const int enumToPhysical[] = ORIENTATION_ENUM_TO_PHYSICAL_ANGLE;
+                int physicalAngle = enumToPhysical[ static_cast<int>( detectedOrientation ) ];
+                
                 log_i( "  LUT being used: %s", lutNames[ static_cast<int>( displayOrientation ) ] );
-                log_i( "  Physical device orientation: %s", physicalOrientationNames[ static_cast<int>( detectedOrientation ) ] );
+                if ( physicalAngle >= 0 ) {
+                    log_i( "  Physical device orientation: %d°", physicalAngle );
+                } else {
+                    const char *specialNames[] = {"", "", "", "", "FLAT", "UNKNOWN"};
+                    log_i( "  Physical device orientation: %s", specialNames[ static_cast<int>( detectedOrientation ) ] );
+                }
             }
         }
         else {

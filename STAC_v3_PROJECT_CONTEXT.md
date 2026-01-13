@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 13, 2026  
-**Status:** IMU Calibration Tool - LUT Rotation Direction Fixed
+**Status:** IMU Calibration Tool - Production Ready (Enum-Indexed LUT)
 
 ---
 
@@ -738,7 +738,65 @@ if (buttonB->wasPressed()) {
   - No manual LUT swapping required
   - Same calibration methodology works for all devices regardless of Z-axis direction
 
-### January 10, 2026 - v3.0.0-RC.23 Release & Build System Improvements
+### January 13, 2026 - IMU Calibration Tool Complete - Production Ready ✅
+- **Major achievement: Calibration tool produces directly usable copy/paste configuration**
+  - Both ATOM Matrix and Waveshare ESP32-S3-Matrix fully validated end-to-end
+  - No manual adjustments needed - output works immediately in main application
+  - Physical orientation logging matches actual device position (0°, 90°, 180°, 270°, FLAT)
+  
+- **Root cause discovered: LUT indexing paradigm mismatch**
+  - **Original (wrong) assumption:** `DEVICE_ORIENTATION_TO_LUT_MAP` indexed by physical rotation angles
+    - Array index 0 = physical 0°, index 1 = physical 90°, etc.
+  - **Actual runtime behavior:** Indexed by `Orientation` enum values from `getOrientation()`
+    - Array index = enum value returned by accelerometer logic, NOT physical angle
+  - **Why it matters:** For boards with axis remapping, enum values ≠ physical angles
+    - Example: Waveshare at physical 0° (USB DOWN) → boardX=-1g → `getOrientation()` returns `ROTATE_270` (enum 3)
+    - Runtime looks up `LUT[3]`, so LUT[3] must contain the rotation for physical 0°, not physical 270°
+
+- **Calibration tool comprehensive fix:**
+  - **Simulates `getOrientation()` during calibration** using identical threshold logic (0.5g, 0.7g)
+  - **Builds enum mapping:** For each measurement, determines which `Orientation` enum `getOrientation()` will return
+  - **Constructs LUT by enum index:** `lut[enumValue] = rotation` instead of `lut[physicalPosition] = rotation`
+  - **Generates reverse mapping:** `ORIENTATION_ENUM_TO_PHYSICAL_ANGLE` for debug logging
+  - **LUT rotation formula:** `(360 - physicalAngle + displayOffset + deviceHome*90) % 360` (inverted for CCW rotation)
+
+- **Code changes implemented:**
+  - `src/main_calibrate.cpp` (lines 495-530): Added `orientationEnums[4]` calculation simulating `getOrientation()`
+  - `src/main_calibrate.cpp` (lines 547-615): Rewrote `printConfiguration()` to build enum-indexed LUT
+  - `src/main_calibrate.cpp`: Added reverse mapping output for physical angle debugging
+  - `src/Application/STACApp.cpp` (lines 190-205): Use reverse mapping to log actual physical orientation
+  - `include/BoardConfigs/AtomMatrix_Config.h`: Added `ORIENTATION_ENUM_TO_PHYSICAL_ANGLE` (enums match angles)
+  - `include/BoardConfigs/WaveshareS3_Config.h`: Added `ORIENTATION_ENUM_TO_PHYSICAL_ANGLE` (enums offset from angles)
+
+- **Validation results - ATOM Matrix:**
+  - Calibration output: enum 0→physical 0°, enum 1→physical 90°, enum 2→physical 180°, enum 3→physical 270°
+  - All vertical orientations display correctly upright
+  - Logs show correct physical angles: "Physical device orientation: 0°" when USB DOWN
+  - FLAT orientation: baseline aligned to home position (USB DOWN)
+
+- **Validation results - Waveshare ESP32-S3-Matrix:**
+  - Calibration output: enum 0→physical 90°, enum 1→physical 180°, enum 2→physical 270°, enum 3→physical 0°
+  - All vertical orientations display correctly upright  
+  - Logs show correct physical angles: "Physical device orientation: 0°" when USB DOWN
+  - FLAT orientation: baseline aligned to home position (USB DOWN)
+  - **Confirms:** Enum values differ from physical angles due to axis remap, but LUT mapping is now correct
+
+- **Technical insights gained:**
+  - LUT is runtime-indexed: `displayRotation = lutMap[detectedOrientation]` where `detectedOrientation` is enum
+  - `getOrientation()` returns enum based on which accelerometer axis is dominant (>0.7g threshold)
+  - Different axis remappings → different enum-to-physical mappings → different LUT contents (but same visual result)
+  - Display offset: Determines relationship between pixel 0 corner and home position
+  - Home position: Arbitrary choice - any vertical orientation can serve as reference frame
+  - Copy/paste now works perfectly: No understanding of LUT internals required by user
+
+- **Production status:**
+  - ✅ Calibration tool validated on 2 platforms with different IMU sensors and axis remappings
+  - ✅ Output works immediately without manual corrections
+  - ✅ Debug logging shows meaningful physical orientations
+  - ✅ Tool is generic - works regardless of home position choice
+  - ✅ Ready for use on additional hardware platforms
+
+### January 12, 2026 - IMU Calibration Tool - LUT Rotation Direction Fixed
 - **Version bump:** RC.22 → RC.23
 - **Enhanced build_all.sh script:**
   - Added ATOM Matrix to release build sequence

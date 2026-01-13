@@ -100,7 +100,7 @@ void takeMeasurement( int index );
 void getCornerSelection();
 void calculateConfiguration();
 void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, 
-                        int deviceHome, int displayOffset );
+                        int deviceHome, int displayOffset, int orientationEnums[4] );
 
 void setup() {
     Serial.begin( 115200 );
@@ -469,10 +469,12 @@ void calculateConfiguration() {
             // Check if matches expected pattern
             if ( normX == expectedPattern.x[rot] && normY == expectedPattern.y[rot] ) {
                 matches++;
-                // Track which rotation is the home position (pattern start)
-                if ( rot == 0 && (normX == expectedPattern.x[0] && normY == expectedPattern.y[0]) ) {
-                    homeIndex = rot;
-                }
+            }
+            
+            // Find which measurement index matches pattern position 0
+            // This tells us the offset between user's "home" and pattern start
+            if ( normX == expectedPattern.x[0] && normY == expectedPattern.y[0] ) {
+                homeIndex = rot;  // This rotation index is where pattern starts
             }
         }
         
@@ -507,13 +509,30 @@ void calculateConfiguration() {
     Serial.printf( "Display offset: %d°\n", displayOffset );
     Serial.println( "\nNOTE: LUT rotations are inverted from physical rotation" );
     Serial.println( "      (device rotates CW → content rotates CCW to stay upright)" );
+    
+    // Determine what getOrientation() will return for each measurement
+    // This simulates the runtime behavior of the IMU getOrientation() function
+    int orientationEnums[4];  // What enum value getOrientation returns for each measurement
+    for ( int i = 0; i < 4; i++ ) {
+        float boardX = remaps[bestRemap].getX(measurements[i+1]);
+        float boardY = remaps[bestRemap].getY(measurements[i+1]);
+        
+        // Simulate getOrientation() logic
+        if ( abs(boardX) < 0.5f && abs(boardY) > 0.7f ) {
+            orientationEnums[i] = (boardY > 0) ? 2 : 0;  // ROTATE_180 or ROTATE_0
+        } else if ( abs(boardX) > 0.7f && abs(boardY) < 0.5f ) {
+            orientationEnums[i] = (boardX > 0) ? 1 : 3;  // ROTATE_90 or ROTATE_270
+        } else {
+            orientationEnums[i] = -1;  // Should not happen if pattern matched
+        }
+    }
 
     printConfiguration( remaps[bestRemap].exprX, remaps[bestRemap].exprY, "(acc.z)",
-                       deviceHome, displayOffset );
+                       deviceHome, displayOffset, orientationEnums );
 }
 
 void printConfiguration( const char* remapX, const char* remapY, const char* remapZ,
-                        int deviceHome, int displayOffset ) {
+                        int deviceHome, int displayOffset, int orientationEnums[4] ) {
     
     Serial.println( "\n╔════════════════════════════════════════════╗" );
     Serial.println( "║         BOARD CONFIGURATION VALUES         ║" );
@@ -535,27 +554,61 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
         "Orientation::ROTATE_270"
     };
     
-    // Calculate LUT for each physical rotation using formula:
-    // LUT[rotation] = (360 - rotation + displayOffset + deviceHome) % 360
-    // Note: Rotation is inverted because LUTs rotate content in same direction,
-    //       but we need content to rotate opposite to device to stay upright
-    for ( int rotation = 0; rotation < 4; rotation++ ) {
-        int lutAngle = (360 - (rotation * 90) + displayOffset + (deviceHome * 90)) % 360;
+    // Build LUT based on what getOrientation() actually returns
+    // LUT is indexed by the Orientation enum value, not physical rotation
+    int lut[6];  // 0=ROTATE_0, 1=ROTATE_90, 2=ROTATE_180, 3=ROTATE_270, 4=FLAT, 5=UNKNOWN
+    for ( int i = 0; i < 6; i++ ) lut[i] = -1;  // Initialize to invalid
+    
+    // For each physical position, calculate correct LUT value
+    for ( int physPos = 0; physPos < 4; physPos++ ) {
+        int enumValue = orientationEnums[physPos];  // What getOrientation() returns
+        int physicalAngle = physPos * 90;
+        
+        // Calculate LUT value: invert rotation and apply offsets
+        int lutAngle = (360 - physicalAngle + displayOffset + (deviceHome * 90)) % 360;
         int lutIndex = lutAngle / 90;
         
-        Serial.printf( "    %s,  /* Physical %d° → LUT_%d */ \\\n",
-                       lutNames[lutIndex],
-                       rotation * 90,
-                       lutAngle );
+        lut[enumValue] = lutIndex;  // Map enum value to LUT
     }
     
-    // FLAT and UNKNOWN use device home's LUT
-    int homeLutAngle = (360 - 0 + displayOffset + (deviceHome * 90)) % 360;
-    int homeLutIndex = homeLutAngle / 90;
-    Serial.printf( "    %s,  /* FLAT → same as device home */ \\\n", lutNames[homeLutIndex] );
-    Serial.printf( "    %s   /* UNKNOWN → same as device home */ \\\n", lutNames[homeLutIndex] );
+    // FLAT and UNKNOWN use same LUT as device home
+    int homeEnumValue = orientationEnums[deviceHome];
+    lut[4] = lut[homeEnumValue];  // FLAT
+    lut[5] = lut[homeEnumValue];  // UNKNOWN
+    
+    // Print the LUT array
+    for ( int i = 0; i < 4; i++ ) {
+        Serial.printf( "    %s,  /* getOrientation()=%s → LUT_%d */ \\\n",
+                       lutNames[lut[i]], lutNames[i], lut[i] * 90 );
+    }
+    Serial.printf( "    %s,  /* FLAT → same as device home */ \\\n", lutNames[lut[4]] );
+    Serial.printf( "    %s   /* UNKNOWN → same as device home */ \\\n", lutNames[lut[5]] );
     
     Serial.println( "}" );
+    
+    // Build reverse mapping: enum value → physical angle (for debugging logs)
+    Serial.println( "\n// Reverse mapping for debug logging: enum → physical angle" );
+    Serial.println( "#define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \\" );
+    
+    int enumToPhysical[6];  // Maps enum value to physical angle
+    for ( int i = 0; i < 6; i++ ) enumToPhysical[i] = -1;  // Initialize
+    
+    // Build reverse mapping from the forward mapping we created
+    for ( int physPos = 0; physPos < 4; physPos++ ) {
+        int enumValue = orientationEnums[physPos];
+        enumToPhysical[enumValue] = physPos * 90;  // Map enum to physical angle
+    }
+    enumToPhysical[4] = -1;  // FLAT has no angle
+    enumToPhysical[5] = -1;  // UNKNOWN has no angle
+    
+    for ( int i = 0; i < 4; i++ ) {
+        Serial.printf( "    %d,  /* %s → Physical %d° */ \\\n",
+                       enumToPhysical[i], lutNames[i], enumToPhysical[i] );
+    }
+    Serial.printf( "    -1,  /* FLAT */ \\\n" );
+    Serial.printf( "    -1   /* UNKNOWN */ \\\n" );
+    Serial.println( "}" );
+    
     Serial.println( "\n════════════════════════════════════════════\n" );
 }
 
