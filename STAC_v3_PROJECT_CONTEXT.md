@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
-**Updated:** January 12, 2026  
-**Status:** IMU Orientation System Complete - Calibration Tool Updated
+**Updated:** January 13, 2026  
+**Status:** IMU Calibration Tool - LUT Rotation Direction Fixed
 
 ---
 
@@ -707,6 +707,36 @@ if (buttonB->wasPressed()) {
   - Manufacturing-agnostic: Works regardless of PCB assembly variations
   - Version-controlled: Config values committed to git, survive flash erases
   - One-time: Only needed during hardware bring-up
+
+### January 13, 2026 - IMU Calibration Tool LUT Rotation Direction Fix
+- **Critical bug discovered in calibration tool LUT calculation:**
+  - Display rotation LUTs (e.g., `LUT_ROTATE_90`) rotate pixel content in the **same** direction as their name
+  - When device physically rotates clockwise, content must rotate **counter-clockwise** to stay upright
+  - Original formula produced direct mapping (Physical 90° → LUT_90) which caused upside-down display at 90°/270°
+  - Required manual correction: swapping 90°↔270° in output before use
+- **Root cause identified:**
+  - Tool was calculating: `LUT[rotation] = (rotation - deviceHome + displayOffset) % 360`
+  - This assumes LUTs rotate content opposite to their name (they don't)
+  - Git history showed commit 2ff4679 had wrong comment: "AtomMatrix has Z+ toward display" (actually Z+ away)
+  - Previous direct mapping worked by accident only for specific Z-axis orientations
+- **Solution implemented:**
+  - Fixed formula to invert rotation direction: `LUT[rotation] = (360 - rotation + displayOffset + deviceHome) % 360`
+  - The `360 - rotation` term inverts rotation so content rotates counter to device
+  - Example: Physical 90° CW → `(360 - 90 + 0 + 0) % 360 = 270` → LUT_270 (90° CCW)
+  - Now produces correct output matching manually-validated working configurations
+- **Files modified:**
+  - `src/main_calibrate.cpp`: Fixed LUT calculation formula with rotation inversion
+  - `src/main_calibrate.cpp`: Added detailed header comment explaining rotation inversion logic
+  - `src/main_calibrate.cpp`: Added runtime note in output explaining LUT inversion
+  - `Documentation/Developer/IMU_Calibration_Methodology.md`: Updated formula with critical insight section
+- **Testing status:**
+  - Formula mathematically validated against working ATOM Matrix configuration
+  - Calibration tool built and uploaded successfully
+  - Awaiting full end-to-end testing (scheduled for tomorrow)
+- **Expected outcome:**
+  - Tool will now produce directly copy/paste-able configuration
+  - No manual LUT swapping required
+  - Same calibration methodology works for all devices regardless of Z-axis direction
 
 ### January 10, 2026 - v3.0.0-RC.23 Release & Build System Improvements
 - **Version bump:** RC.22 → RC.23
