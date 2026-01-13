@@ -73,7 +73,7 @@ void printInstructions( int rotation );
 void waitForEnter();
 void takeMeasurement( int index );
 void calculateConfiguration();
-void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, int rotationOffset );
+void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, bool zAxisAwayFromDisplay );
 
 void setup() {
     Serial.begin( 115200 );
@@ -365,6 +365,7 @@ void calculateConfiguration() {
 
     Serial.println( "\n════════════════════════════════════════════" );
 
+    // AXIS REMAPPING DETECTION
     // Measurement 0 (0°): Buffer top-left at physical top-left (reference)
     // Measurement 2 (180°): Buffer top-left at physical bottom-right (device rotated 180°)
     // The sensor axis that inverts tells us which is aligned with buffer Y
@@ -378,8 +379,6 @@ void calculateConfiguration() {
 
     if ( fabs( deltaX_180 ) > fabs( deltaY_180 ) ) {
         // Sensor X changes most during 180° rotation, so buffer Y = sensor X
-        // At 0° if sensor X is negative, buffer down = sensor -X, so buffer Y = sensor X
-        // At 0° if sensor X is positive, buffer down = sensor +X, so buffer Y = sensor -X
         boardYMapping = ( measurements[ 0 ].accX < 0 ) ? "(acc.x)" : "((-acc.x))";
         Serial.printf( "  → Buffer Y axis = Sensor X %s\n",
                        ( measurements[ 0 ].accX < 0 ) ? "(no inversion)" : "(inverted)" );
@@ -403,8 +402,6 @@ void calculateConfiguration() {
 
     if ( fabs( deltaX_90 ) > fabs( deltaY_90 ) ) {
         // Sensor X changes most during 90° CW rotation, so buffer X = sensor X
-        // At 90° CW, if sensor X becomes more positive, buffer right = sensor +X, so buffer X = sensor X
-        // At 90° CW, if sensor X becomes more negative, buffer right = sensor -X, so buffer X = sensor -X
         boardXMapping = ( measurements[ 1 ].accX > measurements[ 0 ].accX ) ? "(acc.x)" : "((-acc.x))";
         Serial.printf( "  → Buffer X axis = Sensor X %s\n",
                        ( measurements[ 1 ].accX > measurements[ 0 ].accX ) ? "(no inversion)" : "(inverted)" );
@@ -420,45 +417,30 @@ void calculateConfiguration() {
     const char *remapY = boardYMapping;
     const char *remapZ = "(acc.z)";
 
-    // Determine which rotation corresponds to device UP (vertical, gravity pointing down)
-    // Look for the measurement with strongest downward acceleration (~-1g)
-    Serial.printf( "\nDetecting natural UP orientation:\n" );
+    // Detect Z-axis orientation relative to display
+    // If FLAT_UP has negative Z, Z+ points away from display (needs LUT swap for Y-axis rotations)
+    // If FLAT_UP has positive Z, Z+ points toward display (direct LUT mapping)
+    bool zAxisAwayFromDisplay = ( measurements[ 4 ].accZ < 0 );
     
-    int upRotation = 0;
-    float maxGravity = 0.0f;
-    const char *rotationLabels[] = {"0°", "90°", "180°", "270°"};
-    
-    for ( int i = 0; i < 4; i++ ) {
-        // Calculate total gravity magnitude for this orientation
-        float totalG = sqrtf( measurements[ i ].accX * measurements[ i ].accX +
-                             measurements[ i ].accY * measurements[ i ].accY +
-                             measurements[ i ].accZ * measurements[ i ].accZ );
-        
-        Serial.printf( "  %3s rotation: |g| = %5.3f\n", rotationLabels[ i ], totalG );
-        
-        if ( totalG > maxGravity ) {
-            maxGravity = totalG;
-            upRotation = i;
-        }
+    Serial.printf( "\nZ-axis orientation:\n" );
+    Serial.printf( "  FLAT_UP Z = %.3f g\n", measurements[ 4 ].accZ );
+    if ( zAxisAwayFromDisplay ) {
+        Serial.println( "  → Z+ points AWAY from display" );
+        Serial.println( "  → Requires Y-axis rotation LUT swap (0°↔180°)" );
+    } else {
+        Serial.println( "  → Z+ points TOWARD display" );
+        Serial.println( "  → Direct LUT mapping" );
     }
-    
-    const char *offsetNames[] = {"OFFSET_0", "OFFSET_90", "OFFSET_180", "OFFSET_270"};
-    int offsetValue = upRotation * 90;
-    
-    Serial.printf( "\n  → Device is UP at %s rotation\n", rotationLabels[ upRotation ] );
-    Serial.printf( "  → Glyph map needs %s to align with UP\n", offsetNames[ upRotation ] );
 
     Serial.printf( "\nCalculated mapping:\n" );
     Serial.printf( "  Board X (horizontal) = Sensor %s\n", remapX );
     Serial.printf( "  Board Y (vertical)   = Sensor %s\n", remapY );
     Serial.printf( "  Board Z              = Sensor %s\n", remapZ );
-    Serial.printf( "  Rotation offset      = %s\n", offsetNames[ upRotation ] );
 
-    printConfiguration( remapX, remapY, remapZ, upRotation );
+    printConfiguration( remapX, remapY, remapZ, zAxisAwayFromDisplay );
 }
 
-void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, int rotationOffset ) {
-    const char *offsetNames[] = {"OFFSET_0", "OFFSET_90", "OFFSET_180", "OFFSET_270"};
+void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, bool zAxisAwayFromDisplay ) {
     
     Serial.println( "\n╔════════════════════════════════════════════╗" );
     Serial.println( "║         BOARD CONFIGURATION VALUES         ║" );
@@ -468,7 +450,30 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
     Serial.printf( "#define IMU_AXIS_REMAP_X    %s\n", remapX );
     Serial.printf( "#define IMU_AXIS_REMAP_Y    %s\n", remapY );
     Serial.printf( "#define IMU_AXIS_REMAP_Z    %s\n", remapZ );
-    Serial.printf( "#define IMU_ROTATION_OFFSET OrientationOffset::%s\n", offsetNames[ rotationOffset ] );
+    
+    // Generate DEVICE_ORIENTATION_TO_LUT_MAP based on Z-axis orientation
+    Serial.println( "" );
+    Serial.println( "#define DEVICE_ORIENTATION_TO_LUT_MAP { \\" );
+    
+    if ( zAxisAwayFromDisplay ) {
+        // Z+ away from display: Swap Y-axis rotation LUTs (0° ↔ 180°)
+        Serial.println( "    Orientation::ROTATE_180,  /* Physical 0°   → LUT_180 (Y-axis swap) */ \\" );
+        Serial.println( "    Orientation::ROTATE_90,   /* Physical 90°  → LUT_90 */ \\" );
+        Serial.println( "    Orientation::ROTATE_0,    /* Physical 180° → LUT_0 (Y-axis swap) */ \\" );
+        Serial.println( "    Orientation::ROTATE_270,  /* Physical 270° → LUT_270 */ \\" );
+        Serial.println( "    Orientation::ROTATE_180,  /* FLAT → same as 0° */ \\" );
+        Serial.println( "    Orientation::ROTATE_180   /* UNKNOWN → same as 0° */ \\" );
+    } else {
+        // Z+ toward display: Direct LUT mapping
+        Serial.println( "    Orientation::ROTATE_0,    /* Physical 0°   → LUT_0 */ \\" );
+        Serial.println( "    Orientation::ROTATE_90,   /* Physical 90°  → LUT_90 */ \\" );
+        Serial.println( "    Orientation::ROTATE_180,  /* Physical 180° → LUT_180 */ \\" );
+        Serial.println( "    Orientation::ROTATE_270,  /* Physical 270° → LUT_270 */ \\" );
+        Serial.println( "    Orientation::ROTATE_0,    /* FLAT → same as 0° */ \\" );
+        Serial.println( "    Orientation::ROTATE_0     /* UNKNOWN → same as 0° */ \\" );
+    }
+    
+    Serial.println( "}" );
     Serial.println( "\n════════════════════════════════════════════\n" );
 }
 
