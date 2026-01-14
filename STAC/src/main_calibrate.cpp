@@ -48,15 +48,13 @@ enum CalibrationState {
     STATE_WAIT_INPUT_FLAT_UP,
     STATE_POSITION_0,
     STATE_WAIT_INPUT_0,
+    STATE_CORNER_IDENTIFY,    // NEW: Identify top-left corner
     STATE_POSITION_90,
     STATE_WAIT_INPUT_90,
     STATE_POSITION_180,
     STATE_WAIT_INPUT_180,
     STATE_POSITION_270,
     STATE_WAIT_INPUT_270,
-    STATE_DISPLAY_ALIGN,
-    STATE_WAIT_INPUT_DISPLAY_ALIGN,
-    STATE_CORNER_SELECT,
     STATE_CALCULATE,
     STATE_COMPLETE
 };
@@ -75,6 +73,7 @@ CalibrationState currentState = STATE_WELCOME;
 Measurement measurements[ 5 ]; // FLAT_UP, 0°, 90°, 180°, 270°
 int currentRotation = 0;
 int displayCorner = 0; // 0=TL, 1=TR, 2=BR, 3=BL
+int currentCornerTest = 0; // Which corner we're currently lighting (0-3)
 
 // Color constants
 const uint32_t COLOR_GREEN = 0x00FF00;
@@ -97,7 +96,7 @@ void printWelcome();
 void printInstructions( int step );
 void waitForEnter();
 void takeMeasurement( int index );
-void getCornerSelection();
+void identifyTopLeftCorner();
 void calculateConfiguration();
 void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, 
                         int deviceHome, int displayOffset, int orientationEnums[4] );
@@ -171,8 +170,13 @@ void loop() {
 
         case STATE_WAIT_INPUT_0:
             takeMeasurement( 1 );
-            currentRotation = 90;
-            currentState = STATE_POSITION_90;
+            currentCornerTest = 0;  // Start corner identification
+            currentState = STATE_CORNER_IDENTIFY;
+            break;
+
+        case STATE_CORNER_IDENTIFY:
+            identifyTopLeftCorner();
+            // identifyTopLeftCorner() will handle state transition when complete
             break;
 
         case STATE_POSITION_90:
@@ -204,23 +208,6 @@ void loop() {
 
         case STATE_WAIT_INPUT_270:
             takeMeasurement( 4 );
-            currentState = STATE_DISPLAY_ALIGN;
-            break;
-
-        case STATE_DISPLAY_ALIGN:
-            display->showPixelAtIndex( 0 );  // Light pixel 0
-            printInstructions( 5 );  // Step 5 = DISPLAY_ALIGN
-            currentState = STATE_WAIT_INPUT_DISPLAY_ALIGN;
-            break;
-
-        case STATE_WAIT_INPUT_DISPLAY_ALIGN:
-            // User confirms device is at home position with pixel 0 lit
-            waitForEnter();
-            currentState = STATE_CORNER_SELECT;
-            break;
-
-        case STATE_CORNER_SELECT:
-            getCornerSelection();
             currentState = STATE_CALCULATE;
             break;
 
@@ -247,14 +234,15 @@ void loop() {
 
 void printWelcome() {
     Serial.println( "\n╔════════════════════════════════════════════╗" );
-    Serial.println( "║       IMU CALIBRATION TOOL                 ║" );
+    Serial.println( "║       IMU CALIBRATION TOOL v2.0            ║" );
     Serial.println( "╚════════════════════════════════════════════╝" );
     Serial.println( "\nThis tool will measure accelerometer readings as you" );
     Serial.println( "position the device in 6 orientations." );
     Serial.println( "\nSTEPS:" );
     Serial.println( "  1. Flat with display facing up (determines Z-axis)" );
-    Serial.println( "  2-5. Four vertical rotations: 0°, 90°, 180°, 270°" );
-    Serial.println( "  6. Display alignment (pixel 0 position)" );
+    Serial.println( "  2. Vertical at your chosen home position" );
+    Serial.println( "  3. Display corner identification (absolute reference)" );
+    Serial.println( "  4-6. Three more rotations: 90°, 180°, 270°" );
     Serial.println( "\n════════════════════════════════════════════" );
     Serial.println( "\nPress ENTER to begin..." );
 }
@@ -271,41 +259,33 @@ void printInstructions( int step ) {
             break;
             
         case 1:  // 0°
-            Serial.println( "STEP 2/6: Device rotated 0° (HOME position)" );
+            Serial.println( "STEP 2/6: Device at HOME position" );
             Serial.println( "════════════════════════════════════════════" );
             Serial.println( "\n2. Hold device VERTICAL in your chosen orientation" );
-            Serial.println( "   (This is your HOME position - 0°)" );
+            Serial.println( "   (This is your HOME position)" );
+            Serial.println( "   (Can be USB up, down, left, or right - your choice!)" );
             break;
             
         case 2:  // 90°
-            Serial.println( "STEP 3/6: Device rotated 90° clockwise" );
+            Serial.println( "STEP 4/6: Device rotated 90° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
-            Serial.println( "\n3. Rotate device 90° CLOCKWISE (keep vertical!)" );
+            Serial.println( "\n4. Rotate device 90° CLOCKWISE (keep vertical!)" );
             Serial.println( "   (90° from your home position)" );
             break;
             
         case 3:  // 180°
-            Serial.println( "STEP 4/6: Device rotated 180° clockwise" );
+            Serial.println( "STEP 5/6: Device rotated 180° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
-            Serial.println( "\n4. Rotate device 180° CLOCKWISE (keep vertical!)" );
+            Serial.println( "\n5. Rotate device 180° CLOCKWISE (keep vertical!)" );
             Serial.println( "   (180° from your home position)" );
             break;
             
         case 4:  // 270°
-            Serial.println( "STEP 5/6: Device rotated 270° clockwise" );
+            Serial.println( "STEP 6/6: Device rotated 270° clockwise" );
             Serial.println( "════════════════════════════════════════════" );
-            Serial.println( "\n5. Rotate device 270° CLOCKWISE (keep vertical!)" );
+            Serial.println( "\n6. Rotate device 270° CLOCKWISE (keep vertical!)" );
             Serial.println( "   (270° from your home position)" );
             break;
-            
-        case 5:  // DISPLAY ALIGN
-            Serial.println( "STEP 6/6: Display Alignment" );
-            Serial.println( "════════════════════════════════════════════" );
-            Serial.println( "\n6. You should see ONE PIXEL lit" );
-            Serial.println( "   Rotate device back to HOME position" );
-            Serial.println( "   Then we will ask which corner the pixel is in" );
-            // No ENTER prompt here - go straight to corner selection
-            return;
     }
 
     Serial.println( "\nPress ENTER when ready..." );
@@ -344,36 +324,66 @@ void takeMeasurement( int index ) {
     Serial.println( "└────────────────────────────────────────┘" );
 }
 
-void getCornerSelection() {
+void identifyTopLeftCorner() {
+    static bool firstCall = true;
+    
+    if ( firstCall ) {
+        Serial.println( "\n════════════════════════════════════════════" );
+        Serial.println( "STEP 3/6: Display Corner Identification" );
+        Serial.println( "════════════════════════════════════════════\n" );
+        Serial.println( "We will light each corner sequentially." );
+        Serial.println( "Watch the display and identify which corner is TOP-LEFT.\n" );
+        Serial.println( "Make sure device is at HOME position!\n" );
+        Serial.println( "Press ENTER to start..." );
+        waitForEnter();
+        firstCall = false;
+        currentCornerTest = 0;
+        display->clear();
+    }
+    
+    // Light the current corner being tested
+    const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
+    
+    // Show pixel at corner
+    // Corner 0 (TL) = pixel 0, Corner 1 (TR) = pixel 4, Corner 2 (BR) = pixel 24, Corner 3 (BL) = pixel 20
+    // For 5x5 matrix: TL=0, TR=4, BR=24, BL=20
+    int pixelIndices[] = {0, 4, 24, 20};
+    
+    display->clear();
+    display->showPixelAtIndex( pixelIndices[currentCornerTest] );
+    
     Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "Which corner is the lit pixel in?" );
+    Serial.printf( "Lighting corner %d/4: %s\n", currentCornerTest + 1, cornerNames[currentCornerTest] );
     Serial.println( "════════════════════════════════════════════\n" );
-    Serial.println( "Enter the number corresponding to the corner:" );
-    Serial.println( "  1 = Top-Left (TL)" );
-    Serial.println( "  2 = Top-Right (TR)" );
-    Serial.println( "  3 = Bottom-Right (BR)" );
-    Serial.println( "  4 = Bottom-Left (BL)" );
-    Serial.println( "\nEnter 1, 2, 3, or 4: " );
+    Serial.println( "Is this the TOP-LEFT corner?" );
+    Serial.println( "  Y = Yes (this is top-left)" );
+    Serial.println( "  N = No (try next corner)" );
+    Serial.print( "\nEnter Y or N: " );
     
     while ( true ) {
-        while ( !Serial.available() ) {
-            delay( 10 );
+        if ( Serial.available() ) {
+            char input = Serial.read();
+            // Clear rest of buffer
+            while ( Serial.available() ) {
+                Serial.read();
+            }
+            
+            if ( input == 'Y' || input == 'y' ) {
+                displayCorner = currentCornerTest;
+                Serial.printf( "\n✓ Top-Left corner identified: %s\n", cornerNames[displayCorner] );
+                display->clear();
+                firstCall = true;  // Reset for next calibration run
+                currentRotation = 90;
+                currentState = STATE_POSITION_90;  // Move to next rotation
+                return;
+            } else if ( input == 'N' || input == 'n' ) {
+                currentCornerTest = (currentCornerTest + 1) % 4;
+                return;  // Will call again in next loop iteration
+            } else {
+                Serial.print( "\nInvalid input. Enter Y or N: " );
+            }
         }
-        
-        char input = Serial.read();
-        // Clear rest of buffer
-        while ( Serial.available() ) {
-            Serial.read();
-        }
-        
-        if ( input >= '1' && input <= '4' ) {
-            displayCorner = input - '1';  // Convert to 0-3
-            const char* cornerNames[] = { "Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left" };
-            Serial.printf( "\n✓ Selected: %s\n", cornerNames[displayCorner] );
-            break;
-        } else {
-            Serial.println( "Invalid input. Please enter 1, 2, 3, or 4:" );
-        }
+        delay( 10 );
     }
 }
 
@@ -427,11 +437,44 @@ void calculateConfiguration() {
         Pattern{{-1,0,1,0}, {0,-1,0,1}} :  // Standard (Z+ away)
         Pattern{{1,0,-1,0}, {0,1,0,-1}};   // Reversed (Z+ toward)
 
-    // Step 2: Test all 8 axis remappings
+    // Step 2: Use corner identification to determine absolute orientation
     Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "STEP 2: Find Axis Remapping" );
+    Serial.println( "STEP 2: Determine Absolute Orientation" );
     Serial.println( "════════════════════════════════════════════\n" );
-    Serial.println( "Testing 8 possible axis remappings..." );
+    
+    const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
+    Serial.printf( "User identified top-left corner: %s\n", cornerNames[displayCorner] );
+    
+    // Corner tells us the physical rotation of the display relative to the IMU
+    // displayCorner: 0=TL, 1=TR, 2=BR, 3=BL
+    // If user sees TR as top-left, display is rotated 270° CCW (= 90° CW) from IMU frame
+    int displayRotationFromIMU = displayCorner * 90;  // 0°, 90°, 180°, 270°
+    Serial.printf( "Display rotated %d° CW from IMU sensor frame\n", displayRotationFromIMU );
+    
+    // Now we know ABSOLUTE orientation at measurement[1]:
+    // The user chose this as "home" and identified which corner is top-left
+    // This breaks the rotational symmetry!
+    
+    // Step 3: Derive axis remapping from absolute reference
+    Serial.println( "\n════════════════════════════════════════════" );
+    Serial.println( "STEP 3: Calculate Axis Remap from Absolute Reference" );
+    Serial.println( "════════════════════════════════════════════\n" );
+    
+    // Rotate the expected pattern by the corner offset to get absolute pattern
+    Pattern absolutePattern;
+    for ( int i = 0; i < 4; i++ ) {
+        int sourceIdx = (i + displayCorner) % 4;
+        absolutePattern.x[sourceIdx] = expectedPattern.x[i];
+        absolutePattern.y[sourceIdx] = expectedPattern.y[i];
+    }
+    
+    Serial.printf( "Absolute pattern (accounting for display rotation):\n" );
+    Serial.printf( "  X: (%2d, %2d, %2d, %2d)\n", 
+                   absolutePattern.x[0], absolutePattern.x[1], 
+                   absolutePattern.x[2], absolutePattern.x[3] );
+    Serial.printf( "  Y: (%2d, %2d, %2d, %2d)\n",
+                   absolutePattern.y[0], absolutePattern.y[1], 
+                   absolutePattern.y[2], absolutePattern.y[3] );
 
     struct RemapConfig {
         const char *exprX;
@@ -452,11 +495,11 @@ void calculateConfiguration() {
     };
 
     int bestRemap = -1;
-    int deviceHome = -1;  // Which rotation index (0-3) is the device home
+    int deviceHome = -1;  // Which absolute pattern position (0-3) matches user's home (measurement[1])
     
     for ( int r = 0; r < 8; r++ ) {
         int matches = 0;
-        int homeIndex = -1;
+        int homePos = -1;
         
         for ( int rot = 0; rot < 4; rot++ ) {
             float boardX = remaps[r].getX(measurements[rot+1]);  // +1 because measurements[0] is FLAT
@@ -466,64 +509,55 @@ void calculateConfiguration() {
             int normX = (abs(boardX) > 0.7f) ? (boardX > 0 ? 1 : -1) : 0;
             int normY = (abs(boardY) > 0.7f) ? (boardY > 0 ? 1 : -1) : 0;
             
-            // Check if matches expected pattern
-            if ( normX == expectedPattern.x[rot] && normY == expectedPattern.y[rot] ) {
+            // Check if matches absolute pattern (not relative pattern!)
+            if ( normX == absolutePattern.x[rot] && normY == absolutePattern.y[rot] ) {
                 matches++;
             }
             
-            // Find which measurement index matches pattern position 0
-            // This tells us the offset between user's "home" and pattern start
-            if ( normX == expectedPattern.x[0] && normY == expectedPattern.y[0] ) {
-                homeIndex = rot;  // This rotation index is where pattern starts
+            // Find which absolute pattern position matches user's home (measurement[1], rot=0)
+            if ( rot == 0 ) {  // This is user's chosen home
+                // Find which absolute pattern position this matches
+                for ( int absPos = 0; absPos < 4; absPos++ ) {
+                    if ( normX == absolutePattern.x[absPos] && normY == absolutePattern.y[absPos] ) {
+                        homePos = absPos;
+                        break;
+                    }
+                }
             }
         }
         
         if ( matches == 4 ) {
             bestRemap = r;
-            deviceHome = homeIndex;
+            deviceHome = homePos;
             Serial.printf( "✓ Remap %d: X=%s, Y=%s → 4/4 matches!\n",
                            r, remaps[r].exprX, remaps[r].exprY );
+            Serial.printf( "  User's home (measurement[1]) matches absolute pattern position %d\n", deviceHome );
             break;
         }
     }
 
     if ( bestRemap == -1 ) {
-        Serial.println( "\n⚠ ERROR: No axis remapping matched expected pattern!" );
+        Serial.println( "\n⚠ ERROR: No axis remapping matched absolute pattern!" );
         Serial.println( "  Check measurements and try again." );
         return;
     }
 
-    // Step 3: Calculate LUT mapping
+    // Step 4: Calculate LUT mapping
     Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "STEP 3: Calculate Display Rotation LUT" );
+    Serial.println( "STEP 4: Calculate Display Rotation LUT" );
     Serial.println( "════════════════════════════════════════════\n" );
     
-    const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
-    Serial.printf( "Device home: measurement index %d (matches pattern position 0)\n", deviceHome );
-    Serial.printf( "Pixel 0 corner: %s\n", cornerNames[displayCorner] );
+    Serial.printf( "Device home: measurement[1] (user's chosen orientation)\n" );
+    Serial.printf( "Top-left corner: %s (displayCorner=%d)\n", cornerNames[displayCorner], displayCorner );
+    Serial.printf( "Display rotation from IMU: %d°\n", displayRotationFromIMU );
     
-    // Detect rotation in the axis remap
-    // Check if X maps from Y axis (90° rotation)
-    bool xFromY = (strstr(remaps[bestRemap].exprX, "acc.y") != nullptr);
-    // Check for negations (additional 180° rotation)
-    bool xNegated = (strstr(remaps[bestRemap].exprX, "(-") != nullptr);
-    bool yNegated = (strstr(remaps[bestRemap].exprY, "(-") != nullptr);
+    // Calculate display content rotation needed to compensate for physical display orientation
+    // If TR is in TL corner → display rotated 270° CW → content needs 90° CW to compensate
+    // If BL is in TL corner → display rotated 90° CW → content needs 270° CW to compensate
+    int displayOffsets[] = {0, 90, 180, 270};  // TL, TR, BR, BL
+    int displayOffset = displayOffsets[displayCorner];
     
-    // Only apply axis swap rotation (90°), not the negations
-    // The negations don't affect corner positions
-    int remapRotation = xFromY ? 90 : 0;
-    
-    Serial.printf( "Axis remap rotation: %d° (X from %s, negations: X=%s Y=%s)\n", 
-                   remapRotation, xFromY ? "Y" : "X", xNegated ? "yes" : "no", yNegated ? "yes" : "no" );
-    
-    // Display offset: TL=0°, TR=270°, BR=180°, BL=90°
-    // Add remap rotation (axis swap affects corner positions)
-    int displayOffsets[] = {0, 270, 180, 90};
-    int baseDisplayOffset = displayOffsets[displayCorner];
-    int displayOffset = (baseDisplayOffset + remapRotation) % 360;
-    
-    Serial.printf( "Base display offset: %d°, remap rotation: %d°, final: %d°\n", 
-                   baseDisplayOffset, remapRotation, displayOffset );
+    Serial.printf( "Display offset: %d° (content rotation to compensate for physical mounting)\n", displayOffset );
     Serial.println( "\nNOTE: LUT rotations are inverted from physical rotation" );
     Serial.println( "      (device rotates CW → content rotates CCW to stay upright)" );
     
@@ -576,17 +610,25 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
     int lut[6];  // 0=ROTATE_0, 1=ROTATE_90, 2=ROTATE_180, 3=ROTATE_270, 4=FLAT, 5=UNKNOWN
     for ( int i = 0; i < 6; i++ ) lut[i] = -1;  // Initialize to invalid
     
-    // For each physical position, calculate correct LUT value
-    for ( int physPos = 0; physPos < 4; physPos++ ) {
-        int enumValue = orientationEnums[physPos];  // What getOrientation() returns
-        int physicalAngle = physPos * 90;
+    // For each measurement, calculate correct LUT value
+    // measurements[1] = user's home (physical 0°)
+    // measurements[2] = 90° CW from home (physical 90°)  
+    // measurements[3] = 180° CW from home (physical 180°)
+    // measurements[4] = 270° CW from home (physical 270°)
+    for ( int measurementIdx = 0; measurementIdx < 4; measurementIdx++ ) {
+        int enumValue = orientationEnums[measurementIdx];  // What getOrientation() returns at this measurement
+        int physicalAngle = measurementIdx * 90;  // Physical angle from user's home (0°, 90°, 180°, 270°)
         
         // Calculate LUT value: invert rotation and apply display offset
-        // deviceHome offset is already included in displayOffset
-        int lutAngle = (360 - physicalAngle + displayOffset) % 360;
+        // At physical 0° (home), we want display at displayOffset
+        // At physical 90° CW, we want display rotated 90° CCW from that = displayOffset - 90°
+        int lutAngle = (displayOffset - physicalAngle + 360) % 360;
         int lutIndex = lutAngle / 90;
         
         lut[enumValue] = lutIndex;  // Map enum value to LUT
+        
+        Serial.printf( "  Measurement[%d]: physical %d°, getOrientation()=%d, display needs %d° → lut[%d]=%d\n",
+                       measurementIdx, physicalAngle, enumValue, lutAngle, enumValue, lutIndex );
     }
     
     // FLAT and UNKNOWN: When device is physically flat (not vertical),
@@ -614,12 +656,15 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
     int enumToPhysical[6];  // Maps enum value to physical angle
     for ( int i = 0; i < 6; i++ ) enumToPhysical[i] = -1;  // Initialize
     
-    // Build reverse mapping from the forward mapping we created
-    // Adjust so chosen home position becomes physical 0°
-    for ( int physPos = 0; physPos < 4; physPos++ ) {
-        int enumValue = orientationEnums[physPos];
-        int physicalAngle = ((physPos - deviceHome) * 90 + 360) % 360;
-        enumToPhysical[enumValue] = physicalAngle;  // Map enum to physical angle
+    // Build reverse mapping
+    // measurements[1] = user's home (physical 0°)
+    // measurements[2] = 90° CW from home (physical 90°)  
+    // measurements[3] = 180° CW from home (physical 180°)
+    // measurements[4] = 270° CW from home (physical 270°)
+    for ( int measurementIdx = 0; measurementIdx < 4; measurementIdx++ ) {
+        int enumValue = orientationEnums[measurementIdx];
+        int physicalAngle = measurementIdx * 90;  // 0°, 90°, 180°, 270° from user's home
+        enumToPhysical[enumValue] = physicalAngle;
     }
     enumToPhysical[4] = -1;  // FLAT has no angle
     enumToPhysical[5] = -1;  // UNKNOWN has no angle
