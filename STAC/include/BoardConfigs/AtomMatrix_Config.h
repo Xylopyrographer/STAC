@@ -64,30 +64,28 @@
         //  Use OrientationOffset enum values from Types.h
         // #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
 
-        // IMU Configuration (from calibration tool - systematic testing)
-        #define IMU_AXIS_REMAP_X    ((-acc.y))
-        #define IMU_AXIS_REMAP_Y    ((-acc.x))
+        // IMU Configuration (from calibration tool - USB RIGHT as home)
+        #define IMU_AXIS_REMAP_X    (acc.x)
+        #define IMU_AXIS_REMAP_Y    ((-acc.y))
         #define IMU_AXIS_REMAP_Z    (acc.z)
         
-        // Display LUT mapping for physical orientations
-        // AtomMatrix: X/Y swapped and inverted, 90°/270° LUTs swapped for correct display orientation
-        // This maps: physical orientation → which LUT to use for display
+        // Display LUT mapping (indexed by Orientation enum value)
+        // Device home at physical 0°, display offset = 90°
         #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-            Orientation::ROTATE_0,    /* Physical 0°   → LUT_0 */ \
-            Orientation::ROTATE_270,  /* Physical 90°  → LUT_270 (corrected) */ \
-            Orientation::ROTATE_180,  /* Physical 180° → LUT_180 */ \
-            Orientation::ROTATE_90,   /* Physical 270° → LUT_90 (corrected) */ \
-            Orientation::ROTATE_0,    /* FLAT → same as home (0°) */ \
-            Orientation::ROTATE_0     /* UNKNOWN → same as home (0°) */ \
+            Orientation::ROTATE_0,    /* getOrientation()=ROTATE_0 → LUT_0 */ \
+            Orientation::ROTATE_270,  /* getOrientation()=ROTATE_90 → LUT_270 */ \
+            Orientation::ROTATE_180,  /* getOrientation()=ROTATE_180 → LUT_180 */ \
+            Orientation::ROTATE_90,   /* getOrientation()=ROTATE_270 → LUT_90 */ \
+            Orientation::ROTATE_0,    /* FLAT → uses lut[0] */ \
+            Orientation::ROTATE_0     /* UNKNOWN → uses lut[0] */ \
         }
         
         // Reverse mapping for debug logging: enum → physical angle
-        // AtomMatrix: getOrientation() enums happen to match physical angles
         #define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
-            0,   /* ROTATE_0 → Physical 0° */ \
-            90,  /* ROTATE_90 → Physical 90° */ \
-            180, /* ROTATE_180 → Physical 180° */ \
-            270, /* ROTATE_270 → Physical 270° */ \
+            90,  /* Orientation::ROTATE_0 → Physical 90° */ \
+            180, /* Orientation::ROTATE_90 → Physical 180° */ \
+            270, /* Orientation::ROTATE_180 → Physical 270° */ \
+            0,   /* Orientation::ROTATE_270 → Physical 0° */ \
             -1,  /* FLAT */ \
             -1   /* UNKNOWN */ \
         }

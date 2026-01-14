@@ -23,7 +23,7 @@ The key insight: **The sign of the Z-axis when the device is horizontal determin
 **Setup:** Z+ away from user, X+ points up, Y+ points right
 
 | Rotation | X-axis Direction | Y-axis Direction | accelX | accelY |
-|----------|------------------|------------------|---------|---------|
+|:--------:|:----------------:|:----------------:|:------:|:------:|
 | 0°       | UP              | RIGHT            | -1g     | 0g      |
 | 90°      | RIGHT           | DOWN             | 0g      | -1g     |
 | 180°     | DOWN            | LEFT             | +1g     | 0g      |
@@ -36,7 +36,7 @@ The key insight: **The sign of the Z-axis when the device is horizontal determin
 **Setup:** Z+ toward user, X+ points up, Y+ points left
 
 | Rotation | X-axis Direction | Y-axis Direction | accelX | accelY |
-|----------|------------------|------------------|---------|---------|
+|:--------:|:----------------:|:----------------:|:------:|:------:|
 | 0°       | UP              | LEFT             | +1g     | 0g      |
 | 90°      | RIGHT           | UP               | 0g      | +1g     |
 | 180°     | DOWN            | RIGHT            | -1g     | 0g      |
@@ -63,7 +63,7 @@ When device is **horizontal with display facing up:**
 
 ### Step 2: Measure Four Vertical Rotations
 
-For rotations 0°, 90°, 180°, 270° (clockwise when viewed from above):
+For rotations 0°, 90°, 180°, 270° (clockwise when viewed looking at the display):
 
 1. Hold device **vertical** at each rotation
 2. Record raw sensor values: `sensor.x`, `sensor.y`, `sensor.z`
@@ -73,6 +73,7 @@ For rotations 0°, 90°, 180°, 270° (clockwise when viewed from above):
    - Non-dominant axis → 0
 
 Result: Four measurements, each normalized to one of:
+
 - (-1, 0), (0, -1), (+1, 0), (0, +1)
 
 ### Step 3: Match Pattern to Find Axis Remapping
@@ -137,6 +138,7 @@ For Pattern 2: Pattern position 0 occurs where (boardX ≈ +1g, boardY ≈ 0g)
 **For the four vertical orientations:**
 
 For each physical position (0, 1, 2, 3):
+
 1. Determine what `getOrientation()` returns at that position (from Step 3 axis remap simulation)
 2. Calculate LUT angle: `lutAngle = (360 - physicalAngle + displayOffset) % 360`
 3. Convert to LUT index: `lutIndex = lutAngle / 90`
@@ -161,12 +163,14 @@ lut[UNKNOWN] = lut[0];   // Use the LUT value for ROTATE_0
 - Final display offset = 180° (90° base + 90° remap)
 
 For physical position 0 (home):
+
 - `getOrientation()` returns ROTATE_270 (enum value 3)
 - `lutAngle = (360 - 0 + 180) % 360 = 180°`
 - `lutIndex = 180 / 90 = 2` (ROTATE_180)
 - `lut[3] = 2`
 
 For FLAT:
+
 - `getOrientation()` returns ROTATE_0 (enum value 0)
 - `lut[0]` was calculated for physical position where enum=0
 - `lut[FLAT] = lut[0]`
@@ -208,20 +212,24 @@ The calibration tool outputs directly copy/paste-able configuration:
 ## Why This Works
 
 ### Pure Empirical Approach
+
 - No string parsing or heuristics
 - No assumptions about IMU mounting orientation
 - Works for any combination of axis swaps and inversions
 
 ### Self-Validating
+
 - Pattern matching must produce 4/4 correct results
 - If no remapping achieves 4/4, measurements were incorrect
 
 ### Deterministic
+
 - Only ONE axis remapping produces the correct pattern
 - Only ONE LUT configuration produces correct display rotation
 - No ambiguity or guesswork
 
 ### Complete Coverage
+
 - Handles all 8 possible axis remappings (X/Y swaps with inversions)
 - Handles all 4 possible device home positions
 - Handles all 4 possible display mounting orientations
