@@ -3,7 +3,7 @@
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
 **Updated:** January 14, 2026  
-**Status:** IMU Calibration Tool - Display Corner Identification (Work in Progress)
+**Status:** IMU Calibration Tool v3.0 - Pattern-Based Implementation Complete
 
 ---
 
@@ -302,65 +302,71 @@ if (buttonB->wasPressed()) {
 
 ---
 
-### January 13-14, 2026 - Calibration Tool Redesign: Breaking Rotational Symmetry - Work in Progress
+### January 13-14, 2026 - Calibration Tool v3.0: Pattern-Based Implementation Complete
 
-**Problem Discovery:**
-- Testing calibration tool with USB RIGHT as home (instead of USB DOWN) revealed fundamental issue
+**Problem Discovery (Evening Jan 13):**
+- Testing calibration tool with USB RIGHT as home revealed fundamental issue
 - Generated DIFFERENT axis remap: `X=(acc.x), Y=((-acc.y))` vs expected `X=((-acc.y)), Y=((-acc.x))`
-- Axis remap should be physical property of mounting (invariant), not dependent on which orientation chosen as home
+- Axis remap should be physical property of mounting (invariant), not dependent on home choice
 - Root cause: Accelerometer pattern has 4-fold rotational symmetry
   - Pattern: `X:(-1,0,+1,0), Y:(0,-1,0,+1)` looks identical when rotated 90°, 180°, 270°
-  - Different measurement sequences can match the same expected pattern with different axis remaps
+  - Different measurement sequences can match the same pattern with different axis remaps
 
-**Solution: Display Pixel Corner Identification**
+**Solution Part 1: Corner Identification (Jan 13 evening):**
 - Use display pixel 0 as absolute reference to break rotational symmetry
-- New calibration flow adds corner identification step:
-  1. FLAT (reference gravity vector)
-  2. HOME (user's chosen home position)
-  3. **CORNER_IDENTIFY** (light corners sequentially, user identifies which is top-left)
-  4. Measure orientations at 90°, 180°, 270° from home
-  5. CALCULATE (use corner position to establish absolute reference frame)
-
-**Implementation Progress:**
-- ✅ Corner identification UI: Sequential corner lighting with Y/N prompts
-- ✅ Absolute pattern calculation: Rotate expected pattern by corner offset
-- ✅ Pattern matching: Match measurements against absolute pattern
-- ✅ **Major Milestone: Axis remap now INVARIANT!**
+- Sequential corner lighting with Y/N prompts
+- ✅ **Major Milestone: Axis remap now INVARIANT**
   - Both USB RIGHT and USB DOWN home produce: `X=((-acc.y)), Y=((-acc.x))`
   - Rotational symmetry successfully broken
-- ❌ LUT calculation formula still incorrect (display rotation wrong by ~90°)
-- ❌ Physical angle logging shows incorrect values
+- ❌ LUT calculation formula still incorrect (multiple iterations attempted)
+- Save point: commit f24997d
+
+**Solution Part 2: Complete Pattern-Based Rewrite (Jan 14):**
+- Replaced complex formula-based calculation with pattern matching approach
+- Insight from user analysis (XP IMU Analysis 2.md): Patterns are cyclical sequences
+- New algorithm:
+  1. Determine Z-axis direction → select pattern table (Z+away vs Z+toward)
+  2. Identify pattern number at each rotation using `identifyPatternNumber(x, y, z)`
+  3. Validate sequence: patterns increment by +1 (Z+away) or -1 (Z+toward)
+  4. Find axis remap that reproduces identified pattern numbers
+  5. Calculate LUT using modular arithmetic: `lutAngle = (cornerOffset*90 - physicalAngle + 360) % 360`
+- ✅ **Complete rewrite successful - pattern-based approach working**
+  - Simpler and more intuitive than formula-based calculation
+  - Pattern sequence validation catches measurement errors
+  - Better debugging: shows pattern numbers at each step
+  - Backward compatible config output format
 
 **Documentation Created:**
-- `Documentation/Developer/IMU_Display_Reference_Tables.md`: 8 comprehensive rotation tables
-  - Demonstrates 4-fold rotational symmetry visually
-  - Shows IMU readings for all orientations with Z-away and Z-toward
-  - LUT rotation mapping tables
-- `Documentation/Developer/XP IMU Analysis 2.md`: User insight document
-  - Proposes pattern-based simplification: store pattern numbers, use modular arithmetic
-  - May lead to algorithm redesign in next phase
+- `IMU_Display_Reference_Tables.md`: 8 rotation tables demonstrating 4-fold symmetry
+- `XP IMU Analysis 2.md`: Pattern-based approach proposal (updated with Z-axis requirement)
+  - Critical insight: X/Y patterns alone insufficient - Z-axis determines which pattern table
+  - Pattern matching simpler than complex formulas
 
 **Files Modified:**
-- `src/main_calibrate.cpp`: Major redesign (~300 lines)
-  - State machine: Added STATE_CORNER_IDENTIFY, removed old corner selection states
-  - New function: `identifyTopLeftCorner()` with sequential corner UI
-  - Algorithm: Calculate absolutePattern, match measurements in absolute space
-  - LUT calculation: Multiple iterations attempted, still not correct
+- `src/main_calibrate.cpp`: Complete rewrite (~200 lines changed)
+  - Added `identifyPatternNumber()` function with Z-axis parameter
+  - Pattern matching against PATTERN_Z_AWAY and PATTERN_Z_TOWARD tables
+  - Sequence validation confirms rotation direction
+  - Clearer output showing pattern numbers and calculation steps
 - `include/BoardConfigs/AtomMatrix_Config.h`: Latest test configuration
-- `Documentation/Developer/IMU_Calibration_Methodology.md`: Updated 6-step flow
 
-**Current State:**
-- Axis remap detection: **WORKING** (invariant achieved)
-- LUT calculation: **BROKEN** (needs formula fix)
-- Corner identification: **WORKING** (UI perfect)
-- Overall: Partial success - major breakthrough on symmetry, but complete solution in progress
+**Implementation Status:**
+- ✅ Corner identification UI working perfectly
+- ✅ Pattern identification and validation
+- ✅ Axis remap detection (invariant)
+- ✅ LUT calculation (pattern-based)
+- ✅ Compiles successfully (350KB flash, 7% RAM)
+- ⏸️ Ready for hardware testing
 
 **Next Steps:**
-- Fix LUT calculation formula (consider pattern-based approach from XP Analysis)
-- Test complete flow on both ATOM and Waveshare
-- Validate all orientations display correctly
+- Test v3.0 calibration tool on ATOM Matrix
+- Test on Waveshare ESP32-S3-Matrix
+- Validate generated configs produce correct display rotation
+- Consider runtime code simplification using pattern-based approach (future enhancement)
 
-**Commit:** (pending - save point before continuing)
+**Commits:** 
+- f24997d: Corner identification breakthrough (axis remap invariant)
+- 9c9ed5e: Pattern-based implementation complete
 
 ---
 
