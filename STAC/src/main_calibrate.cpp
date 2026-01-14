@@ -1,21 +1,21 @@
 // main_calibrate.cpp
-// IMU Calibration Tool
+// IMU Calibration Tool v3.0 - Pattern-Based Approach
 //
 // Interactive development tool to determine IMU mounting configuration.
 // Outputs board config values for copy/paste into board config header.
 //
-// CRITICAL: Display Rotation LUT Inversion
-// -----------------------------------------
-// Display rotation LUTs (LUT_ROTATE_0/90/180/270) rotate pixel content in the
-// SAME direction as their name (e.g., LUT_ROTATE_90 rotates pixels 90° CW).
-// However, when the device physically rotates, we need to rotate the content
-// in the OPPOSITE direction to keep it upright from the user's perspective.
+// Pattern-Based Calibration Methodology:
+// ---------------------------------------
+// IMU accelerometer readings follow predictable patterns as device rotates.
+// There are only 2 base patterns (determined by Z-axis direction), each with
+// 4 rotational positions. By identifying which pattern we see at each rotation,
+// we can derive the correct axis remapping and display rotation LUT.
 //
-// Example: If device rotates 90° CW, content must rotate 90° CCW (= 270° CW)
-// Therefore: Physical 90° rotation → Use LUT_ROTATE_270
-//
-// The LUT calculation formula inverts the rotation direction:
-//   LUT[rotation] = (360 - rotation + displayOffset + deviceHome) % 360
+// Key Insights:
+// 1. Pattern matching is simpler and more reliable than formula-based calculation
+// 2. Z-axis direction (from FLAT measurement) selects the pattern table
+// 3. Display corner position (pixel 0) breaks rotational symmetry
+// 4. All configuration can be derived from pattern numbers + modular arithmetic
 //
 // Usage:
 //   1. Build and upload: pio run -e <board>-calibrate -t upload
@@ -81,15 +81,18 @@ const uint32_t COLOR_ORANGE = 0xFF8800;
 const uint32_t COLOR_RED = 0xFF0000;
 const uint32_t COLOR_BLUE = 0x0000FF;
 
-// Remapping configuration structure
-struct RemapConfig {
-    const char *remapX;
-    const char *remapY;
-    const char *remapZ;
-    float (*getX)(const Measurement&);
-    float (*getY)(const Measurement&);
-    float (*getZ)(const Measurement&);
+// Pattern definition structure
+struct Pattern {
+    int x[4];  // X values for pattern positions 0-3
+    int y[4];  // Y values for pattern positions 0-3
 };
+
+// The two base patterns (determined by Z-axis direction)
+// Z+ AWAY pattern: X:(+1,0,-1,0), Y:(0,+1,0,-1)
+const Pattern PATTERN_Z_AWAY = {{1, 0, -1, 0}, {0, 1, 0, -1}};
+
+// Z+ TOWARD pattern: X:(+1,0,-1,0), Y:(0,-1,0,+1) 
+const Pattern PATTERN_Z_TOWARD = {{1, 0, -1, 0}, {0, -1, 0, 1}};
 
 // Function declarations
 void printWelcome();
@@ -97,6 +100,7 @@ void printInstructions( int step );
 void waitForEnter();
 void takeMeasurement( int index );
 void identifyTopLeftCorner();
+int identifyPatternNumber( float x, float y, bool zPointsAway );
 void calculateConfiguration();
 void printConfiguration( const char* remapX, const char* remapY, const char* remapZ, 
                         int deviceHome, int displayOffset, int orientationEnums[4] );
@@ -234,15 +238,17 @@ void loop() {
 
 void printWelcome() {
     Serial.println( "\n╔════════════════════════════════════════════╗" );
-    Serial.println( "║       IMU CALIBRATION TOOL v2.0            ║" );
+    Serial.println( "║       IMU CALIBRATION TOOL v3.0            ║" );
+    Serial.println( "║         Pattern-Based Approach             ║" );
     Serial.println( "╚════════════════════════════════════════════╝" );
-    Serial.println( "\nThis tool will measure accelerometer readings as you" );
-    Serial.println( "position the device in 6 orientations." );
+    Serial.println( "\nThis tool identifies IMU accelerometer patterns to derive" );
+    Serial.println( "the correct axis remapping and display rotation configuration." );
     Serial.println( "\nSTEPS:" );
-    Serial.println( "  1. Flat with display facing up (determines Z-axis)" );
-    Serial.println( "  2. Vertical at your chosen home position" );
-    Serial.println( "  3. Display corner identification (absolute reference)" );
-    Serial.println( "  4-6. Three more rotations: 90°, 180°, 270°" );
+    Serial.println( "  1. Flat with display facing up (determines Z-axis direction)" );
+    Serial.println( "  2. Vertical at your chosen home position (any orientation)" );
+    Serial.println( "  3. Display corner identification (breaks rotational symmetry)" );
+    Serial.println( "  4-6. Three more rotations: 90°, 180°, 270° from home" );
+    Serial.println( "\nPattern-based calibration is simpler and more reliable!" );
     Serial.println( "\n════════════════════════════════════════════" );
     Serial.println( "\nPress ENTER to begin..." );
 }
@@ -387,6 +393,26 @@ void identifyTopLeftCorner() {
     }
 }
 
+// Identify which pattern number (0-3) matches the given accelerometer readings
+// Returns: 0-3 for valid pattern, -1 if no match
+int identifyPatternNumber( float x, float y, bool zPointsAway ) {
+    // Normalize accelerometer values to -1, 0, +1
+    int normX = (abs(x) > 0.7f) ? (x > 0 ? 1 : -1) : 0;
+    int normY = (abs(y) > 0.7f) ? (y > 0 ? 1 : -1) : 0;
+    
+    // Select pattern based on Z direction
+    const Pattern& pattern = zPointsAway ? PATTERN_Z_AWAY : PATTERN_Z_TOWARD;
+    
+    // Find which pattern position matches
+    for ( int i = 0; i < 4; i++ ) {
+        if ( pattern.x[i] == normX && pattern.y[i] == normY ) {
+            return i;  // Found match at position i
+        }
+    }
+    
+    return -1;  // No match found
+}
+
 void calculateConfiguration() {
     Serial.println( "\n╔════════════════════════════════════════════╗" );
     Serial.println( "║         MEASUREMENT SUMMARY                ║" );
@@ -420,62 +446,72 @@ void calculateConfiguration() {
     bool zPointsAway = (zFlat < -0.5f);  // Z+ points down into table → away when vertical
     
     if ( zPointsAway ) {
-        Serial.println( "→ Z+ points AWAY from user when vertical (Standard Pattern)" );
-        Serial.println( "  Expected: X:(-1,0,+1,0), Y:(0,-1,0,+1)" );
+        Serial.println( "→ Z+ points AWAY from user when vertical" );
+        Serial.println( "  Pattern: X:(+1,0,-1,0), Y:(0,+1,0,-1)" );
     } else {
-        Serial.println( "→ Z+ points TOWARD user when vertical (Reversed Pattern)" );
-        Serial.println( "  Expected: X:(+1,0,-1,0), Y:(0,+1,0,-1)" );
+        Serial.println( "→ Z+ points TOWARD user when vertical" );
+        Serial.println( "  Pattern: X:(+1,0,-1,0), Y:(0,-1,0,+1)" );
     }
 
-    // Define expected patterns
-    struct Pattern {
-        int x[4];  // Expected X values (normalized to -1, 0, +1)
-        int y[4];  // Expected Y values
-    };
-    
-    Pattern expectedPattern = zPointsAway ? 
-        Pattern{{-1,0,1,0}, {0,-1,0,1}} :  // Standard (Z+ away)
-        Pattern{{1,0,-1,0}, {0,1,0,-1}};   // Reversed (Z+ toward)
-
-    // Step 2: Use corner identification to determine absolute orientation
+    // Step 2: Identify pattern numbers at each rotation
     Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "STEP 2: Determine Absolute Orientation" );
+    Serial.println( "STEP 2: Identify Pattern Numbers" );
     Serial.println( "════════════════════════════════════════════\n" );
     
-    const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
-    Serial.printf( "User identified top-left corner: %s\n", cornerNames[displayCorner] );
+    int patternNumbers[4];  // Pattern numbers for rotations 0°, 90°, 180°, 270°
+    bool allPatternsValid = true;
     
-    // Corner tells us the physical rotation of the display relative to the IMU
-    // displayCorner: 0=TL, 1=TR, 2=BR, 3=BL
-    // If user sees TR as top-left, display is rotated 270° CCW (= 90° CW) from IMU frame
-    int displayRotationFromIMU = displayCorner * 90;  // 0°, 90°, 180°, 270°
-    Serial.printf( "Display rotated %d° CW from IMU sensor frame\n", displayRotationFromIMU );
-    
-    // Now we know ABSOLUTE orientation at measurement[1]:
-    // The user chose this as "home" and identified which corner is top-left
-    // This breaks the rotational symmetry!
-    
-    // Step 3: Derive axis remapping from absolute reference
-    Serial.println( "\n════════════════════════════════════════════" );
-    Serial.println( "STEP 3: Calculate Axis Remap from Absolute Reference" );
-    Serial.println( "════════════════════════════════════════════\n" );
-    
-    // Rotate the expected pattern by the corner offset to get absolute pattern
-    Pattern absolutePattern;
     for ( int i = 0; i < 4; i++ ) {
-        int sourceIdx = (i + displayCorner) % 4;
-        absolutePattern.x[sourceIdx] = expectedPattern.x[i];
-        absolutePattern.y[sourceIdx] = expectedPattern.y[i];
+        patternNumbers[i] = identifyPatternNumber( 
+            measurements[i+1].accX,  // +1 because measurements[0] is FLAT
+            measurements[i+1].accY, 
+            zPointsAway 
+        );
+        
+        if ( patternNumbers[i] == -1 ) {
+            Serial.printf( "✗ Rotation %d°: NO MATCH (x=%.3f, y=%.3f)\n", 
+                           i * 90, measurements[i+1].accX, measurements[i+1].accY );
+            allPatternsValid = false;
+        } else {
+            Serial.printf( "✓ Rotation %d°: Pattern #%d (x=%.3f, y=%.3f)\n", 
+                           i * 90, patternNumbers[i], 
+                           measurements[i+1].accX, measurements[i+1].accY );
+        }
     }
     
-    Serial.printf( "Absolute pattern (accounting for display rotation):\n" );
-    Serial.printf( "  X: (%2d, %2d, %2d, %2d)\n", 
-                   absolutePattern.x[0], absolutePattern.x[1], 
-                   absolutePattern.x[2], absolutePattern.x[3] );
-    Serial.printf( "  Y: (%2d, %2d, %2d, %2d)\n",
-                   absolutePattern.y[0], absolutePattern.y[1], 
-                   absolutePattern.y[2], absolutePattern.y[3] );
-
+    if ( !allPatternsValid ) {
+        Serial.println( "\n⚠ ERROR: Some patterns could not be identified!" );
+        Serial.println( "  Check measurements and try again." );
+        return;
+    }
+    
+    // Validate pattern sequence (should increment by 1 each rotation for Z+ away)
+    // For Z+ toward, pattern should increment by -1 (or +3 modulo 4)
+    int expectedIncrement = zPointsAway ? 1 : 3;  // CW rotation: Z+away=+1, Z+toward=-1(=+3 mod 4)
+    bool sequenceValid = true;
+    
+    for ( int i = 0; i < 3; i++ ) {
+        int expected = (patternNumbers[i] + expectedIncrement) % 4;
+        if ( patternNumbers[i+1] != expected ) {
+            Serial.printf( "⚠ Warning: Pattern sequence break at %d° → %d°: expected pattern #%d, got #%d\n",
+                           i * 90, (i+1) * 90, expected, patternNumbers[i+1] );
+            sequenceValid = false;
+        }
+    }
+    
+    if ( sequenceValid ) {
+        Serial.println( "✓ Pattern sequence validated (correct rotation direction)" );
+    }
+    
+    // Step 3: Determine axis remapping from pattern numbers
+    Serial.println( "\n════════════════════════════════════════════" );
+    Serial.println( "STEP 3: Determine Axis Remapping" );
+    Serial.println( "════════════════════════════════════════════\n" );
+    
+    // The pattern number tells us which axis remap to use
+    // Pattern is defined as (X, Y) values at rotations (0°, 90°, 180°, 270°)
+    // We need to find which raw sensor axis combination produces this pattern
+    
     struct RemapConfig {
         const char *exprX;
         const char *exprY;
@@ -495,80 +531,60 @@ void calculateConfiguration() {
     };
 
     int bestRemap = -1;
-    int deviceHome = -1;  // Which absolute pattern position (0-3) matches user's home (measurement[1])
     
+    // Test each remap to see which one produces the identified pattern numbers
     for ( int r = 0; r < 8; r++ ) {
-        int matches = 0;
-        int homePos = -1;
+        bool matches = true;
         
         for ( int rot = 0; rot < 4; rot++ ) {
-            float boardX = remaps[r].getX(measurements[rot+1]);  // +1 because measurements[0] is FLAT
+            float boardX = remaps[r].getX(measurements[rot+1]);
             float boardY = remaps[r].getY(measurements[rot+1]);
             
-            // Normalize to -1, 0, +1
-            int normX = (abs(boardX) > 0.7f) ? (boardX > 0 ? 1 : -1) : 0;
-            int normY = (abs(boardY) > 0.7f) ? (boardY > 0 ? 1 : -1) : 0;
+            int testPattern = identifyPatternNumber( boardX, boardY, zPointsAway );
             
-            // Check if matches absolute pattern (not relative pattern!)
-            if ( normX == absolutePattern.x[rot] && normY == absolutePattern.y[rot] ) {
-                matches++;
-            }
-            
-            // Find which absolute pattern position matches user's home (measurement[1], rot=0)
-            if ( rot == 0 ) {  // This is user's chosen home
-                // Find which absolute pattern position this matches
-                for ( int absPos = 0; absPos < 4; absPos++ ) {
-                    if ( normX == absolutePattern.x[absPos] && normY == absolutePattern.y[absPos] ) {
-                        homePos = absPos;
-                        break;
-                    }
-                }
+            if ( testPattern != patternNumbers[rot] ) {
+                matches = false;
+                break;
             }
         }
         
-        if ( matches == 4 ) {
+        if ( matches ) {
             bestRemap = r;
-            deviceHome = homePos;
-            Serial.printf( "✓ Remap %d: X=%s, Y=%s → 4/4 matches!\n",
-                           r, remaps[r].exprX, remaps[r].exprY );
-            Serial.printf( "  User's home (measurement[1]) matches absolute pattern position %d\n", deviceHome );
+            Serial.printf( "✓ Found matching axis remap: X=%s, Y=%s\n",
+                           remaps[r].exprX, remaps[r].exprY );
             break;
         }
     }
 
     if ( bestRemap == -1 ) {
-        Serial.println( "\n⚠ ERROR: No axis remapping matched absolute pattern!" );
-        Serial.println( "  Check measurements and try again." );
+        Serial.println( "\n⚠ ERROR: No axis remapping matched the pattern sequence!" );
+        Serial.println( "  This should not happen. Check sensor readings." );
         return;
     }
-
-    // Step 4: Calculate LUT mapping
+    
+    // Step 4: Calculate LUT mapping using pattern-based approach
     Serial.println( "\n════════════════════════════════════════════" );
     Serial.println( "STEP 4: Calculate Display Rotation LUT" );
     Serial.println( "════════════════════════════════════════════\n" );
     
-    Serial.printf( "Device home: measurement[1] (user's chosen orientation)\n" );
-    Serial.printf( "Top-left corner: %s (displayCorner=%d)\n", cornerNames[displayCorner], displayCorner );
-    Serial.printf( "Display rotation from IMU: %d°\n", displayRotationFromIMU );
+    const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
+    Serial.printf( "Top-left corner identified: %s (corner #%d)\n", 
+                   cornerNames[displayCorner], displayCorner );
+    Serial.printf( "Home position (0°) has pattern #%d\n", patternNumbers[0] );
     
-    // Calculate display content rotation needed to compensate for physical display orientation
-    // If TR is in TL corner → display rotated 270° CW → content needs 90° CW to compensate
-    // If BL is in TL corner → display rotated 90° CW → content needs 270° CW to compensate
-    int displayOffsets[] = {0, 90, 180, 270};  // TL, TR, BR, BL
-    int displayOffset = displayOffsets[displayCorner];
+    // LUT numbering: 0=ROTATE_0, 1=ROTATE_90, 2=ROTATE_180, 3=ROTATE_270
+    // Corner offset: TL=0, TR=1, BR=2, BL=3 (number of 90° CW rotations from TL)
+    // Baseline LUT needed at home = corner offset (display needs rotation to compensate)
     
-    Serial.printf( "Display offset: %d° (content rotation to compensate for physical mounting)\n", displayOffset );
-    Serial.println( "\nNOTE: LUT rotations are inverted from physical rotation" );
-    Serial.println( "      (device rotates CW → content rotates CCW to stay upright)" );
-    
-    // Determine what getOrientation() will return for each measurement
-    // This simulates the runtime behavior of the IMU getOrientation() function
+    // Calculate what orientation enum getOrientation() will return at each measurement
+    // This requires simulating the IMU getOrientation() logic with our identified remap
     int orientationEnums[4];  // What enum value getOrientation returns for each measurement
+    
     for ( int i = 0; i < 4; i++ ) {
         float boardX = remaps[bestRemap].getX(measurements[i+1]);
         float boardY = remaps[bestRemap].getY(measurements[i+1]);
         
-        // Simulate getOrientation() logic
+        // Simulate getOrientation() logic (same thresholds as actual IMU code)
         if ( abs(boardX) < 0.5f && abs(boardY) > 0.7f ) {
             orientationEnums[i] = (boardY > 0) ? 2 : 0;  // ROTATE_180 or ROTATE_0
         } else if ( abs(boardX) > 0.7f && abs(boardY) < 0.5f ) {
@@ -576,26 +592,40 @@ void calculateConfiguration() {
         } else {
             orientationEnums[i] = -1;  // Should not happen if pattern matched
         }
+        
+        Serial.printf( "  Rotation %3d°: getOrientation() returns enum %d, pattern #%d\n",
+                       i * 90, orientationEnums[i], patternNumbers[i] );
     }
+    
+    // Pattern-based LUT calculation
+    // At home (0°): Need display rotation = displayCorner offset
+    // At each rotation: LUT offset follows pattern offset
+    
+    Serial.println( "\nPattern-Based LUT Calculation:" );
+    Serial.printf( "  Home pattern #%d → Baseline LUT #%d (corner offset)\n", 
+                   patternNumbers[0], displayCorner );
+    Serial.printf( "  Each 90° CW rotation → Pattern +%d → LUT +1 (wrap at 4)\n",
+                   expectedIncrement );
 
     printConfiguration( remaps[bestRemap].exprX, remaps[bestRemap].exprY, "(acc.z)",
-                       deviceHome, displayOffset, orientationEnums );
+                       patternNumbers[0], displayCorner, orientationEnums );
 }
 
 void printConfiguration( const char* remapX, const char* remapY, const char* remapZ,
-                        int deviceHome, int displayOffset, int orientationEnums[4] ) {
+                        int homePattern, int cornerOffset, int orientationEnums[4] ) {
     
     Serial.println( "\n╔════════════════════════════════════════════╗" );
     Serial.println( "║         BOARD CONFIGURATION VALUES         ║" );
     Serial.println( "╚════════════════════════════════════════════╝" );
     Serial.println( "\nCopy these lines into your board config header:" );
-    Serial.println( "\n// IMU Configuration (from calibration tool)" );
+    Serial.println( "\n// IMU Configuration (from calibration tool v3.0 - pattern-based)" );
     Serial.printf( "#define IMU_AXIS_REMAP_X    %s\n", remapX );
     Serial.printf( "#define IMU_AXIS_REMAP_Y    %s\n", remapY );
     Serial.printf( "#define IMU_AXIS_REMAP_Z    %s\n", remapZ );
     
     Serial.println( "" );
-    Serial.printf( "\n// Device home at physical %d°, display offset = %d°\n", deviceHome * 90, displayOffset );
+    Serial.printf( "\n// Home pattern #%d, corner offset %d (baseline LUT #%d)\n", 
+                   homePattern, cornerOffset, cornerOffset );
     Serial.println( "#define DEVICE_ORIENTATION_TO_LUT_MAP { \\" );
     
     const char* lutNames[] = {
@@ -605,69 +635,58 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
         "Orientation::ROTATE_270"
     };
     
-    // Build LUT based on what getOrientation() actually returns
-    // LUT is indexed by the Orientation enum value, not physical rotation
-    int lut[6];  // 0=ROTATE_0, 1=ROTATE_90, 2=ROTATE_180, 3=ROTATE_270, 4=FLAT, 5=UNKNOWN
-    for ( int i = 0; i < 6; i++ ) lut[i] = -1;  // Initialize to invalid
+    // Build LUT: indexed by orientation enum, returns LUT to use
+    // Pattern-based: LUT[enum] = (cornerOffset + rotationOffset) % 4
+    int lut[6];  // 0-3 = ROTATE_0/90/180/270, 4=FLAT, 5=UNKNOWN
+    for ( int i = 0; i < 6; i++ ) lut[i] = -1;
     
-    // For each measurement, calculate correct LUT value
-    // measurements[1] = user's home (physical 0°)
-    // measurements[2] = 90° CW from home (physical 90°)  
-    // measurements[3] = 180° CW from home (physical 180°)
-    // measurements[4] = 270° CW from home (physical 270°)
+    // For each measurement, calculate the LUT needed
     for ( int measurementIdx = 0; measurementIdx < 4; measurementIdx++ ) {
-        int enumValue = orientationEnums[measurementIdx];  // What getOrientation() returns at this measurement
-        int physicalAngle = measurementIdx * 90;  // Physical angle from user's home (0°, 90°, 180°, 270°)
+        int enumValue = orientationEnums[measurementIdx];
+        int physicalAngle = measurementIdx * 90;  // 0°, 90°, 180°, 270° from home
         
-        // Calculate LUT value: invert rotation and apply display offset
-        // At physical 0° (home), we want display at displayOffset
-        // At physical 90° CW, we want display rotated 90° CCW from that = displayOffset - 90°
-        int lutAngle = (displayOffset - physicalAngle + 360) % 360;
+        // LUT calculation: invert physical rotation and add corner offset
+        // Physical 0° (home) → Use LUT = cornerOffset
+        // Physical 90° CW → Rotate content 90° CCW = use LUT (cornerOffset + 3) % 4
+        // Physical 180° → Rotate content 180° = use LUT (cornerOffset + 2) % 4
+        // Physical 270° CW → Rotate content 270° CCW = use LUT (cornerOffset + 1) % 4
+        int lutAngle = (cornerOffset * 90 - physicalAngle + 360) % 360;
         int lutIndex = lutAngle / 90;
         
-        lut[enumValue] = lutIndex;  // Map enum value to LUT
+        lut[enumValue] = lutIndex;
         
-        Serial.printf( "  Measurement[%d]: physical %d°, getOrientation()=%d, display needs %d° → lut[%d]=%d\n",
-                       measurementIdx, physicalAngle, enumValue, lutAngle, enumValue, lutIndex );
+        Serial.printf( "  Measurement[%d]: physical %3d°, enum=%d → LUT #%d (%s)\n",
+                       measurementIdx, physicalAngle, enumValue, lutIndex, lutNames[lutIndex] );
     }
     
-    // FLAT and UNKNOWN: When device is physically flat (not vertical),
-    // getOrientation() returns ROTATE_0, so always use lut[0]
-    int homeEnumValue = orientationEnums[deviceHome];
-    lut[4] = lut[0];  // FLAT → use lut[0] (what to display when getOrientation()=ROTATE_0)
-    lut[5] = lut[0];  // UNKNOWN → use lut[0]
-    Serial.printf( "DEBUG: deviceHome=%d, orientationEnums[%d]=%d, lut[%d]=%d, lut[0]=%d (FLAT)\n",
-                   deviceHome, deviceHome, homeEnumValue, homeEnumValue, lut[homeEnumValue], lut[0] );
+    // FLAT and UNKNOWN: Use lut[0] (same as whatever enum 0 maps to)
+    lut[4] = lut[0];  // FLAT
+    lut[5] = lut[0];  // UNKNOWN
     
-    // Print the LUT array
+    Serial.println( "\nLUT Map Output:" );
     for ( int i = 0; i < 4; i++ ) {
-        Serial.printf( "    %s,  /* getOrientation()=%s → LUT_%d */ \\\n",
-                       lutNames[lut[i]], lutNames[i], lut[i] * 90 );
+        Serial.printf( "    %s,  /* enum %d → LUT_%d */ \\\n",
+                       lutNames[lut[i]], i, lut[i] * 90 );
     }
     Serial.printf( "    %s,  /* FLAT → uses lut[0] */ \\\n", lutNames[lut[4]] );
     Serial.printf( "    %s   /* UNKNOWN → uses lut[0] */ \\\n", lutNames[lut[5]] );
     
     Serial.println( "}" );
     
-    // Build reverse mapping: enum value → physical angle (for debugging logs)
+    // Reverse mapping: enum → physical angle
     Serial.println( "\n// Reverse mapping for debug logging: enum → physical angle" );
     Serial.println( "#define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \\" );
     
-    int enumToPhysical[6];  // Maps enum value to physical angle
-    for ( int i = 0; i < 6; i++ ) enumToPhysical[i] = -1;  // Initialize
+    int enumToPhysical[6];
+    for ( int i = 0; i < 6; i++ ) enumToPhysical[i] = -1;
     
-    // Build reverse mapping
-    // measurements[1] = user's home (physical 0°)
-    // measurements[2] = 90° CW from home (physical 90°)  
-    // measurements[3] = 180° CW from home (physical 180°)
-    // measurements[4] = 270° CW from home (physical 270°)
     for ( int measurementIdx = 0; measurementIdx < 4; measurementIdx++ ) {
         int enumValue = orientationEnums[measurementIdx];
-        int physicalAngle = measurementIdx * 90;  // 0°, 90°, 180°, 270° from user's home
+        int physicalAngle = measurementIdx * 90;
         enumToPhysical[enumValue] = physicalAngle;
     }
-    enumToPhysical[4] = -1;  // FLAT has no angle
-    enumToPhysical[5] = -1;  // UNKNOWN has no angle
+    enumToPhysical[4] = -1;  // FLAT
+    enumToPhysical[5] = -1;  // UNKNOWN
     
     for ( int i = 0; i < 4; i++ ) {
         Serial.printf( "    %d,  /* %s → Physical %d° */ \\\n",

@@ -1,3 +1,23 @@
+## Z-Axis Direction Matters!
+
+**CRITICAL:** The X and Y patterns alone are NOT sufficient to uniquely identify rotation!
+
+The same X pattern can appear with **inverted Y patterns** depending on Z-axis direction:
+- **Z+ Away:** `X: (-1, 0, +1, 0)`, `Y: (0, -1, 0, +1)` (Table 3)
+- **Z+ Toward:** `X: (-1, 0, +1, 0)`, `Y: (0, +1, 0, -1)` (Table 7)
+
+Therefore, pattern identification must include Z-axis:
+```cpp
+int identify_pattern(acc.x, acc.y, acc.z)
+```
+
+**Algorithm:**
+1. First, determine Z-direction from FLAT calibration measurement
+2. Select correct pattern table (Z+ away vs Z+ toward)
+3. Match (X, Y) pair against the 4 patterns in that table
+
+---
+
 ## IMU oriented with +Z-axis pointing away from me.
 
 Examine the X and Y patterns as a couple.
