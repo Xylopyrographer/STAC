@@ -348,6 +348,26 @@ if (buttonB->wasPressed()) {
   - Pattern matching against PATTERN_Z_AWAY and PATTERN_Z_TOWARD tables
   - Sequence validation confirms rotation direction
   - Clearer output showing pattern numbers and calculation steps
+
+**Critical Bug Fix (Jan 14 afternoon):**
+- ❌ **Runtime mismatch discovered:** Calibration tool simulated different enum assignments than runtime code
+- Root cause: Calibration used hardcoded thresholds (0.5f, 0.7f), runtime uses MPU6886_IMU.h constants
+  - Runtime: `MID_TOL = 500.0f`, `HIGH_TOL = 900.0f` (after ACCL_SCALE=1000)
+  - Calibration simulation: `abs(boardY) > 0.7f` vs runtime `abs(scaledAccY) > MID_TOL`
+  - Different thresholds → different enum values → incorrect LUT mapping
+- ✅ **Fixed:** Updated calibration to use EXACT same thresholds and scaling as runtime
+  - Added runtime constants to calibration simulation
+  - Exact match: `abs(scaledAccX) < HIGH_TOL && abs(scaledAccY) > MID_TOL`
+  - Pattern sequence bug also fixed: `expectedIncrement = zPointsAway ? 3 : 1` (was inverted)
+- ✅ **Runtime validation:** All orientations report correctly, display matches at all rotations
+- ✅ **FLAT/UNKNOWN fix:** Changed to use same LUT as physical 0° (no math needed)
+
+**Result:**
+- Pattern-based calibration tool v3.0 complete and validated
+- Calibration output matches runtime behavior exactly
+- USB DOWN home position tested and working
+- FLAT orientation uses correct LUT (same as 0°)
+- Ready for production use
 - `include/BoardConfigs/AtomMatrix_Config.h`: Latest test configuration
 
 **Implementation Status:**

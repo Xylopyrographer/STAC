@@ -485,9 +485,10 @@ void calculateConfiguration() {
         return;
     }
     
-    // Validate pattern sequence (should increment by 1 each rotation for Z+ away)
-    // For Z+ toward, pattern should increment by -1 (or +3 modulo 4)
-    int expectedIncrement = zPointsAway ? 1 : 3;  // CW rotation: Z+away=+1, Z+toward=-1(=+3 mod 4)
+    // Validate pattern sequence (should increment by 3 each rotation for Z+ away)
+    // For Z+ toward, pattern should increment by +1
+    // When Z+ points away and we rotate CW, the pattern goes backwards through the sequence
+    int expectedIncrement = zPointsAway ? 3 : 1;  // CW rotation: Z+away=-1(=+3 mod 4), Z+toward=+1
     bool sequenceValid = true;
     
     for ( int i = 0; i < 3; i++ ) {
@@ -580,15 +581,25 @@ void calculateConfiguration() {
     // This requires simulating the IMU getOrientation() logic with our identified remap
     int orientationEnums[4];  // What enum value getOrientation returns for each measurement
     
+    // Use EXACT same thresholds as runtime MPU6886_IMU.cpp
+    constexpr float LOW_TOL = 100.0f;
+    constexpr float HIGH_TOL = 900.0f;
+    constexpr float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0f;  // 500.0f
+    constexpr float ACCL_SCALE = 1000.0f;
+    
     for ( int i = 0; i < 4; i++ ) {
         float boardX = remaps[bestRemap].getX(measurements[i+1]);
         float boardY = remaps[bestRemap].getY(measurements[i+1]);
         
-        // Simulate getOrientation() logic (same thresholds as actual IMU code)
-        if ( abs(boardX) < 0.5f && abs(boardY) > 0.7f ) {
-            orientationEnums[i] = (boardY > 0) ? 2 : 0;  // ROTATE_180 or ROTATE_0
-        } else if ( abs(boardX) > 0.7f && abs(boardY) < 0.5f ) {
-            orientationEnums[i] = (boardX > 0) ? 1 : 3;  // ROTATE_90 or ROTATE_270
+        // Scale exactly as runtime does
+        float scaledAccX = boardX * ACCL_SCALE;
+        float scaledAccY = boardY * ACCL_SCALE;
+        
+        // Simulate getOrientation() logic EXACTLY as in MPU6886_IMU.cpp
+        if ( abs(scaledAccX) < HIGH_TOL && abs(scaledAccY) > MID_TOL ) {
+            orientationEnums[i] = (scaledAccY > 0) ? 3 : 1;  // ROTATE_270 or ROTATE_90
+        } else if ( abs(scaledAccX) > MID_TOL && abs(scaledAccY) < HIGH_TOL ) {
+            orientationEnums[i] = (scaledAccX > 0) ? 2 : 0;  // ROTATE_180 or ROTATE_0
         } else {
             orientationEnums[i] = -1;  // Should not happen if pattern matched
         }

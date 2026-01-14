@@ -64,28 +64,29 @@
         //  Use OrientationOffset enum values from Types.h
         // #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_90
 
-        // IMU Configuration (from calibration tool - USB RIGHT as home, v2.0 algorithm)
-        #define IMU_AXIS_REMAP_X    ((-acc.y))
-        #define IMU_AXIS_REMAP_Y    ((-acc.x))
+        // IMU Configuration (from calibration tool v3.0 - pattern-based)
+        // USB DOWN as home, Top-Left corner
+        #define IMU_AXIS_REMAP_X    (acc.x)
+        #define IMU_AXIS_REMAP_Y    (acc.y)
         #define IMU_AXIS_REMAP_Z    (acc.z)
         
         // Display LUT mapping (indexed by Orientation enum value)
-        // Device home at physical 0°, display offset = 90°
+        // Home pattern #1, corner offset 0 (baseline LUT #0)
         #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-            Orientation::ROTATE_270,  /* getOrientation()=ROTATE_0 → LUT_270 */ \
-            Orientation::ROTATE_180,  /* getOrientation()=ROTATE_90 → LUT_180 */ \
-            Orientation::ROTATE_90,   /* getOrientation()=ROTATE_180 → LUT_90 */ \
-            Orientation::ROTATE_0,    /* getOrientation()=ROTATE_270 → LUT_0 */ \
-            Orientation::ROTATE_270,  /* FLAT → uses lut[0] */ \
-            Orientation::ROTATE_270   /* UNKNOWN → uses lut[0] */ \
+            Orientation::ROTATE_90,   /* enum 0 → LUT_90 */ \
+            Orientation::ROTATE_180,  /* enum 1 → LUT_180 */ \
+            Orientation::ROTATE_270,  /* enum 2 → LUT_270 */ \
+            Orientation::ROTATE_0,    /* enum 3 → LUT_0 (physical 0°) */ \
+            Orientation::ROTATE_0,    /* FLAT → same as physical 0° */ \
+            Orientation::ROTATE_0     /* UNKNOWN → same as physical 0° */ \
         }
         
         // Reverse mapping for debug logging: enum → physical angle
         #define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
-            180, /* Orientation::ROTATE_0 → Physical 180° */ \
-            270, /* Orientation::ROTATE_90 → Physical 270° */ \
-            0,   /* Orientation::ROTATE_180 → Physical 0° (USB RIGHT home) */ \
-            90,  /* Orientation::ROTATE_270 → Physical 90° */ \
+            270, /* Orientation::ROTATE_0 → Physical 270° */ \
+            180, /* Orientation::ROTATE_90 → Physical 180° */ \
+            90,  /* Orientation::ROTATE_180 → Physical 90° */ \
+            0,   /* Orientation::ROTATE_270 → Physical 0° (USB DOWN home) */ \
             -1,  /* FLAT */ \
             -1   /* UNKNOWN */ \
         }
