@@ -2,8 +2,8 @@
 
 **Version:** v3.0.0-RC.23  
 **Branch:** `v3-config-import-export`  
-**Updated:** January 14, 2026  
-**Status:** IMU Calibration Tool v3.0 - Pattern-Based Implementation Complete
+**Updated:** January 15, 2026  
+**Status:** IMU Calibration v3.0 - Pattern-Based Methodology Validated & Documented
 
 ---
 
@@ -268,6 +268,79 @@ if (buttonB->wasPressed()) {
 ---
 
 ## Recent Changes
+
+### January 14-15, 2026 - IMU Calibration v3.0: Pattern-Based Methodology Complete & Validated
+
+**Pattern-Based Calibration Completed (Jan 14):**
+- Replaced complex formula-based calculation with empirical pattern matching
+- Corner identification breaks 4-fold rotational symmetry
+- Pattern sequence validation: 3→0→1→2 or 2→3→0→1 for each 90° CW rotation
+- Calibration tool successfully generated working configs for both devices
+
+**CRITICAL RUNTIME BUG DISCOVERED (Jan 14 evening):**
+- **Problem:** Waveshare showed incorrect orientations despite successful calibration
+- **Root Cause:** QMI8658_IMU.cpp used HARDCODED orientation mappings incompatible with calibration tool
+  - Calibration tool: Pattern-based detection (X>0 → ROTATE_180, Y>0 → ROTATE_270, etc.)
+  - Runtime code: Different hardcoded logic (X>0 → ROTATE_90, Y>0 → ROTATE_180, etc.)
+  - Complete mismatch between calibration and runtime pattern-to-enum assignments
+- **Solution:** Replaced hardcoded logic with pattern-based detection matching calibration tool:
+  ```cpp
+  // Pattern 0: (+1, 0) → ROTATE_180
+  // Pattern 1: (0, -1) → ROTATE_90
+  // Pattern 2: (-1, 0) → ROTATE_0
+  // Pattern 3: (0, +1) → ROTATE_270
+  ```
+- **Lesson Learned:** Calibration and runtime MUST use identical pattern-to-enum mappings
+
+**Pattern Array Corrections (Jan 14):**
+- Fixed PATTERN_Z_AWAY indexing: Reversed array so consecutive 90° CW rotations increment by +1
+- Changed from `{{0,-1,0,1},{1,0,-1,0}}` to `{{1,0,-1,0},{0,-1,0,1}}`
+- Empirically validated on both ATOM Matrix and Waveshare
+
+**FLAT/UNKNOWN Handling (Jan 14):**
+- Fixed calculation to use home position LUT instead of always using lut[0]
+- Changed from `lut[4] = lut[0]` to `lut[4] = lut[orientationEnums[0]]`
+- Runtime code simplified to use LUT array directly
+
+**Empirical Validation Results:**
+- ✅ ATOM Matrix (MPU6886, 5×5, Corner #0): All orientations correct
+- ✅ Waveshare ESP32-S3-Matrix (QMI8658, 8×8, Corner #1): All orientations correct
+- ✅ Both devices tested with all 4 rotations + FLAT orientation
+- ✅ Pattern increment validated: Each 90° CW rotation increments pattern by +1
+
+**Documentation Created (Jan 15):**
+- **IMU_Calibration_Methodology.md** - Comprehensive methodology documentation:
+  - Pattern-based approach explanation
+  - Runtime pattern detection requirements
+  - Display LUT configuration
+  - FLAT/UNKNOWN handling
+  - Empirical validation results
+  - Critical bug documentation (hardcoded vs pattern-based)
+  - Implementation notes and code duplication issue
+- **Publishing_IMU_Methodology.md** - Community sharing strategy
+
+**Code Quality Issue Identified:**
+- Pattern detection logic duplicated in MPU6886_IMU.cpp and QMI8658_IMU.cpp
+- Proposed refactoring: Move to IMUBase::detectOrientationFromPattern() protected method
+- Added to TODO list (MEDIUM priority - working code, optimization not urgent)
+
+**Files Modified:**
+- `src/main_calibrate.cpp`: Pattern array corrections, FLAT/UNKNOWN fix
+- `src/Hardware/Sensors/QMI8658_IMU.cpp`: Pattern-based detection (critical fix)
+- `src/Application/STACApp.cpp`: Simplified LUT lookup
+- `include/BoardConfigs/AtomMatrix_Config.h`: Updated calibration data
+- `include/BoardConfigs/WaveshareS3_Config.h`: Updated calibration data
+- `Documentation/Developer/IMU_Calibration_Methodology.md`: New comprehensive doc
+- `Documentation/Developer/Publishing_IMU_Methodology.md`: Sharing strategy
+- `Documentation/Developer/Detailed Change Log.md`: v3.0.0-RC.10 entry + TODO items
+
+**Result:**
+- Pattern-based calibration methodology fully validated on 2 devices with 2 different IMUs
+- Critical calibration/runtime mismatch bug fixed
+- Comprehensive documentation created for community sharing
+- System ready for production use
+
+---
 
 ### January 13, 2026 - IMU Calibration Tool - Arbitrary Home Position Support Complete
 

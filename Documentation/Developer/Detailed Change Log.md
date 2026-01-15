@@ -7,6 +7,41 @@ Intended for developers and others interested in the nitty gritty.
 
 ## Version 3.0.0 Development
 
+### v3.0.0-RC.10 - Pattern-Based IMU Calibration (January 2026)
+
+**Pattern-Based IMU Calibration Methodology Validated (January 14-15, 2026)**
+- Fixed critical bug: Runtime IMU pattern detection must match calibration tool
+  - Root cause: QMI8658_IMU.cpp had hardcoded orientation mappings incompatible with calibration
+  - Solution: Replaced hardcoded logic with pattern-based detection matching calibration tool
+  - Both MPU6886_IMU.cpp and QMI8658_IMU.cpp now use identical pattern matching
+- Corrected PATTERN_Z_AWAY array indexing to match 90° CW rotation sequence
+  - Each 90° CW rotation now increments pattern number by +1 (validated empirically)
+  - Pattern 0: (+1, 0), Pattern 1: (0, -1), Pattern 2: (-1, 0), Pattern 3: (0, +1)
+- Fixed FLAT/UNKNOWN LUT calculation to use home position instead of always enum 0
+  - Changed from `lut[4] = lut[0]` to `lut[4] = lut[orientationEnums[0]]`
+  - FLAT and UNKNOWN now use calibrated home position LUT
+- Empirically validated on both devices:
+  - ATOM Matrix (MPU6886, 5×5, Corner #0): All orientations correct
+  - Waveshare ESP32-S3-Matrix (QMI8658, 8×8, Corner #1): All orientations correct
+- Updated IMU_Calibration_Methodology.md with comprehensive pattern-based approach
+- See `IMU_Calibration_Methodology.md` for full methodology details
+
+**TODO Items:**
+- [ ] Refactor pattern detection to IMUBase class (reduce code duplication)
+  - Current: Pattern detection duplicated in MPU6886_IMU.cpp and QMI8658_IMU.cpp
+  - Proposed: Move to `IMUBase::detectOrientationFromPattern()` protected method
+  - Benefits: Single source of truth, guaranteed consistency, easier maintenance
+  - Files: src/Hardware/Sensors/IMUBase.h, MPU6886_IMU.cpp, QMI8658_IMU.cpp
+  - Priority: MEDIUM - working code, optimization not urgent
+
+- [ ] Publish pattern-based IMU calibration methodology to broader community
+  - Document: Documentation/Developer/Publishing_IMU_Methodology.md
+  - Key files: IMU_Calibration_Methodology.md, IMU_Display_Reference_Tables.md
+  - Recommended approach: GitHub Gist + ESP32 forums + technical blog post
+  - Value: Helps others avoid 4-fold symmetry problem and calibration/runtime mismatch bug
+  - Timeline: Phase 1 (Gist + forums) within 1 week, Phase 2 (blog) within 1 month
+  - Priority: LOW - valuable community contribution, not blocking development
+
 ### v3.0.0-RC.9 + TFT Support (November-December 2025)
 
 **TFT Display Startup Artifact Fix - Simplified (December 1, 2025)**

@@ -189,20 +189,24 @@ namespace Application {
             
             if ( detectedOrientation != Orientation::UNKNOWN ) {
                 // Apply board-specific LUT mapping: physical orientation → display rotation
+                // LUT includes all orientations (0-3) plus FLAT(4) and UNKNOWN(5)
                 static const Orientation lutMap[] = DEVICE_ORIENTATION_TO_LUT_MAP;
                 displayOrientation = lutMap[ static_cast<int>( detectedOrientation ) ];
                 
                 // Log orientation info
                 const char *lutNames[] = {"LUT_ROTATE_0", "LUT_ROTATE_90", "LUT_ROTATE_180", "LUT_ROTATE_270", "LUT_FLAT", "LUT_UNKNOWN"};
-                static const int enumToPhysical[] = ORIENTATION_ENUM_TO_PHYSICAL_ANGLE;
-                int physicalAngle = enumToPhysical[ static_cast<int>( detectedOrientation ) ];
                 
                 log_i( "  LUT being used: %s", lutNames[ static_cast<int>( displayOrientation ) ] );
-                if ( physicalAngle >= 0 ) {
-                    log_i( "  Physical device orientation: %d°", physicalAngle );
+                
+                // Log physical orientation
+                if ( detectedOrientation == Orientation::FLAT ) {
+                    log_i( "  Physical device orientation: FLAT" );
+                } else if ( detectedOrientation == Orientation::UNKNOWN ) {
+                    log_i( "  Physical device orientation: UNKNOWN" );
                 } else {
-                    const char *specialNames[] = {"", "", "", "", "FLAT", "UNKNOWN"};
-                    log_i( "  Physical device orientation: %s", specialNames[ static_cast<int>( detectedOrientation ) ] );
+                    static const int enumToPhysical[] = ORIENTATION_ENUM_TO_PHYSICAL_ANGLE;
+                    int physicalAngle = enumToPhysical[ static_cast<int>( detectedOrientation ) ];
+                    log_i( "  Physical device orientation: %d°", physicalAngle );
                 }
             }
         }

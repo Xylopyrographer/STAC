@@ -88,33 +88,38 @@
             float scaledAccZ = boardZ * ACCL_SCALE;
             
             // Debug: Show raw sensor values and board-mapped values
-            log_i( "Raw IMU: acc.x=%.3f, acc.y=%.3f, acc.z=%.3f → boardX=%.3f, boardY=%.3f, boardZ=%.3f", 
+            log_d( "Raw IMU: acc.x=%.3f, acc.y=%.3f, acc.z=%.3f → boardX=%.3f, boardY=%.3f, boardZ=%.3f", 
                    acc.x * ACCL_SCALE, acc.y * ACCL_SCALE, acc.z * ACCL_SCALE,
                    scaledAccX, scaledAccY, scaledAccZ );
 
-            // Determine raw orientation based on accelerometer readings
-            // The USB port is the reference point (home = vertical, USB down = 0°)
+            // Pattern-based orientation detection
+            // Match accelerometer readings against expected patterns
             Orientation rawOrientation = Orientation::UNKNOWN;
 
-            if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
+            // Check if device is flat first
+            if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
+                rawOrientation = Orientation::FLAT;
+            }
+            // Check if device is vertical (one axis dominant)
+            else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
+                // Y-axis dominant - match against patterns
+                // Pattern 3: (0, +1), Pattern 1: (0, -1)
                 if ( scaledAccY > 0 ) {
-                    rawOrientation = Orientation::ROTATE_180;  // boardY positive (+0.979 at 180°)
+                    rawOrientation = Orientation::ROTATE_270;  // Pattern 3
                 }
                 else {
-                    rawOrientation = Orientation::ROTATE_0; // boardY negative (-0.998 at 0°, home)
+                    rawOrientation = Orientation::ROTATE_90;   // Pattern 1
                 }
             }
             else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
+                // X-axis dominant - match against patterns
+                // Pattern 0: (+1, 0), Pattern 2: (-1, 0)
                 if ( scaledAccX > 0 ) {
-                    rawOrientation = Orientation::ROTATE_90;  // boardX positive (+1.099 at 90°)
+                    rawOrientation = Orientation::ROTATE_180;  // Pattern 0
                 }
                 else {
-                    rawOrientation = Orientation::ROTATE_270;    // boardX negative (-0.903 at 270°)
+                    rawOrientation = Orientation::ROTATE_0;    // Pattern 2
                 }
-            }
-            else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
-                // Device is horizontal (lying flat)
-                rawOrientation = Orientation::FLAT;
             }
 
         // Debug output showing raw physical orientation

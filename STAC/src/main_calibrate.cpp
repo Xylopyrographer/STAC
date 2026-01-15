@@ -88,11 +88,16 @@ struct Pattern {
 };
 
 // The two base patterns (determined by Z-axis direction)
-// Z+ AWAY pattern: X:(+1,0,-1,0), Y:(0,+1,0,-1)
-const Pattern PATTERN_Z_AWAY = {{1, 0, -1, 0}, {0, 1, 0, -1}};
+// Entries ordered so consecutive 90° CW rotations increment index by +1 (mod 4)
+// Verified empirically on ATOM Matrix and Waveshare ESP32-S3-Matrix
+//
+// Z+ AWAY pattern: Corrected order for +1 increment
+// Entry order: (X,Y) = (+1,0), (0,-1), (-1,0), (0,+1)
+const Pattern PATTERN_Z_AWAY = {{1, 0, -1, 0}, {0, -1, 0, 1}};
 
-// Z+ TOWARD pattern: X:(+1,0,-1,0), Y:(0,-1,0,+1) 
-const Pattern PATTERN_Z_TOWARD = {{1, 0, -1, 0}, {0, -1, 0, 1}};
+// Z+ TOWARD pattern: Theoretical (Y inverted from Z_AWAY)
+// Entry order: (X,Y) = (+1,0), (0,+1), (-1,0), (0,-1)
+const Pattern PATTERN_Z_TOWARD = {{1, 0, -1, 0}, {0, 1, 0, -1}};
 
 // Function declarations
 void printWelcome();
@@ -350,10 +355,11 @@ void identifyTopLeftCorner() {
     // Light the current corner being tested
     const char* cornerNames[] = {"Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"};
     
-    // Show pixel at corner
-    // Corner 0 (TL) = pixel 0, Corner 1 (TR) = pixel 4, Corner 2 (BR) = pixel 24, Corner 3 (BL) = pixel 20
-    // For 5x5 matrix: TL=0, TR=4, BR=24, BL=20
-    int pixelIndices[] = {0, 4, 24, 20};
+    // Calculate corner pixel indices from board config
+    const int width = DISPLAY_MATRIX_WIDTH;
+    int pixelIndices[] = {0, width-1, width*width-1, width*(width-1)};
+    
+    Serial.printf( "DEBUG: Showing pixel at buffer index %d\n", pixelIndices[currentCornerTest] );
     
     display->clear();
     display->showPixelAtIndex( pixelIndices[currentCornerTest] );
@@ -485,14 +491,12 @@ void calculateConfiguration() {
         return;
     }
     
-    // Validate pattern sequence (should increment by 3 each rotation for Z+ away)
-    // For Z+ toward, pattern should increment by +1
-    // When Z+ points away and we rotate CW, the pattern goes backwards through the sequence
-    int expectedIncrement = zPointsAway ? 3 : 1;  // CW rotation: Z+away=-1(=+3 mod 4), Z+toward=+1
+    // Validate pattern sequence (should always increment by +1 for 90° CW rotation)
+    // Pattern arrays are reindexed so consecutive entries = consecutive rotations
     bool sequenceValid = true;
     
     for ( int i = 0; i < 3; i++ ) {
-        int expected = (patternNumbers[i] + expectedIncrement) % 4;
+        int expected = (patternNumbers[i] + 1) % 4;
         if ( patternNumbers[i+1] != expected ) {
             Serial.printf( "⚠ Warning: Pattern sequence break at %d° → %d°: expected pattern #%d, got #%d\n",
                            i * 90, (i+1) * 90, expected, patternNumbers[i+1] );
@@ -501,7 +505,7 @@ void calculateConfiguration() {
     }
     
     if ( sequenceValid ) {
-        Serial.println( "✓ Pattern sequence validated (correct rotation direction)" );
+        Serial.println( "✓ Pattern sequence validated (each 90° CW → +1 increment)" );
     }
     
     // Step 3: Determine axis remapping from pattern numbers
@@ -615,8 +619,7 @@ void calculateConfiguration() {
     Serial.println( "\nPattern-Based LUT Calculation:" );
     Serial.printf( "  Home pattern #%d → Baseline LUT #%d (corner offset)\n", 
                    patternNumbers[0], displayCorner );
-    Serial.printf( "  Each 90° CW rotation → Pattern +%d → LUT +1 (wrap at 4)\n",
-                   expectedIncrement );
+    Serial.println( "  Each 90° CW rotation → Pattern +1 → LUT +1 (wrap at 4)" );
 
     printConfiguration( remaps[bestRemap].exprX, remaps[bestRemap].exprY, "(acc.z)",
                        patternNumbers[0], displayCorner, orientationEnums );
@@ -670,17 +673,18 @@ void printConfiguration( const char* remapX, const char* remapY, const char* rem
                        measurementIdx, physicalAngle, enumValue, lutIndex, lutNames[lutIndex] );
     }
     
-    // FLAT and UNKNOWN: Use lut[0] (same as whatever enum 0 maps to)
-    lut[4] = lut[0];  // FLAT
-    lut[5] = lut[0];  // UNKNOWN
+    // FLAT and UNKNOWN: Use same LUT as home position (physical 0°)
+    // Home position is always measurement[0], which maps to orientationEnums[0]
+    lut[4] = lut[orientationEnums[0]];  // FLAT → same as home
+    lut[5] = lut[orientationEnums[0]];  // UNKNOWN → same as home
     
     Serial.println( "\nLUT Map Output:" );
     for ( int i = 0; i < 4; i++ ) {
         Serial.printf( "    %s,  /* enum %d → LUT_%d */ \\\n",
                        lutNames[lut[i]], i, lut[i] * 90 );
     }
-    Serial.printf( "    %s,  /* FLAT → uses lut[0] */ \\\n", lutNames[lut[4]] );
-    Serial.printf( "    %s   /* UNKNOWN → uses lut[0] */ \\\n", lutNames[lut[5]] );
+    Serial.printf( "    %s,  /* FLAT → same as home */ \\\n", lutNames[lut[4]] );
+    Serial.printf( "    %s   /* UNKNOWN → same as home */ \\\n", lutNames[lut[5]] );
     
     Serial.println( "}" );
     
