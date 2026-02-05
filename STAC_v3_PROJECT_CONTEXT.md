@@ -1,9 +1,60 @@
 # STAC v3 Project Context
 
 **Version:** v3.0.0  
-**Branch:** `v3-arduino-gfx-test` (Arduino_GFX migration)  
-**Updated:** February 4, 2026  
-**Status:** ✅ READY FOR RELEASE. All critical fixes complete: ESP32-S3 bootloader offset corrected, factory reset logic fixed, boot button double-flash eliminated, WiFi and V-160HD password obfuscation implemented. Release binaries built for all 6 devices (commit a82b60e). Production ready.
+**Branch:** `main` (public release)  
+**Updated:** February 5, 2026  
+**Status:** 🎉 **RELEASED!** STAC v3.0.0 successfully released to public on February 5, 2026. Complete rewrite with expanded device support (6 devices), enhanced architecture, and professional documentation. Release includes all binaries via GitHub Releases. Repository restructured with clean orphan branch history. Development history archived to STAC3DevArchive.
+
+---
+
+## v3.0.0 Public Release - February 5, 2026
+
+### Release Achievements
+
+**✅ Core Development Complete:**
+- Complete codebase rewrite with modern C++ architecture
+- HAL-based design supporting 6 different ESP32 devices
+- Support for Roland V-60HD and V-160HD video switchers
+- Peripheral Mode for HDMI/SDI channels without network setup
+- Web-based configuration portal with OTA updates
+- Password obfuscation for stored credentials
+- Professional documentation suite (User Guide, Developer Guide, Hardware Config)
+
+**✅ Repository Restructured:**
+- Created orphan `v3-dev` branch with clean single-commit history
+- Full development history archived to [STAC3DevArchive](https://github.com/Xylopyrographer/STAC3DevArchive)
+- Force-pushed `v3-dev` → `main` for clean public release
+- Deleted all old development branches
+- Tagged `v3.0.0` release
+
+**✅ Public Release Distribution:**
+- 12 firmware binaries (FULL + OTA for 6 devices) via [GitHub Releases](https://github.com/Xylopyrographer/STAC/releases/tag/v3.0.0)
+- Binaries built with improved naming: `STAC_v3.0.0_<Device>_FULL.bin` / `_OTA.bin`
+- Flat binary structure in gitignored `STAC/bin/` for easy release uploads
+- Documentation tracked in `bin/<Device>/` folders with device-specific guides
+- platformio.ini.example template for new developers
+
+**✅ Documentation Updates:**
+- README.md completely rewritten for v3.0.0
+- DEVELOPER_GUIDE.md with "Getting Started" section and build instructions
+- BIN_README.md updated to direct users to GitHub Releases
+- Users Guide updated with GitHub Releases download links
+- Utility tools moved from `STAC/doc/Utility` to `STAC/utility`
+
+**Supported Devices:**
+1. M5Stack ATOM Matrix (5×5 LED matrix)
+2. M5Stack StickC Plus (TFT display)
+3. LilyGo T-Display (TFT display)
+4. LilyGo T-QT (TFT display)
+5. Waveshare ESP32-S3 Matrix (8×8 LED matrix)
+6. AIPI-Lite (LED matrix)
+
+**Release Information:**
+- **Release Title:** STAC Version 3.0.0
+- **Tag:** v3.0.0
+- **GitHub Release:** https://github.com/Xylopyrographer/STAC/releases/tag/v3.0.0
+- **Release Date:** February 5, 2026
+- **Final Commit:** c3f8b28 (on both main and v3-dev)
 
 ---
 
