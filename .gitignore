@@ -1,0 +1,16 @@
+# VS Code workspace files
+*.code-workspace
+
+# Development/planning documents (not for release)
+Documentation/VSCode_Context.md
+__pycache__/
+
+# Development archive
+STAC3DevArchive/
+
+# Build artifacts
+*.bin
+
+# Temporary backup files
+*.backup
+build_log.txt
