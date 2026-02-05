@@ -1,31 +1,42 @@
 # Contents
 
-This `bin` folder contains a number of folders holding:
+This `bin` folder contains device-specific folders, each holding:
 
-1. for each device, a *Users Guide Supplement*.
-1. binary files for flashing to that device.
+1. A *Users Guide Supplement* for that device
+2. Supporting images and documentation
+
+**Note:** The actual binary firmware files (`.bin` files) are distributed via [GitHub Releases](https://github.com/Xylopyrographer/STAC/releases) and are not stored in this repository.
+
+## Downloading Firmware
+
+To download STAC firmware for your device:
+
+1. Go to the [STAC Releases page](https://github.com/Xylopyrographer/STAC/releases)
+2. Select the latest release (e.g., `v3.0.0`)
+3. Scroll to the **Assets** section at the bottom
+4. Download the appropriate `.bin` files for your device:
+   - `STAC_vX.X.X_<DEVICE>_FULL.bin` - For first-time installation
+   - `STAC_vX.X.X_<DEVICE>_OTA.bin` - For over-the-air updates
 
 ## Users Guide Supplement
 
 Jump into the folder named for the device you're looking to use as a STAC. Open the *Users Guide Supplement*. It describes differences in functionality or operation from the *STAC Users Guide*, which is the main file on using the STAC (you have read that first, right?).
 
-## `.bin` Files
+## Understanding `.bin` File Names
 
-The `.bin` files are named something like:
+When you download firmware from the Releases page, the files are named like:
 
-**`STAC_v3.0.0_ATOM_R.bin`** and<br>
-**`STAC_v3.0.0_ATOM_R_FULL.bin`**
+**`STAC_v3.0.0_ATOM_Matrix_FULL.bin`** and<br>
+**`STAC_v3.0.0_ATOM_Matrix_OTA.bin`**
 
 **`STAC`** identifies it as a STAC binary file.<br>
 **`v3.0.0`** is the version number of the software.<br>
-**`ATOM`** is the physical device or target for this software file.<br>
-**`R`** is a nerdy part meaning this is a release version.
+**`ATOM_Matrix`** is the physical device or target for this firmware.<br>
+**`FULL`** or **`OTA`** indicates the file type (explained below).
 
-One file will also end with **`FULL`**. It is described next.
-
-> **Note**
+> **Important**
 > 
-> It is *very* important to pick the right `.bin` file for the device being programmed. While you can always program a device with the correct file if an error is made, best to check this a couple of times beforehand.
+> It is *very* important to pick the right `.bin` file for the device being programmed. While you can always re-flash a device with the correct file if an error is made, best to double-check before flashing!
 
 
 ## The `...FULL` File
