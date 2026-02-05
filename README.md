@@ -1,21 +1,16 @@
 # STAC  
-## (Smart Tally Atom Client)  
-**A Roland Smart Tally Client**  
+**Smart Tally Atom Client**
 
-An Arduino sketch designed to run on an [M5Stack ATOM Matrix](https://docs.m5stack.com/#/en/core/atom_matrix) board.
+A wireless tally light system for Roland video switches.
 
-Its purpose is to monitor the tally status of a single video input channel 
-of a Roland video device that implements their Smart Tally protocol.
+Its purpose is to monitor via WiFi the tally status of a single video input channel of a Roland video device that implements their Smart Tally protocol.
 
-Starting with STAC v2.2.0, the following Roland video switches are supported:
+It supports the following Roland video switches:
 
 * V-60HD
 * V-160HD
 
-The sketch uses WiFi to connect to the same network as that of the Roland device.
-
-For the Roland video input channel being monitored, STAC will set
-the colour of the display on the ATOM:
+For the Roland video input channel being monitored, STAC will set the colour of the display:
 
 + when in "Camera Operator" mode, to:  
      - RED if the channel is in PGM (Program or onair)
@@ -31,60 +26,72 @@ There is also a Peripheral Mode where one STAC can be connected to another via a
 
 Lots of good information in the *STAC User Guide*, located in the `Documentation` folder. Other interesting bits are there as well.
 
+## Supported Devices
+
+This release will run on the following devices:
+
+- LilyGo T-Display
+- LilyGo T-QT
+- M5Stack ATOM Matrix
+- M5Stack StickC Plus
+- Waveshare ESP32-S3 Matrix
+- Xorigin AI PI-Lite
+
+
 ## Installation
-
-### Download the Files
-
-1. Here in GitHub, on the right side of the window, click the green "Latest" button under "Releases".
-1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
-1. Unpack the downloaded `STAC-X.Y.Z` file.
 
 ### Using a Pre-Built Version
 
-1. Download an ESP flasher. A recommended one is *esphome-flasher*. Available from their [Github page](https://github.com/esphome/esphome-flasher).
+Pre-built binaries are provided for the devices listed above. For information on installing, jump over to the `bin` folder and run through `BIN_README.md`.
 
-1. Connect an ATOM Matrix to your computer.
-
-1. Open the ESP flasher that you downloaded.
-    + Select the **device serial port** *(from the "Serial port" list in esphome-flasher)* and then select the STAC software file *(clicking on "Browse" in esphome-flasher)*.
-    + The STAC software file you want is in the `bin` folder which is inside the `STAC` folder of the Release zip archive you downloaded. The file name is something like:  `STAC_211-4c417e.bin`.
-
-1. Install the software onto the ATOM Matrix *(using esphome-flasher, click "Flash ESP")*.<br>If you're using *esphome-flasher*, also click the "View Logs" button as it will show how things are progressing along with a nice welcome message from the STAC.
-
-Done! Your ATOM Matrix is now a STAC 👍. Next steps are in the *STAC User Guide* in the `Documentation` folder of the Release archive.
+Once you've flashed your device it is now a STAC 👍. Next steps are in the *STAC User Guide* in the `Documentation` folder of the Release archive.
 
 ### Using an IDE
 
-1. Move the unpacked archive you downloaded to a folder where you keep your Arduino sketches.
+This release is a complete rewrite of the codebase. 
 
-1. Install the libraries:<br>
-The following libraries are required to compile this sketch.<br>
+The `STAC` folder contains all the source files. In there as well is a `doc` folder that holds a good measure of information on how to modify and build the software. There are also some very nifty things in the `utility` folder.
 
-    + [LiteLED](https://github.com/Xylopyrographer/LiteLED) by Xylopyrographer
-    + [XP_Button](https://github.com/Xylopyrographer/XP_Button) by Xylopyrographer
-    + [I2C_MPU6886](https://github.com/tanakamasayuki/I2C_MPU6886) by TANAKA Masayuki
+Developing requires VS Code with the pioarduino extension installed. With this release, STAC has outgrown the Arduino IDE.
 
-    All of these can be installed using the Arduino IDE Library Manager.
+The Arduino framework is used, and this release is was done using ESP-arduino core version 3.3.2. It should be compatible with newer versions but would require testing.
+
+One (of many) new architectural features is the ability to port the software to new hardware via a configuration file. Good chance that's all you'll need to do to add a device. Details in the `STAC/doc` folder.
+
+To download the files:
+
+1. Here in GitHub, on the right side of the window, click the green "Latest" button under "Releases".
+1. Click "Source code" choosing either `zip` or `tar.gz` as you prefer.
+1. Unpack the downloaded `STAC-X.Y.Z` file and have at 'er.
 
 
-**Build System Compatibility**
+## Compatibility
 
-This sketch has been built and tested using:    
-    
-+ ESP arduino-esp32 core version 2.0.14.
-  + core v2.0.5 is the minimum required. *Older cores will not work*.
-  + *do not* use the esp32 core version supplied by M5Stack.
-+ Arduino IDE version 2.3.2
-+ Depending on how support for the ATOM Matrix was added, selecting either the M5Stick-C, or the M5Stack-ATOM as the target board should work.
-+ To compile, make sure the `STACLib` folder is located in the same folder as the `STAC.ino` file.
-+ Starting with STAC software v2.1, the Partition Scheme must be set to "Minimal SPIFFS (Large APPS with OTA)".
+This release is a complete rewrite of the STAC software. If you are new to STAC, follow the installation instructions above to get up and running and you can skip the rest of this section.
 
-*Note:* STAC is not compatible with ESP arduino-esp32 core version 3.
+If you already have ATOM Matrix STAC devices, the fundamental purpose of the STAC&mdash;to relay tally information&mdash;has not changed. At the end of the day, that is what this release still does very well.
+
+From a users point of view, this release brings:
+- significant improvements in configuring and managing multiple devices with the ability to create, save and load from a configuration file and use copy and paste functions as well;
+- ability to perform maintenance tasks via the web interface;
+- a single web access point for all functions setup and maintenance.
+
+Depending on your environment, these may be useful. Check out the *STAC User Guide*.
+
+**Do note that upgrading to this version will require that the:**<br>
+- **firmware is flashed as per the installation instructions as if this was the very first time using the ATOM as a STAC**<br>
+- **setup be redone;** however, the new setup features makes this much much easier.
+
+**You cannot do an OTA update to install this release.** Too much has changed under the hood to have made that possible.
+
+All that said, if you're happy as a clam with what you've got that's great. STAC's running this or any other release are fully compatible with their main purpose&mdash;keeping everyone in the know  as to the tally status of the camera you're running!
+
 <br><br>
 
 ---
 ### Revision History
 
+**2026-02-05:** Revise for STAC v3.0.0.<br>
 **2024-05-09:** Revise for STAC v2.2.0, adding V-160HD support.<br>
 **2023-09-09:** Revise required libraries, Build System Compatibility.<br>
 **2023-02-21:** Include info on using an ESP flasher.<br>
