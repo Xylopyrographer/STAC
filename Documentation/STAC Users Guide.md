@@ -30,58 +30,66 @@ To ensure you see the pictures, make sure the `images` folder is in the same fol
 > **Notes**
 > 
 > 1. Starting with version 3 of the STAC software, many more hardware devices are supported. This guide uses the M5Stack ATOM Matrix when presenting features and examples. Other devices operate in much the same way though there are differences in things like button locations and, for devices with LCD displays, how things look.
-
->    Please refer to the *Users Guide Supplement* for that device for more.
-
-> 1. It is also assumed the ATOM Matrix has already been programmed ("flashed") with STAC software version 3 or greater. If that's not the case, pop over to the *Flashing STAC Firmware* document and then jump back in here.
+>
+> 1. It is also assumed the ATOM Matrix has already been programmed ("flashed") with STAC software version 3 or greater. If that's not the case:
+>    - Download the firmware from the [STAC Releases page](https://github.com/Xylopyrographer/STAC/releases/latest)
+>    - See [bin/BIN_README.md](https://github.com/Xylopyrographer/STAC/blob/main/bin/BIN_README.md) for flashing instructions
+>    - Then return here to continue setup
+> 
+>    Device-specific supplements can be found in the [bin folder](https://github.com/Xylopyrographer/STAC/tree/main/bin) - look for your device's folder (e.g., `ATOM_Matrix`, `StickC_Plus`, etc.).
 
 <br>
 
 ---
 ### Contents
 
-* [Quick Start](#quick-start)
-* [First Time Setup](#first-time-setup)
-    + [Configuring Multiple Devices](#configuring-multiple-devices)
-* [Up and Running](#up-and-running)
-    + [Setting the Tally Channel (V-60HD)](#setting-the-tally-channel-v-60hd)
-    + [Setting the Tally Channel (V-160HD)](#setting-the-tally-channel-v-160hd)
-    + [Setting the Tally Display Mode](#setting-the-tally-display-mode)
-    + [Setting the Startup Mode](#setting-the-startup-mode)
-    + [Setting the Brightness Level](#setting-the-brightness-level)
-    + [Setting the Display Orientation](#setting-the-display-orientation)
-* [Peripheral Mode](#peripheral-mode)
-    + [Enabling Peripheral Mode](#enabling-peripheral-mode)
-    + [Operation](#operation)
-    + [Setting the Brightness Level](#setting-the-brightness-level-1)
-    + [Setting the Tally Display Mode](#setting-the-tally-display-mode-1)
-    + [Disabling Peripheral Mode](#disabling-peripheral-mode)
-    + [Notes on Peripheral Mode](#notes-on-peripheral-mode)
-    + [Hardware Implementation](#hardware-implementation)
-    + [Backwards Compatibility](#backwards-compatibility)
-* [Settings Deep Dive](#settings-deep-dive)
-* [Maintenance Functions](#maintenance-functions)
-    + [Getting to the Maintenance Functions](#getting-to-the-maintenance-functions)
-    + [Redoing the Setup](#redoing-the-setup)
-    + [Updating the Software](#updating-the-software)
-    + [Other things to know about updating](#other-things-to-know-about-updating)
-    + [Factory Reset](#factory-reset)
-        - [Using a Browser](#using-a-browser)
-        - [From the STAC](#from-the-stac)
-    + [Deep Secrets](#deep-secrets)
-    + [Back to the Beginning](#back-to-the-beginning)
-* [Special Configurations](#special-configurations)
-* [Troubleshooting](#troubleshooting)
-    + [_The WiFi Connect Loop of Death_](#the-wifi-connect-loop-of-death)
-    + [_Tally Status not Changing_](#tally-status-not-changing)
-    + [_A Big Orange X?_](#a-big-orange-x)
-    + [_A Big Purple X?_](#a-big-purple-x)
-    + [_The Red WiFi Interrupt Screen!_](#the-red-wifi-interrupt-screen)
-    + [_Purple Question Mark?_](#purple-question-mark)
-    + [_The Big Red X_](#the-big-red-x)
-* [Acknowledgements](#acknowledgements)
-* [LICENSE](#license)
-* [Revision History](#revision-history)
+- [STAC Users Guide](#stac-users-guide)
+    - [Contents](#contents)
+  - [Getting to Know You](#getting-to-know-you)
+  - [Quick Start](#quick-start)
+  - [First Time Setup](#first-time-setup)
+    - [Configuring Multiple Devices](#configuring-multiple-devices)
+  - [Up and Running](#up-and-running)
+    - [Setting the Tally Channel (V-60HD)](#setting-the-tally-channel-v-60hd)
+    - [Setting the Tally Channel (V-160HD)](#setting-the-tally-channel-v-160hd)
+    - [Setting the Tally Display Mode](#setting-the-tally-display-mode)
+    - [Setting the Startup Mode](#setting-the-startup-mode)
+    - [Setting the Brightness Level](#setting-the-brightness-level)
+    - [Setting the Display Orientation](#setting-the-display-orientation)
+  - [Peripheral Mode](#peripheral-mode)
+    - [Enabling Peripheral Mode](#enabling-peripheral-mode)
+    - [Operation](#operation)
+    - [Setting the Brightness Level](#setting-the-brightness-level-1)
+    - [Setting the Tally Display Mode](#setting-the-tally-display-mode-1)
+    - [Disabling Peripheral Mode](#disabling-peripheral-mode)
+    - [Hardware Implementation](#hardware-implementation)
+      - [Connection](#connection)
+      - [In Peripheral Mode](#in-peripheral-mode)
+      - [In Normal Mode](#in-normal-mode)
+    - [Backwards Compatibility](#backwards-compatibility)
+  - [Settings Deep Dive](#settings-deep-dive)
+  - [Maintenance Functions](#maintenance-functions)
+    - [Getting to the Maintenance Functions](#getting-to-the-maintenance-functions)
+    - [Redoing the Setup](#redoing-the-setup)
+    - [Updating the Software](#updating-the-software)
+      - [Other things to know about updating](#other-things-to-know-about-updating)
+    - [Factory Reset](#factory-reset)
+      - [Using a Browser](#using-a-browser)
+      - [From the STAC](#from-the-stac)
+    - [Deep Secrets](#deep-secrets)
+    - [Back to the Beginning](#back-to-the-beginning)
+  - [Special Configurations](#special-configurations)
+  - [Troubleshooting](#troubleshooting)
+    - [_The WiFi Connect Loop of Death_](#the-wifi-connect-loop-of-death)
+    - [_Tally Status not Changing_](#tally-status-not-changing)
+    - [_A Big Orange X?_](#a-big-orange-x)
+    - [_A Big Purple X?_](#a-big-purple-x)
+    - [_The Red WiFi Interrupt Screen!_](#the-red-wifi-interrupt-screen)
+    - [_Purple Question Mark?_](#purple-question-mark)
+    - [_The Big Red X_](#the-big-red-x)
+  - [Acknowledgements](#acknowledgements)
+  - [LICENSE](#license)
+    - [Revision History](#revision-history)
 
 ---
 

@@ -18,8 +18,8 @@ build_release_all.sh
 # Auto-generated build information
 include/build_info.h
 
-# Build outputs - track documentation and structure, exclude binaries
-bin/**/*.bin
+# Build outputs - all binaries collected here for release distribution
+bin/
 
 # User documentation (not tracked)
 Documentation/User/

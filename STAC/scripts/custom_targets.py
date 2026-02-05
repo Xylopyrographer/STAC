@@ -2,14 +2,11 @@
 # - `-t merged`: Creates STAC_v<version>_<board>_<build>_FULL.bin for Web Serial flashing (includes bootloader + partitions + app)
 # - `-t ota`: Creates STAC_v<version>_<board>_<build>.bin for OTA updates (app only)
 #
-# Binaries are organized in bin/ by device type:
-#   bin/ATOM Matrix/STAC_v3.0.0-RC.10_ATOM_R.bin
-#   bin/ATOM Matrix/STAC_v3.0.0-RC.10_ATOM_R_FULL.bin
-#   bin/Waveshare Matrix/STAC_v3.0.0-RC.10_WS_R.bin
-#   bin/M5Stack StickC Plus/STAC_v3.0.0-RC.10_M5SP_R.bin
-#   bin/Lilygo T-Display/STAC_v3.0.0-RC.10_LILYGO_R.bin
-#   bin/Lilygo T-QT/STAC_v3.0.0-RC.10_TQT_R.bin
-#   bin/AI PI-Lite/STAC_v3.0.0-RC.10_AIPI_R.bin
+# Binaries are collected in STAC/bin/ (flat structure for GitHub Releases):
+#   STAC/bin/STAC_v3.0.0_ATOM_Matrix_FULL.bin
+#   STAC/bin/STAC_v3.0.0_ATOM_Matrix_OTA.bin
+#   STAC/bin/STAC_v3.0.0_Waveshare_S3_FULL.bin
+#   ...
 #
 # When creating a binary, any existing binary of the same type is removed first.
 
@@ -46,52 +43,43 @@ def _get_version_from_header(project_dir: str) -> str:
     return "UNKNOWN"
 
 
-def _get_build_suffix(env_name: str, build_type: str) -> tuple[str, str]:
-    """Generate board suffix and device folder name for filename
+def _get_build_suffix(env_name: str, build_type: str) -> str:
+    """Generate board suffix for filename
     
     Returns:
-        tuple: (board_suffix, device_folder_name)
+        str: board_suffix with build type
     
     Examples:
-        atom-matrix + debug -> ("ATOM_D3", "M5Stack ATOM Matrix")
-        atom-matrix-release + release -> ("ATOM_R", "M5Stack ATOM Matrix")
-        waveshare-s3 + debug -> ("WS_D3", "Waveshare ESP32-S3 Matrix")
-        m5stickc-plus + release -> ("M5SP_R", "M5Stack StickC Plus")
-        lilygo-t-display + release -> ("LILYGO_R", "Lilygo T-Display")
-        lilygo-t-qt + release -> ("TQT_R", "Lilygo T-QT")
-        aipi-lite + release -> ("AIPI_R", "AI PI-Lite")
+        atom-matrix + debug -> "ATOM_Matrix_D3"
+        atom-matrix-release + release -> "ATOM_Matrix"
+        waveshare-s3 + release -> "Waveshare_S3"
+        m5stickc-plus + release -> "StickC_Plus"
+        lilygo-t-display + release -> "LilyGo_T_Display"
+        lilygo-t-qt + release -> "LilyGo_T_QT"
+        aipi-lite + release -> "AIPI_Lite"
     """
-    # Determine board and device folder
+    # Determine board name
     env_lower = env_name.lower()
     if "atom" in env_lower:
-        board = "ATOM"
-        device_folder = "M5Stack ATOM Matrix"
+        board = "ATOM_Matrix"
     elif "waveshare" in env_lower:
-        board = "WS"
-        device_folder = "Waveshare ESP32-S3 Matrix"
+        board = "Waveshare_S3"
     elif "m5stickc" in env_lower or "m5sp" in env_lower:
-        board = "M5SP"
-        device_folder = "M5Stack StickC Plus"
+        board = "StickC_Plus"
     elif "t-qt" in env_lower or "tqt" in env_lower:
-        board = "TQT"
-        device_folder = "Lilygo T-QT"
+        board = "LilyGo_T_QT"
     elif "t-display" in env_lower or ("lilygo" in env_lower and "qt" not in env_lower):
-        board = "LILYGO"
-        device_folder = "Lilygo T-Display"
+        board = "LilyGo_T_Display"
     elif "aipi" in env_lower:
-        board = "AIPI"
-        device_folder = "AI PI-Lite"
+        board = "AIPI_Lite"
     else:
-        board = "UNKNOWN"
-        device_folder = "Unknown Device"
+        board = "Unknown_Device"
     
-    # Determine build type
+    # Append build type for debug builds
     if "release" in env_lower or build_type == "release":
-        build = "R"
+        return board
     else:
-        build = "D3"  # Debug with LOG_LEVEL_DEBUG
-    
-    return (f"{board}_{build}", device_folder)
+        return f"{board}_D3"  # Debug with LOG_LEVEL_DEBUG
 
 
 def _merge_segments(segments):
@@ -117,7 +105,7 @@ def _do_merge_and_copy_action(target, source, env):
 
     # Get version and generate filename
     version = _get_version_from_header(project_dir)
-    suffix, device_folder = _get_build_suffix(env_name, build_type)
+    suffix = _get_build_suffix(env_name, build_type)
     merged_filename = f"STAC_v{version}_{suffix}_FULL.bin"
 
     # Bootloader offsets vary by chip family
@@ -150,9 +138,8 @@ def _do_merge_and_copy_action(target, source, env):
 
     merged_src = os.path.join(build_dir, merged_filename)
     
-    # Create device-specific output directory (repository root bin/)
-    repo_root = os.path.dirname(project_dir)
-    out_dir = os.path.join(repo_root, "bin", device_folder)
+    # Create flat output directory (STAC/bin/)
+    out_dir = os.path.join(project_dir, "bin")
     _ensure_dir(out_dir)
     merged_dst = os.path.join(out_dir, merged_filename)
     
@@ -239,8 +226,8 @@ def _do_ota_copy_action(target, source, env):
 
     # Get version and generate filename
     version = _get_version_from_header(project_dir)
-    suffix, device_folder = _get_build_suffix(env_name, build_type)
-    ota_filename = f"STAC_v{version}_{suffix}.bin"
+    suffix = _get_build_suffix(env_name, build_type)
+    ota_filename = f"STAC_v{version}_{suffix}_OTA.bin"
 
     firmware_path = os.path.join(build_dir, env.subst("${PROGNAME}.bin"))
 
@@ -248,22 +235,19 @@ def _do_ota_copy_action(target, source, env):
         print(f"[ota target] ERROR: firmware.bin not found at {firmware_path}")
         return 1
 
-    # Create device-specific output directory (repository root bin/)
-    repo_root = os.path.dirname(project_dir)
-    out_dir = os.path.join(repo_root, "bin", device_folder)
+    # Create flat output directory (STAC/bin/)
+    out_dir = os.path.join(project_dir, "bin")
     _ensure_dir(out_dir)
     ota_dst = os.path.join(out_dir, ota_filename)
     
     # Remove any existing OTA binaries for this board/build type before creating new one
-    pattern = os.path.join(out_dir, f"STAC_*_{suffix}.bin")
+    pattern = os.path.join(out_dir, f"STAC_*_{suffix}_OTA.bin")
     for old_bin in glob.glob(pattern):
-        # Skip FULL binaries (they have _FULL suffix)
-        if not old_bin.endswith("_FULL.bin"):
-            try:
-                os.remove(old_bin)
-                print(f"[ota target] Removed old binary: {os.path.basename(old_bin)}")
-            except Exception as e:
-                print(f"[ota target] Warning: Could not remove {old_bin}: {e}")
+        try:
+            os.remove(old_bin)
+            print(f"[ota target] Removed old binary: {os.path.basename(old_bin)}")
+        except Exception as e:
+            print(f"[ota target] Warning: Could not remove {old_bin}: {e}")
 
     shutil.copy2(firmware_path, ota_dst)
     

@@ -17,11 +17,13 @@ echo "=================================================="
 echo "STAC v3 Release Binary Builder"
 echo "=================================================="
 
-# Remove old binaries
+# Create/clean the flat bin directory for binaries
+BIN_DIR="STAC/bin"
 echo ""
-echo "Removing old binaries..."
-find bin -name "*.bin" -type f -delete
-echo "✓ Old binaries removed"
+echo "Preparing binary output directory..."
+rm -rf "$BIN_DIR"
+mkdir -p "$BIN_DIR"
+echo "✓ Binary directory ready: $BIN_DIR"
 
 echo ""
 echo "Building Release Binaries for All Devices"
@@ -58,5 +60,5 @@ echo "=================================================="
 echo "All Release Binaries Built Successfully!"
 echo "=================================================="
 echo ""
-echo "Binaries are located in:"
-ls -lh bin/*/STAC_*.bin 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}'
+echo "Binaries are located in STAC/bin/:"
+ls -lh STAC/bin/STAC_*.bin 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}'
