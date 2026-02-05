@@ -8,8 +8,12 @@ compile_commands.json
 .vscode/ipch
 *.code-workspace
 
-# Build scripts
-scripts/custom_targets.py
+# PlatformIO configuration (user's personal multi-device setup)
+# Use platformio.ini.example as template
+platformio.ini
+
+# Personal build scripts
+build_release_all.sh
 
 # Auto-generated build information
 include/build_info.h

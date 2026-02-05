@@ -1,0 +1,115 @@
+; PlatformIO Project Configuration File
+;   - Example configuration for STAC v3
+;
+; SETUP INSTRUCTIONS:
+;   1. Copy this file to platformio.ini
+;   2. Uncomment the device(s) you want to build for
+;   3. Adjust board-specific settings as needed
+;
+; For full device support, see STAC/doc/HARDWARE_CONFIG.md
+
+; ======================================
+
+[platformio]
+src_dir = src
+default_envs = atom-matrix
+
+; ======================================
+
+[common_settings]
+framework = arduino
+build_type = debug
+monitor_speed = 115200
+monitor_filters = 
+    esp32_exception_decoder
+upload_protocol = esptool
+
+; Custom partition table for OTA support
+board_build.partitions = partitions/4M_OTA_noCD.csv
+
+; Register custom target for merged binary generation (on-demand via -t merged)
+; Also register build version generator (runs before every build)
+extra_scripts = 
+    scripts/custom_targets.py
+    scripts/build_version.py
+
+; ======================================
+
+[debug_level]
+build_flags =
+    -DCORE_DEBUG_LEVEL=3
+
+; ======================================
+
+[core_libs]
+lib_deps = 
+    https://github.com/Xylopyrographer/LiteLED.git#v3.0.1
+    https://github.com/Xylopyrographer/XP_Button.git#v1.0.3
+
+; ======================================
+; EXAMPLE DEVICE: M5Stack ATOM Matrix
+; LED Matrix: 5x5 WS2812
+; ======================================
+
+[env:atom-matrix]
+extends = common_settings
+platform = 
+    https://github.com/pioarduino/platform-espressif32/releases/download/55.03.32/platform-espressif32.zip
+board = m5stack-atom
+
+lib_deps = 
+    ${core_libs.lib_deps}
+    https://github.com/tanakamasayuki/I2C_MPU6886.git
+
+build_flags =
+    ${debug_level.build_flags}
+    -DBOARD_CONFIG_FILE=\"BoardConfigs/AtomMatrix_Config.h\"
+
+; Build filter - exclude other device-specific files
+build_src_filter = 
+    +<*>
+    -<Hardware/Sensors/QMI8658_IMU.cpp>
+    -<Hardware/Display/TFT/*>
+    -<Hardware/Power/AXP192.cpp>
+
+; ======================================
+; EXAMPLE DEVICE: LilyGo T-Display
+; TFT Display: 135x240
+; ======================================
+
+; Uncomment to enable T-Display build:
+; [env:lilygo-t-display]
+; extends = common_settings
+; platform = 
+;     https://github.com/pioarduino/platform-espressif32/releases/download/55.03.32/platform-espressif32.zip
+; board = lilygo-t-display
+; 
+; lib_deps = 
+;     ${core_libs.lib_deps}
+;     moononournation/GFX Library for Arduino@^1.6.3
+; 
+; build_flags =
+;     ${debug_level.build_flags}
+;     -DBOARD_CONFIG_FILE=\"BoardConfigs/LilygoTDisplay_Config.h\"
+;     -ULITTLE_FOOT_PRINT  ; Enable text rendering in Arduino_GFX
+; 
+; ; Build filter - exclude LED matrix and other device files
+; build_src_filter = 
+;     +<*>
+;     -<Hardware/Sensors/MPU6886_IMU.cpp>
+;     -<Hardware/Sensors/QMI8658_IMU.cpp>
+;     -<Hardware/Display/Matrix5x5/*>
+;     -<Hardware/Display/Matrix8x8/*>
+;     -<Hardware/Power/AXP192.cpp>
+
+; ======================================
+; ADDING YOUR OWN DEVICE:
+; ======================================
+; 1. Create a board config file in include/BoardConfigs/YourBoard_Config.h
+;    (use TEMPLATE_NewBoard_Config.h as starting point)
+; 2. Add a new [env:your-board] section above
+; 3. Set -DBOARD_CONFIG_FILE=\"BoardConfigs/YourBoard_Config.h\"
+; 4. Adjust lib_deps for your hardware (IMU, display library, etc.)
+; 5. Adjust build_src_filter to exclude unused drivers
+;
+; See STAC/doc/HARDWARE_CONFIG.md and STAC/doc/DEVELOPER_GUIDE.md for details

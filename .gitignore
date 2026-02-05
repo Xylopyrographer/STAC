@@ -3,6 +3,7 @@
 
 # Development/planning documents (not for release)
 Documentation/VSCode_Context.md
+STAC_v3_PROJECT_CONTEXT.md
 __pycache__/
 
 # Development archive

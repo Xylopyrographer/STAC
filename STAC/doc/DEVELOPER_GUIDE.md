@@ -4,82 +4,285 @@ A comprehensive guide for developers working on STAC or building similar embedde
 
 ## Table of Contents
 
-* [Quick Start: Key Extension Points](#quick-start-key-extension-points)
-* [Core Application Classes](#core-application-classes)
-    + [**STACApp** - Main Application Controller](#stacapp-main-application-controller)
-    + [**ConfigManager** - Persistent Configuration Storage](#configmanager-persistent-configuration-storage)
-* [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
-    + [**IDisplay** - Display Interface](#idisplay-display-interface)
-    + [**IIMU** - Inertial Measurement Unit Interface](#iimu-inertial-measurement-unit-interface)
-    + [**IRolandClient** - Video Switcher Protocol Interface](#irolandclient-video-switcher-protocol-interface)
-    + [**GlyphManager** - Glyph Storage and Rotation](#glyphmanager-glyph-storage-and-rotation)
-* [State Management](#state-management)
-    + [**TallyStateManager** - Tally State Tracking](#tallystatemanager-tally-state-tracking)
-    + [**OperatingModeManager** - System Mode Management](#operatingmodemanager-system-mode-management)
-    + [**SystemState** - Centralized State Container](#systemstate-centralized-state-container)
-* [Network Layer](#network-layer)
-    + [**WiFiManager** - WiFi Connection Management](#wifimanager-wifi-connection-management)
-    + [**WebConfigServer** - Web-Based Configuration Portal](#webconfigserver-web-based-configuration-portal)
-* [Factory Classes](#factory-classes)
-    + [**DisplayFactory**](#displayfactory)
-    + [**IMUFactory**](#imufactory)
-    + [**RolandClientFactory**](#rolandclientfactory)
-* [Utility Classes](#utility-classes)
-    + [**StartupConfig** - Interactive Configuration at Boot](#startupconfig-interactive-configuration-at-boot)
-* [Configuration Files](#configuration-files)
-    + [**Device_Config.h** - User Hardware Selection](#device_configh-user-hardware-selection)
-    + [**Board Configs** - Hardware-Specific Settings](#board-configs-hardware-specific-settings)
-* [Common Extension Scenarios](#common-extension-scenarios)
-    + [Adding a New Board](#adding-a-new-board)
-    + [Adding a New Roland Switcher Model](#adding-a-new-roland-switcher-model)
-    + [Adding a Custom Operating Mode](#adding-a-custom-operating-mode)
-    + [Customizing Tally Display Behavior](#customizing-tally-display-behavior)
-    + [Adding Persistent Configuration Parameters](#adding-persistent-configuration-parameters)
-- [Architecture Overview](#architecture-overview)
-    * [Key Principles](#key-principles)
-- [Project Structure](#project-structure)
-    * [File Organization Rules](#file-organization-rules)
-- [Design Patterns](#design-patterns)
-    * [1. Interface Pattern (Abstract Base Classes)](#1-interface-pattern-abstract-base-classes)
-    * [2. Factory Pattern](#2-factory-pattern)
-    * [3. Singleton Pattern (Careful Use)](#3-singleton-pattern-careful-use)
-    * [4. Observer Pattern (Callbacks)](#4-observer-pattern-callbacks)
-    * [5. Strategy Pattern (Mode Handlers)](#5-strategy-pattern-mode-handlers)
-- [Adding Features](#adding-features)
-    * [Adding a New Hardware Platform](#adding-a-new-hardware-platform)
-    * [Adding Support for a New Roland Video Switcher](#adding-support-for-a-new-roland-video-switcher)
-    * [Adding a New Display Type](#adding-a-new-display-type)
-    * [Adding a New IMU](#adding-a-new-imu)
-    * [Adding a State Machine State](#adding-a-state-machine-state)
-- [Testing](#testing)
-    * [Unit Testing (Future)](#unit-testing-future)
-    * [Hardware-in-the-Loop Testing](#hardware-in-the-loop-testing)
-    * [Integration Testing](#integration-testing)
-- [Code Style](#code-style)
-    * [Naming Conventions](#naming-conventions)
-    * [File Organization](#file-organization)
-    * [Comments](#comments)
-    * [Formatting](#formatting)
-- [Debugging](#debugging)
-    * [Serial Logging](#serial-logging)
-    * [Common Issues](#common-issues)
-    * [Using `esp32_exception_decoder`](#using-esp32_exception_decoder)
-    * [Hardware Debugging Tools](#hardware-debugging-tools)
-- [Common Tasks](#common-tasks)
-    * [Using InfoPrinter for Serial Output](#using-infoprinter-for-serial-output)
-    * [Changing Default Settings](#changing-default-settings)
-    * [Adding a New Color](#adding-a-new-color)
-    * [Changing Tally Color Scheme](#changing-tally-color-scheme)
-    * [Adding a Configuration Parameter](#adding-a-configuration-parameter)
-    * [Profiling Performance](#profiling-performance)
-- [Contributing](#contributing)
-    * [Workflow](#workflow)
-    * [Commit Messages](#commit-messages)
-    * [Pull Request Checklist](#pull-request-checklist)
-- [Resources](#resources)
-    * [ESP32 Documentation](#esp32-documentation)
-    * [Libraries](#libraries)
-    * [Tools](#tools)
+- [STAC Developer Guide](#stac-developer-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Initial Setup](#initial-setup)
+    - [Building the Project](#building-the-project)
+  - [Quick Start: Key Extension Points](#quick-start-key-extension-points)
+    - [Core Application Classes](#core-application-classes)
+      - [**STACApp** - Main Application Controller](#stacapp---main-application-controller)
+      - [**ConfigManager** - Persistent Configuration Storage](#configmanager---persistent-configuration-storage)
+    - [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
+      - [**IDisplay** - Display Interface](#idisplay---display-interface)
+      - [**IIMU** - Inertial Measurement Unit Interface](#iimu---inertial-measurement-unit-interface)
+      - [**IRolandClient** - Video Switcher Protocol Interface](#irolandclient---video-switcher-protocol-interface)
+      - [**GlyphManager** - Glyph Storage and Rotation](#glyphmanager---glyph-storage-and-rotation)
+    - [State Management](#state-management)
+      - [**TallyStateManager** - Tally State Tracking](#tallystatemanager---tally-state-tracking)
+      - [**OperatingModeManager** - System Mode Management](#operatingmodemanager---system-mode-management)
+      - [**SystemState** - Centralized State Container](#systemstate---centralized-state-container)
+    - [Network Layer](#network-layer)
+      - [**WiFiManager** - WiFi Connection Management](#wifimanager---wifi-connection-management)
+      - [**WebConfigServer** - Web-Based Configuration Portal](#webconfigserver---web-based-configuration-portal)
+    - [Factory Classes](#factory-classes)
+      - [**DisplayFactory**](#displayfactory)
+      - [**IMUFactory**](#imufactory)
+      - [**RolandClientFactory**](#rolandclientfactory)
+    - [Utility Classes](#utility-classes)
+      - [**StartupConfig** - Interactive Configuration at Boot](#startupconfig---interactive-configuration-at-boot)
+    - [Configuration Files](#configuration-files)
+      - [**Device\_Config.h** - User Hardware Selection](#device_configh---user-hardware-selection)
+      - [**Board Configs** - Hardware-Specific Settings](#board-configs---hardware-specific-settings)
+    - [Common Extension Scenarios](#common-extension-scenarios)
+      - [Adding a New Board](#adding-a-new-board)
+      - [Adding a New Roland Switcher Model](#adding-a-new-roland-switcher-model)
+      - [Adding a Custom Operating Mode](#adding-a-custom-operating-mode)
+      - [Customizing Tally Display Behavior](#customizing-tally-display-behavior)
+      - [Adding Persistent Configuration Parameters](#adding-persistent-configuration-parameters)
+  - [Architecture Overview](#architecture-overview)
+    - [Key Principles](#key-principles)
+  - [Project Structure](#project-structure)
+    - [File Organization Rules](#file-organization-rules)
+  - [Design Patterns](#design-patterns)
+    - [1. Interface Pattern (Abstract Base Classes)](#1-interface-pattern-abstract-base-classes)
+    - [2. Factory Pattern](#2-factory-pattern)
+    - [3. Singleton Pattern (Careful Use)](#3-singleton-pattern-careful-use)
+    - [4. Observer Pattern (Callbacks)](#4-observer-pattern-callbacks)
+    - [5. Strategy Pattern (Mode Handlers)](#5-strategy-pattern-mode-handlers)
+  - [Adding Features](#adding-features)
+    - [Adding a New Hardware Platform](#adding-a-new-hardware-platform)
+    - [Adding Support for a New Roland Video Switcher](#adding-support-for-a-new-roland-video-switcher)
+    - [Adding a New Display Type](#adding-a-new-display-type)
+    - [Adding a New IMU](#adding-a-new-imu)
+    - [Adding a State Machine State](#adding-a-state-machine-state)
+  - [Testing](#testing)
+    - [Unit Testing (Future)](#unit-testing-future)
+    - [Hardware-in-the-Loop Testing](#hardware-in-the-loop-testing)
+    - [Integration Testing](#integration-testing)
+  - [Code Style](#code-style)
+    - [Naming Conventions](#naming-conventions)
+    - [File Organization](#file-organization)
+    - [Comments](#comments)
+    - [Formatting](#formatting)
+  - [Debugging](#debugging)
+    - [Serial Logging](#serial-logging)
+    - [Common Issues](#common-issues)
+    - [Using `esp32_exception_decoder`](#using-esp32_exception_decoder)
+    - [Hardware Debugging Tools](#hardware-debugging-tools)
+  - [Common Tasks](#common-tasks)
+    - [Using InfoPrinter for Serial Output](#using-infoprinter-for-serial-output)
+    - [Changing Default Settings](#changing-default-settings)
+    - [Adding a New Color](#adding-a-new-color)
+    - [Changing Tally Color Scheme](#changing-tally-color-scheme)
+    - [Adding a Configuration Parameter](#adding-a-configuration-parameter)
+    - [Profiling Performance](#profiling-performance)
+  - [Contributing](#contributing)
+    - [Workflow](#workflow)
+    - [Commit Messages](#commit-messages)
+    - [Pull Request Checklist](#pull-request-checklist)
+  - [Resources](#resources)
+    - [ESP32 Documentation](#esp32-documentation)
+    - [Libraries](#libraries)
+    - [Tools](#tools)
+- [STAC Developer Guide](#stac-developer-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Initial Setup](#initial-setup)
+    - [Building the Project](#building-the-project)
+  - [Quick Start: Key Extension Points](#quick-start-key-extension-points)
+    - [Core Application Classes](#core-application-classes)
+      - [**STACApp** - Main Application Controller](#stacapp---main-application-controller)
+      - [**ConfigManager** - Persistent Configuration Storage](#configmanager---persistent-configuration-storage)
+    - [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal)
+      - [**IDisplay** - Display Interface](#idisplay---display-interface)
+      - [**IIMU** - Inertial Measurement Unit Interface](#iimu---inertial-measurement-unit-interface)
+      - [**IRolandClient** - Video Switcher Protocol Interface](#irolandclient---video-switcher-protocol-interface)
+      - [**GlyphManager** - Glyph Storage and Rotation](#glyphmanager---glyph-storage-and-rotation)
+    - [State Management](#state-management)
+      - [**TallyStateManager** - Tally State Tracking](#tallystatemanager---tally-state-tracking)
+      - [**OperatingModeManager** - System Mode Management](#operatingmodemanager---system-mode-management)
+      - [**SystemState** - Centralized State Container](#systemstate---centralized-state-container)
+    - [Network Layer](#network-layer)
+      - [**WiFiManager** - WiFi Connection Management](#wifimanager---wifi-connection-management)
+      - [**WebConfigServer** - Web-Based Configuration Portal](#webconfigserver---web-based-configuration-portal)
+    - [Factory Classes](#factory-classes)
+      - [**DisplayFactory**](#displayfactory)
+      - [**IMUFactory**](#imufactory)
+      - [**RolandClientFactory**](#rolandclientfactory)
+    - [Utility Classes](#utility-classes)
+      - [**StartupConfig** - Interactive Configuration at Boot](#startupconfig---interactive-configuration-at-boot)
+    - [Configuration Files](#configuration-files)
+      - [**Device\_Config.h** - User Hardware Selection](#device_configh---user-hardware-selection)
+      - [**Board Configs** - Hardware-Specific Settings](#board-configs---hardware-specific-settings)
+    - [Common Extension Scenarios](#common-extension-scenarios)
+      - [Adding a New Board](#adding-a-new-board)
+      - [Adding a New Roland Switcher Model](#adding-a-new-roland-switcher-model)
+      - [Adding a Custom Operating Mode](#adding-a-custom-operating-mode)
+      - [Customizing Tally Display Behavior](#customizing-tally-display-behavior)
+      - [Adding Persistent Configuration Parameters](#adding-persistent-configuration-parameters)
+  - [Architecture Overview](#architecture-overview)
+    - [Key Principles](#key-principles)
+  - [Project Structure](#project-structure)
+    - [File Organization Rules](#file-organization-rules)
+  - [Design Patterns](#design-patterns)
+    - [1. Interface Pattern (Abstract Base Classes)](#1-interface-pattern-abstract-base-classes)
+    - [2. Factory Pattern](#2-factory-pattern)
+    - [3. Singleton Pattern (Careful Use)](#3-singleton-pattern-careful-use)
+    - [4. Observer Pattern (Callbacks)](#4-observer-pattern-callbacks)
+    - [5. Strategy Pattern (Mode Handlers)](#5-strategy-pattern-mode-handlers)
+  - [Adding Features](#adding-features)
+    - [Adding a New Hardware Platform](#adding-a-new-hardware-platform)
+    - [Adding Support for a New Roland Video Switcher](#adding-support-for-a-new-roland-video-switcher)
+    - [Adding a New Display Type](#adding-a-new-display-type)
+    - [Adding a New IMU](#adding-a-new-imu)
+    - [Adding a State Machine State](#adding-a-state-machine-state)
+  - [Testing](#testing)
+    - [Unit Testing (Future)](#unit-testing-future)
+    - [Hardware-in-the-Loop Testing](#hardware-in-the-loop-testing)
+    - [Integration Testing](#integration-testing)
+  - [Code Style](#code-style)
+    - [Naming Conventions](#naming-conventions)
+    - [File Organization](#file-organization)
+    - [Comments](#comments)
+    - [Formatting](#formatting)
+  - [Debugging](#debugging)
+    - [Serial Logging](#serial-logging)
+    - [Common Issues](#common-issues)
+    - [Using `esp32_exception_decoder`](#using-esp32_exception_decoder)
+    - [Hardware Debugging Tools](#hardware-debugging-tools)
+  - [Common Tasks](#common-tasks)
+    - [Using InfoPrinter for Serial Output](#using-infoprinter-for-serial-output)
+    - [Changing Default Settings](#changing-default-settings)
+    - [Adding a New Color](#adding-a-new-color)
+    - [Changing Tally Color Scheme](#changing-tally-color-scheme)
+    - [Adding a Configuration Parameter](#adding-a-configuration-parameter)
+    - [Profiling Performance](#profiling-performance)
+  - [Contributing](#contributing)
+    - [Workflow](#workflow)
+    - [Commit Messages](#commit-messages)
+    - [Pull Request Checklist](#pull-request-checklist)
+  - [Resources](#resources)
+    - [ESP32 Documentation](#esp32-documentation)
+    - [Libraries](#libraries)
+    - [Tools](#tools)
+
+
+<a name="getting-started"></a>
+## Getting Started
+
+<a name="prerequisites"></a>
+### Prerequisites
+
+Before working on STAC, ensure you have:
+
+1. **PlatformIO** - Install via VS Code extension or CLI
+   - VS Code Extension: Search for "PlatformIO IDE" in Extensions marketplace
+   - CLI: `pip install platformio`
+
+2. **Git** - For version control and repository management
+
+3. **Supported Hardware** (optional for development, required for deployment):
+   - M5Stack ATOM Matrix (LED matrix display)
+   - M5Stack StickC Plus (TFT display with IMU)
+   - LilyGo T-Display (TFT display)
+   - LilyGo T-QT (small TFT display)
+   - Waveshare ESP32-S3 (LED matrix display)
+   - AIPI-Lite (custom board with LED matrix)
+
+<a name="initial-setup"></a>
+### Initial Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Xylopyrographer/STAC.git
+   cd STAC
+   ```
+
+2. **Configure your build environment:**
+   
+   STAC uses `platformio.ini` for build configuration, but this file is gitignored to allow each developer to customize their multi-device setup. A template is provided:
+   
+   ```bash
+   cp platformio.ini.example platformio.ini
+   ```
+
+3. **Customize platformio.ini for your hardware:**
+   
+   The example file includes two devices (ATOM Matrix and T-Display). To enable additional devices:
+   
+   - Uncomment the `[env:device-name]` section for your board
+   - Adjust `default_envs` in the `[platformio]` section if desired
+   - See comments in `platformio.ini.example` for device-specific requirements
+
+4. **Verify dependencies:**
+   
+   PlatformIO will automatically download all required libraries on first build. Core dependencies include:
+   - LiteLED (LED matrix control)
+   - XP_Button (button handling)
+   - Arduino_GFX (TFT display support for some boards)
+
+<a name="building-the-project"></a>
+### Building the Project
+
+**Basic Build (Debug):**
+```bash
+pio run -e atom-matrix
+```
+
+**Upload to Device:**
+```bash
+pio run -e atom-matrix -t upload
+```
+
+**Build Release Version:**
+
+Each device has a `-release` variant that optimizes for size and speed:
+```bash
+pio run -e atom-matrix-release
+```
+
+**Generate Merged Binary (for distribution):**
+
+STAC includes a custom PlatformIO target that creates a single flashable binary:
+```bash
+pio run -e atom-matrix-release -t merged
+```
+
+This creates a complete firmware image in `bin/<Device Name>/` that can be flashed with:
+```bash
+esptool.py write_flash 0x0 bin/ATOM_Matrix/STAC_v3.x.x_ATOM_Matrix_FULL.bin
+```
+
+**Monitor Serial Output:**
+```bash
+pio device monitor -e atom-matrix
+```
+
+**Clean Build:**
+```bash
+pio run -e atom-matrix -t clean
+```
+
+**Building for Multiple Devices:**
+
+If you're developing for multiple devices simultaneously, you can:
+- Build all configured environments: `pio run`
+- Build specific set: `pio run -e atom-matrix -e m5stickc-plus`
+
+**Build System Details:**
+
+- `scripts/build_version.py` - Auto-generates build number before each compile
+- `scripts/custom_targets.py` - Registers the `merged` target for binary generation
+- `include/build_info.h` - Auto-generated file with version info (gitignored)
+
+**Next Steps:**
+
+- Review [Configuration Files](#configuration-files) to understand board setup
+- See [Common Extension Scenarios](#common-extension-scenarios) for adding features
+- Check [Hardware Abstraction Layer (HAL)](#hardware-abstraction-layer-hal) for interface details
 
 
 <a name="quick-start-key-extension-points"></a>
