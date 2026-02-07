@@ -126,14 +126,28 @@ namespace Storage {
         bool loadV160HDConfig( StacOperations& ops );
 
         /**
+         * @brief Save V-80HD protocol configuration
+         * @param ops StacOperations structure containing V-80HD settings
+         * @return true if saved successfully
+         */
+        bool saveV80HDConfig( const StacOperations& ops );
+
+        /**
+         * @brief Load V-80HD protocol configuration
+         * @param ops Output: StacOperations structure with V-80HD settings
+         * @return true if configuration exists
+         */
+        bool loadV80HDConfig( StacOperations& ops );
+
+        /**
          * @brief Get currently active protocol
-         * @return Protocol name ("V-60HD", "V-160HD", or empty if not set)
+         * @return Protocol name ("V-60HD", "V-160HD", "V-80HD", or empty if not set)
          */
         String getActiveProtocol();
 
         /**
          * @brief Check if a specific protocol has configuration stored
-         * @param protocol Protocol name ("V-60HD" or "V-160HD")
+         * @param protocol Protocol name ("V-60HD", "V-160HD", or "V-80HD")
          * @return true if protocol configuration exists
          */
         bool hasProtocolConfig( const String &protocol );
@@ -223,6 +237,7 @@ namespace Storage {
         static constexpr const char *NS_SWITCH = "switch";
         static constexpr const char *NS_V60HD = "v60hd";
         static constexpr const char *NS_V160HD = "v160hd";
+        static constexpr const char *NS_V80HD = "v80hd";
         static constexpr const char *NS_IDENTITY = "identity";
         static constexpr const char *NS_PERIPHERAL = "peripheral";
 

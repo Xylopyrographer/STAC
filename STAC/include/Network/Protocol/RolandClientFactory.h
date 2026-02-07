@@ -15,6 +15,7 @@ namespace Net {
     enum class SwitchModel {
         V60HD,      ///< Roland V-60HD
         V160HD,     ///< Roland V-160HD
+        V80HD,      ///< Roland V-80HD
         UNKNOWN     ///< Unknown or uninitialized
     };
 
@@ -37,6 +38,7 @@ namespace Net {
                     return std::make_unique<V60HDClient>();
 
                 case SwitchModel::V160HD:
+                case SwitchModel::V80HD:  // V-80HD uses same protocol as V-160HD
                     return std::make_unique<V160HDClient>();
 
                 case SwitchModel::UNKNOWN:
@@ -47,7 +49,7 @@ namespace Net {
 
         /**
          * @brief Create Roland client from string identifier
-         * @param modelString Switch model string ("V-60HD" or "V-160HD")
+         * @param modelString Switch model string ("V-60HD", "V-160HD", or "V-80HD")
          * @return Unique pointer to IRolandClient implementation
          */
         static std::unique_ptr<IRolandClient> createFromString( const String &modelString ) {
@@ -67,6 +69,9 @@ namespace Net {
             else if ( modelString == "V-160HD" ) {
                 return SwitchModel::V160HD;
             }
+            else if ( modelString == "V-80HD" ) {
+                return SwitchModel::V80HD;
+            }
             else {
                 return SwitchModel::UNKNOWN;
             }
@@ -83,6 +88,8 @@ namespace Net {
                     return "V-60HD";
                 case SwitchModel::V160HD:
                     return "V-160HD";
+                case SwitchModel::V80HD:
+                    return "V-80HD";
                 case SwitchModel::UNKNOWN:
                 default:
                     return "Unknown";

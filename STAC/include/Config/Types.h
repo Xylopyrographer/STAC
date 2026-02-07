@@ -123,6 +123,14 @@ struct StacOperations {
     bool isV160HD() const {
         return switchModel == "V-160HD";
     }
+
+    /**
+     * @brief Check if switch is V-80HD model
+     * @return true if switchModel is "V-80HD"
+     */
+    bool isV80HD() const {
+        return switchModel == "V-80HD";
+    }
 };
 
 /**
@@ -186,16 +194,16 @@ struct WiFiInfo {
 struct ProvisioningData {
     // @Claude: if we make the switch model an enum, we'll need to change the HTML provisioning page to match.
     // @Claude: is there a way to detangle the V-60 and V-160 specific parameters here? Woud mean a big revamp in the HTML provisioning pages?
-    String switchModel;             ///< Roland switch model
+    String switchModel;             ///< Roland switch model ("V-60HD", "V-160HD", "V-80HD")
     String wifiSSID;                ///< WiFi network SSID
     String wifiPassword;            ///< WiFi network password
     String switchIPString;          ///< Switch IP as string
     uint16_t switchPort;            ///< Switch port number
-    String lanUserID;               ///< LAN control user ID (V-160HD)
-    String lanPassword;             ///< LAN control password (V-160HD)
+    String lanUserID;               ///< LAN control user ID (V-160HD, V-80HD)
+    String lanPassword;             ///< LAN control password (V-60HD: 4 numeric, V-160HD: 4 numeric, V-80HD: up to 8 alphanumeric)
     uint8_t maxChannel;             ///< Max channel (V-60HD)
-    uint8_t maxHDMIChannel;         ///< Max HDMI channel (V-160HD)
-    uint8_t maxSDIChannel;          ///< Max SDI channel (V-160HD)
+    uint8_t maxHDMIChannel;         ///< Max HDMI channel (V-160HD: 8, V-80HD: 4)
+    uint8_t maxSDIChannel;          ///< Max SDI channel (V-160HD: 8, V-80HD: 4)
     unsigned long pollInterval;     ///< Status polling interval in ms
 
     // Default constructor

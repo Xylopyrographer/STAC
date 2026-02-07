@@ -250,7 +250,7 @@ namespace Net {
 
         if ( model == "V-60HD" ) {
             result.configData.maxChannel = static_cast<uint8_t>( server->arg( "stChan" ).toInt() );
-            // Set defaults for unused V-160HD fields
+            // Set defaults for unused V-160HD/V-80HD fields
             result.configData.lanUserID = "";
             result.configData.lanPassword = "";
             result.configData.maxHDMIChannel = 0;
@@ -271,6 +271,21 @@ namespace Net {
             result.configData.maxChannel = 0;
 
             log_i( "  V-160HD Config:" );
+            log_i( "    WiFi SSID: %s", result.configData.wifiSSID.c_str() );
+            log_i( "    Switch IP: %s:%d", result.configData.switchIPString.c_str(), result.configData.switchPort );
+            log_i( "    LAN User: %s", result.configData.lanUserID.c_str() );
+            log_i( "    Max HDMI: %d, Max SDI: %d", result.configData.maxHDMIChannel, result.configData.maxSDIChannel );
+            log_i( "    Poll Interval: %lu ms", result.configData.pollInterval );
+        }
+        else if ( model == "V-80HD" ) {
+            result.configData.lanUserID = server->arg( "stnetUser3" );
+            result.configData.lanPassword = server->arg( "stnetPW3" );
+            result.configData.maxHDMIChannel = static_cast<uint8_t>( server->arg( "stChanHDMI3" ).toInt() );
+            result.configData.maxSDIChannel = static_cast<uint8_t>( server->arg( "stChanSDI3" ).toInt() );
+            // Set default for unused V-60HD field
+            result.configData.maxChannel = 0;
+
+            log_i( "  V-80HD Config:" );
             log_i( "    WiFi SSID: %s", result.configData.wifiSSID.c_str() );
             log_i( "    Switch IP: %s:%d", result.configData.switchIPString.c_str(), result.configData.switchPort );
             log_i( "    LAN User: %s", result.configData.lanUserID.c_str() );
@@ -461,6 +476,9 @@ namespace Net {
             else if ( switchModel == "V-160HD" ) {
                 configMgr.loadV160HDConfig( ops );
             }
+            else if ( switchModel == "V-80HD" ) {
+                configMgr.loadV80HDConfig( ops );
+            }
 
             // Determine tally mode
             String tallyMode = ops.cameraOperatorMode ? "Camera Operator" : "Talent";
@@ -495,6 +513,17 @@ namespace Net {
                 // V-160HD shows HDMI/SDI format
                 if ( ops.tallyChannel > 8 ) {
                     page += "\n    Active Tally Channel: SDI " + String( ops.tallyChannel - 8 );
+                }
+                else {
+                    page += "\n    Active Tally Channel: HDMI " + String( ops.tallyChannel );
+                }
+                page += "\n    Max HDMI Tally Channel: " + String( ops.maxHDMIChannel );
+                page += "\n    Max SDI Tally Channel: " + String( ops.maxSDIChannel );
+            }
+            else if ( ops.isV80HD() ) {
+                // V-80HD shows HDMI/SDI format (4+4 channels)
+                if ( ops.tallyChannel > 4 ) {
+                    page += "\n    Active Tally Channel: SDI " + String( ops.tallyChannel - 4 );
                 }
                 else {
                     page += "\n    Active Tally Channel: HDMI " + String( ops.tallyChannel );

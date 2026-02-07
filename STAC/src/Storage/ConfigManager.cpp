@@ -239,6 +239,59 @@ namespace Storage {
         return true;
     }
 
+    bool ConfigManager::saveV80HDConfig( const StacOperations& ops ) {
+        if ( !prefs.begin( NS_V80HD, READ_WRITE ) ) {
+            log_e( "Failed to open V-80HD preferences" );
+            return false;
+        }
+
+        prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+        prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
+        prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
+        prefs.putString( KEY_CHANNEL_BANK, ops.channelBank );
+        prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+        prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+        prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+        prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
+        prefs.end();
+
+        log_i( "V-80HD configuration saved" );
+        return true;
+    }
+
+    bool ConfigManager::loadV80HDConfig( StacOperations& ops ) {
+        if ( !prefs.begin( NS_V80HD, READ_ONLY ) ) {
+            log_w( "No V-80HD configuration found" );
+            return false;
+        }
+
+        ops.switchModel = "V-80HD";
+        ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+        ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 4 );
+        ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 4 );
+        ops.channelBank = prefs.getString( KEY_CHANNEL_BANK, "hdmi_" );
+        ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+        ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+        ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+        ops.statusPollInterval = prefs.getULong( KEY_POLL_INTERVAL, 300 );
+
+        // V-80HD doesn't use maxChannelCount
+        ops.maxChannelCount = 0;
+
+        // Validate and correct channelBank based on tallyChannel
+        if ( ops.tallyChannel > 4 ) {
+            ops.channelBank = "sdi_";
+        }
+        else {
+            ops.channelBank = "hdmi_";
+        }
+
+        prefs.end();
+
+        log_i( "V-80HD configuration loaded" );
+        return true;
+    }
+
     String ConfigManager::getActiveProtocol() {
         String model;
         IPAddress ip;
@@ -262,6 +315,12 @@ namespace Storage {
         }
         else if ( protocol == "V-160HD" ) {
             if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
+                exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                prefs.end();
+            }
+        }
+        else if ( protocol == "V-80HD" ) {
+            if ( prefs.begin( NS_V80HD, READ_ONLY ) ) {
                 exists = prefs.isKey( KEY_TALLY_CHANNEL );
                 prefs.end();
             }
