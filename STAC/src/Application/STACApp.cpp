@@ -625,6 +625,9 @@ namespace Application {
             else if ( protocol == "V-160HD" ) {
                 opsLoaded = configManager->loadV160HDConfig( ops );
             }
+            else if ( protocol == "V-80HD" ) {
+                opsLoaded = configManager->loadV80HDConfig( ops );
+            }
 
             // @Claude: Again, should only be one place where we check if we're provisioned or not. Defaults should be loaded int ops parameters based on the configured switch at startup
             if ( !opsLoaded ) {
@@ -667,10 +670,14 @@ namespace Application {
             }
 
             // Display the active tally channel (always, regardless of autostart setting)
-            // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+            // For V-160HD SDI channels (9-16), display the channel within bank (1-8)
+            // For V-80HD SDI channels (5-8), display the channel within bank (1-4)
             uint8_t displayChannel = ops.tallyChannel;
-            if ( ops.switchModel != "V-60HD" && ops.tallyChannel > 8 ) {
+            if ( ops.switchModel == "V-160HD" && ops.tallyChannel > 8 ) {
                 displayChannel = ops.tallyChannel - 8;  // SDI 9→1, 10→2, etc.
+            }
+            else if ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) {
+                displayChannel = ops.tallyChannel - 4;  // SDI 5→1, 6→2, etc.
             }
             const uint8_t *channelGlyph = glyphManager->getDigitGlyph( displayChannel );
 
@@ -678,13 +685,14 @@ namespace Application {
             Display::color_t channelColor;
             Display::color_t autostartColor;
 
-            if ( ops.switchModel != "V-60HD" && ops.tallyChannel > 8 ) {
-                // V-160HD second bank (SDI channels 9-20)
+            if ( ( ops.switchModel == "V-160HD" && ops.tallyChannel > 8 ) ||
+                 ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) ) {
+                // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
                 autostartColor = Display::StandardColors::BLUE;
             }
             else {
-                // V-60HD or V-160HD first bank (HDMI channels 1-8)
+                // V-60HD or V-160HD/V-80HD first bank (HDMI channels)
                 channelColor = Display::StandardColors::BLUE;
                 autostartColor = Display::StandardColors::BRIGHT_GREEN;
             }
@@ -1204,7 +1212,7 @@ namespace Application {
             ops.maxSDIChannel = 0;
             ops.channelBank = "";
         }
-        else {   // V-160HD
+        else {   // V-160HD or V-80HD
             ops.maxChannelCount = 0;
             ops.maxHDMIChannel = provData.maxHDMIChannel;
             ops.maxSDIChannel = provData.maxSDIChannel;
@@ -1218,6 +1226,9 @@ namespace Application {
         }
         else if ( ops.isV160HD() ) {
             saved = configManager->saveV160HDConfig( ops );
+        }
+        else if ( ops.isV80HD() ) {
+            saved = configManager->saveV80HDConfig( ops );
         }
         if ( !saved ) {
             log_e( "Failed to save protocol configuration" );
