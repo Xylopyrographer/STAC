@@ -471,6 +471,9 @@ namespace Application {
                         else if ( ops.isV160HD() ) {
                             saved = configManager->saveV160HDConfig( ops );
                         }
+                        else if ( ops.isV80HD() ) {
+                            saved = configManager->saveV80HDConfig( ops );
+                        }
                         if ( !saved ) {
                             log_e( "Failed to save brightness level" );
                         }
@@ -686,7 +689,7 @@ namespace Application {
             Display::color_t autostartColor;
 
             if ( ( ops.switchModel == "V-160HD" && ops.tallyChannel > 8 ) ||
-                 ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) ) {
+                    ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) ) {
                 // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
                 autostartColor = Display::StandardColors::BLUE;
@@ -1270,6 +1273,7 @@ namespace Application {
         rolandConfig.password = password;
         rolandConfig.channelBank = ops.channelBank;
         rolandConfig.stacID = stacID;
+        rolandConfig.switchModel = ops.switchModel;
 
         // Initialize the client
         if ( !rolandClient->begin( rolandConfig ) ) {

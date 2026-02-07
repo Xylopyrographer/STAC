@@ -131,8 +131,23 @@ namespace Utils {
                 Serial.print( "    Max Tally Channel: " );
                 Serial.println( ops.maxChannelCount );
             }
+            else if ( ops.isV80HD() ) {
+                // V-80HD: HDMI 1-4, SDI 5-8 (display as 1-4)
+                if ( ops.tallyChannel > 4 ) {
+                    Serial.print( "SDI " );
+                    Serial.println( ops.tallyChannel - 4 );
+                }
+                else {
+                    Serial.print( "HDMI " );
+                    Serial.println( ops.tallyChannel );
+                }
+                Serial.print( "    Max HDMI Tally Channel: " );
+                Serial.println( ops.maxHDMIChannel );
+                Serial.print( "    Max SDI Tally Channel: " );
+                Serial.println( ops.maxSDIChannel );
+            }
             else {
-                // V-160HD
+                // V-160HD: HDMI 1-8, SDI 9-16 (display as 1-8)
                 if ( ops.tallyChannel > 8 ) {
                     Serial.print( "SDI " );
                     Serial.println( ops.tallyChannel - 8 );

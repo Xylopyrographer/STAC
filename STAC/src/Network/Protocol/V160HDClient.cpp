@@ -127,12 +127,25 @@ namespace Net {
     }
 
     uint8_t V160HDClient::getBankChannel() const {
-        // Map channel to bank channel (1-8)
-        if ( config.tallyChannel < 9 ) {
-            return config.tallyChannel;
+        // Map channel to bank channel
+        // V-80HD: HDMI 1-4, SDI 5-8 (SDI displays as 1-4)
+        // V-160HD: HDMI 1-8, SDI 9-16 (SDI displays as 1-8)
+        if ( config.switchModel == "V-80HD" ) {
+            if ( config.tallyChannel <= 4 ) {
+                return config.tallyChannel;  // HDMI 1-4
+            }
+            else {
+                return config.tallyChannel - 4;  // SDI 5-8 becomes 1-4
+            }
         }
         else {
-            return config.tallyChannel - 8;
+            // V-160HD (default)
+            if ( config.tallyChannel < 9 ) {
+                return config.tallyChannel;  // HDMI 1-8
+            }
+            else {
+                return config.tallyChannel - 8;  // SDI 9-16 becomes 1-8
+            }
         }
     }
 
