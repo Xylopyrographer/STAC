@@ -21,7 +21,5 @@ include/build_info.h
 # Build outputs - all binaries collected here for release distribution
 bin/
 
-# Test configuration with sensitive credentials
-include/Utils/TestConfig.h
 scripts/__pycache__/
 
