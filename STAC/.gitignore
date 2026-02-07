@@ -13,7 +13,7 @@ compile_commands.json
 platformio.ini
 
 # Personal build scripts
-build_release_all.sh
+scripts/build_release_all.sh
 
 # Auto-generated build information
 include/build_info.h
