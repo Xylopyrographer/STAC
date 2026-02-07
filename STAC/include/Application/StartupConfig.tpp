@@ -447,6 +447,9 @@ namespace Application {
                     else if ( ops.isV160HD() ) {
                         saved = configManager->saveV160HDConfig( ops );
                     }
+                    else if ( ops.isV80HD() ) {
+                        saved = configManager->saveV80HDConfig( ops );
+                    }
                     if ( !saved ) {
                         log_e( "Failed to save tally mode" );
                     }
@@ -524,6 +527,9 @@ namespace Application {
                     }
                     else if ( ops.isV160HD() ) {
                         saved = configManager->saveV160HDConfig( ops );
+                    }
+                    else if ( ops.isV80HD() ) {
+                        saved = configManager->saveV80HDConfig( ops );
                     }
                     if ( !saved ) {
                         log_e( "Failed to save startup mode" );
@@ -644,6 +650,9 @@ namespace Application {
                     }
                     else if ( ops.isV160HD() ) {
                         saved = configManager->saveV160HDConfig( ops );
+                    }
+                    else if ( ops.isV80HD() ) {
+                        saved = configManager->saveV80HDConfig( ops );
                     }
                     if ( !saved ) {
                         log_e( "Failed to save brightness level" );

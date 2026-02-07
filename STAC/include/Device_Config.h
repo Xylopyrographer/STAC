@@ -32,7 +32,7 @@
     // SOFTWARE VERSION
     // ============================================================================
     // Version string used by build system
-    #define STAC_SOFTWARE_VERSION "3.0.0"
+    #define STAC_SOFTWARE_VERSION "3.1.0-beta1"
 
     // ============================================================================
     // COMPILE-TIME VALIDATION

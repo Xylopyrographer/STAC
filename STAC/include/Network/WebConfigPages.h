@@ -280,21 +280,21 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Opening tag for device info section
-                                                                                             * Content is dynamically inserted between DEVICE_INFO_OPEN and DEVICE_INFO_CLOSE
-                                                                                             */
+                                                                                                     * @brief Opening tag for device info section
+                                                                                                     * Content is dynamically inserted between DEVICE_INFO_OPEN and DEVICE_INFO_CLOSE
+                                                                                                     */
         const char DEVICE_INFO_OPEN[] = R"=====(    <div class="device-info">
 )=====";
 
         /**
-                                                                                             * @brief Closing tag for device info section
-                                                                                             */
+                                                                                                     * @brief Closing tag for device info section
+                                                                                                     */
         const char DEVICE_INFO_CLOSE[] = R"=====(    </div>
 )=====";
 
         /**
-                                                                                             * @brief Landing page with browser escape options
-                                                                                             */
+                                                                                                     * @brief Landing page with browser escape options
+                                                                                                     */
         const char LANDING_PAGE[] = R"=====(    <div id="landing" class="landing">
       <h2>Welcome to STAC Setup</h2>
       <p style="margin: 20px 0; font-size: 16px; color: #555;">
@@ -313,8 +313,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Tab buttons
-                                                                                             */
+                                                                                                     * @brief Tab buttons
+                                                                                                     */
         const char TAB_BUTTONS[] = R"=====(    <div class="tabs" id="tabs" style="display:none;">
       <button class="tab active" onclick="showTab('setup')" id="tab-setup">Setup</button>
       <button class="tab" onclick="showTab('maintenance')" id="tab-maintenance">Maintenance</button>
@@ -328,8 +328,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Setup tab content - model selection and configuration
-                                                                                             */
+                                                                                                     * @brief Setup tab content - model selection and configuration
+                                                                                                     */
         const char TAB_SETUP[] = R"=====(    <div id="content-setup" class="tab-content active" style="display:none;">
       <h2>Device Setup</h2>
       
@@ -356,8 +356,8 @@ namespace Net {
         <select name="stModel" id="stModel" required>
           <option value="" disabled selected>Choose model...</option>
           <option value="V-60HD">V-60HD</option>
-          <option value="V-160HD">V-160HD</option>
           <option value="V-80HD">V-80HD</option>
+          <option value="V-160HD">V-160HD</option>
         </select>
         <input type="submit" value="Next">
       </form>
@@ -434,7 +434,7 @@ namespace Net {
           <input type="text" id="stnetUser" name="stnetUser" value="user" maxlength="32" required>
           
           <label for="stnetPW">LAN Password:</label>
-          <input type="password" id="stnetPW" name="stnetPW" value="0000" maxlength="32" required>
+          <input type="password" id="stnetPW" name="stnetPW" maxlength="32" required>
           
           <label for="stChanHDMI">Max HDMI Channel (1-8):</label>
           <input type="number" id="stChanHDMI" name="stChanHDMI" value="8" min="1" max="8" inputmode="numeric" pattern="[0-9]*" required>
@@ -490,7 +490,7 @@ namespace Net {
           <input type="text" id="stnetUser3" name="stnetUser" value="user" maxlength="32" required>
           
           <label for="stnetPW3">LAN Password:</label>
-          <input type="password" id="stnetPW3" name="stnetPW" value="00000000" maxlength="8" required>
+          <input type="password" id="stnetPW3" name="stnetPW" maxlength="8" required>
           
           <label for="stChanHDMI3">Max HDMI Channel (1-4):</label>
           <input type="number" id="stChanHDMI3" name="stChanHDMI3" value="4" min="1" max="4" inputmode="numeric" pattern="[0-9]*" required>
@@ -524,8 +524,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Maintenance tab content - OTA firmware upload and factory reset
-                                                                                             */
+                                                                                                     * @brief Maintenance tab content - OTA firmware upload and factory reset
+                                                                                                     */
         const char TAB_MAINTENANCE[] = R"=====(    <div id="content-maintenance" class="tab-content" style="display:none;">
       <h2>Maintenance</h2>
       
@@ -575,8 +575,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief JavaScript for tab switching and form handling
-                                                                                             */
+                                                                                                     * @brief JavaScript for tab switching and form handling
+                                                                                                     */
         const char PAGE_SCRIPT[] = R"=====(    <script>
     // Tab switching
     function showTab(tabName) {
@@ -1094,16 +1094,16 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Page footer
-                                                                                             */
+                                                                                                     * @brief Page footer
+                                                                                                     */
         const char PAGE_FOOTER[] = R"=====(  </div>
 </body>
 </html>
 )=====";
 
         /**
-                                                                                             * @brief Configuration received confirmation page
-                                                                                             */
+                                                                                                     * @brief Configuration received confirmation page
+                                                                                                     */
         const char CONFIG_RECEIVED[] = R"=====(<!DOCTYPE html>
 <html>
 <head>
@@ -1146,8 +1146,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief Factory reset confirmation page
-                                                                                             */
+                                                                                                     * @brief Factory reset confirmation page
+                                                                                                     */
         const char FACTORY_RESET_RECEIVED[] = R"=====(<!DOCTYPE html>
 <html>
 <head>
@@ -1190,8 +1190,8 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief OTA update result page - opening
-                                                                                             */
+                                                                                                     * @brief OTA update result page - opening
+                                                                                                     */
         const char OTA_PAGE_OPEN[] = R"=====(<!DOCTYPE html>
 <html>
 <head>
@@ -1235,16 +1235,16 @@ namespace Net {
 )=====";
 
         /**
-                                                                                             * @brief OTA update result page - closing
-                                                                                             */
+                                                                                                     * @brief OTA update result page - closing
+                                                                                                     */
         const char OTA_PAGE_CLOSE[] = R"=====(  </div>
 </body>
 </html>
 )=====";
 
         /**
-                                                                                             * @brief 404 Not Found page
-                                                                                             */
+                                                                                                     * @brief 404 Not Found page
+                                                                                                     */
         const char NOT_FOUND[] = R"=====(<!DOCTYPE html>
 <html>
 <head>
