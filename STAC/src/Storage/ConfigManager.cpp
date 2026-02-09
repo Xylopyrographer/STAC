@@ -195,7 +195,7 @@ namespace Storage {
         prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
         prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
         prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
-        prefs.putString( KEY_CHANNEL_BANK, ops.channelBank );
+        // channelBank is not saved - always derived from tallyChannel on load
         prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
         prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
         prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
@@ -216,7 +216,6 @@ namespace Storage {
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 8 );
         ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 8 );
-        ops.channelBank = prefs.getString( KEY_CHANNEL_BANK, "hdmi_" );
         ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
         ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
         ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
@@ -225,7 +224,7 @@ namespace Storage {
         // V-160HD doesn't use maxChannelCount
         ops.maxChannelCount = 0;
 
-        // Validate and correct channelBank based on tallyChannel
+        // Derive channelBank from tallyChannel (not stored, always calculated)
         if ( ops.tallyChannel > 8 ) {
             ops.channelBank = "sdi_";
         }
@@ -248,7 +247,7 @@ namespace Storage {
         prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
         prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
         prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
-        prefs.putString( KEY_CHANNEL_BANK, ops.channelBank );
+        // channelBank is not saved - always derived from tallyChannel on load
         prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
         prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
         prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
@@ -269,7 +268,6 @@ namespace Storage {
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 4 );
         ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 4 );
-        ops.channelBank = prefs.getString( KEY_CHANNEL_BANK, "hdmi_" );
         ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
         ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
         ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
@@ -278,7 +276,7 @@ namespace Storage {
         // V-80HD doesn't use maxChannelCount
         ops.maxChannelCount = 0;
 
-        // Validate and correct channelBank based on tallyChannel
+        // Derive channelBank from tallyChannel (not stored, always calculated)
         if ( ops.tallyChannel > 4 ) {
             ops.channelBank = "sdi_";
         }

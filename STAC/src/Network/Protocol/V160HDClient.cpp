@@ -131,20 +131,22 @@ namespace Net {
         // V-80HD: HDMI 1-4, SDI 5-8 (SDI displays as 1-4)
         // V-160HD: HDMI 1-8, SDI 9-16 (SDI displays as 1-8)
         if ( config.switchModel == "V-80HD" ) {
-            if ( config.tallyChannel <= 4 ) {
-                return config.tallyChannel;  // HDMI 1-4
+            uint8_t channel = constrain( config.tallyChannel, 1, 8 );
+            if ( channel <= 4 ) {
+                return channel;  // HDMI 1-4
             }
             else {
-                return config.tallyChannel - 4;  // SDI 5-8 becomes 1-4
+                return channel - 4;  // SDI 5-8 becomes 1-4
             }
         }
         else {
             // V-160HD (default)
-            if ( config.tallyChannel < 9 ) {
-                return config.tallyChannel;  // HDMI 1-8
+            uint8_t channel = constrain( config.tallyChannel, 1, 16 );
+            if ( channel < 9 ) {
+                return channel;  // HDMI 1-8
             }
             else {
-                return config.tallyChannel - 8;  // SDI 9-16 becomes 1-8
+                return channel - 8;  // SDI 9-16 becomes 1-8
             }
         }
     }

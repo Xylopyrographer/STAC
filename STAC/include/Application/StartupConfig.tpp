@@ -135,11 +135,6 @@ namespace Application {
     void StartupConfig<GLYPH_SIZE>::displayTallyChannel( const StacOperations& ops ) {
         using namespace Display;
 
-        if constexpr ( GLYPH_SIZE == 5 ) {
-        }
-        else {
-        }
-
         // Get the glyph for the channel number
         // For V-160HD SDI channels (9-16), display the channel within bank (1-8)
         // For V-80HD SDI channels (5-8), display the channel within bank (1-4)
@@ -194,11 +189,6 @@ namespace Application {
     void StartupConfig<GLYPH_SIZE>::changeTallyChannel( StacOperations& ops ) {
         using namespace Display;
         using namespace Config::Timing;
-
-        if constexpr ( GLYPH_SIZE == 5 ) {
-        }
-        else {
-        }
 
         // Validate and clamp channel to valid range before displaying
         if ( ops.isV60HD() ) {
@@ -386,15 +376,8 @@ namespace Application {
     void StartupConfig<GLYPH_SIZE>::displayTallyMode( const StacOperations& ops ) {
         using namespace Display;
 
-        const uint8_t *modeGlyph;
-        if constexpr ( GLYPH_SIZE == 5 ) {
-            modeGlyph = ops.cameraOperatorMode ?
-                        glyphManager->getGlyph( GLF_C ) : glyphManager->getGlyph( GLF_T );
-        }
-        else {
-            modeGlyph = ops.cameraOperatorMode ?
-                        glyphManager->getGlyph( GLF_C ) : glyphManager->getGlyph( GLF_T );
-        }
+        const uint8_t *modeGlyph = ops.cameraOperatorMode ?
+                                   glyphManager->getGlyph( GLF_C ) : glyphManager->getGlyph( GLF_T );
 
         display->drawGlyph( modeGlyph, StandardColors::PURPLE, StandardColors::BLACK, true );
     }
@@ -555,12 +538,12 @@ namespace Application {
         uint8_t GLF_CBD_IDX = Display::GLF_CBD;
         uint8_t GLF_EN_IDX = Display::GLF_EN;
 
-        const uint8_t *checkboard = glyphManager->getGlyph( GLF_CBD_IDX );
+        const uint8_t *checkerboard = glyphManager->getGlyph( GLF_CBD_IDX );
         const uint8_t *centerBlank = glyphManager->getGlyph( GLF_EN_IDX );
         const uint8_t *brightnessGlyph = glyphManager->getGlyph( ops.displayBrightnessLevel );
 
         // Draw checkerboard background
-        display->drawGlyph( checkboard, StandardColors::RED, StandardColors::GREEN, false );
+        display->drawGlyph( checkerboard, StandardColors::RED, StandardColors::GREEN, false );
 
         // Blank center columns
         display->drawGlyphOverlay( centerBlank, StandardColors::BLACK, false );
@@ -575,8 +558,7 @@ namespace Application {
         using namespace Config::Timing;
 
         // Get glyph index based on display size
-        uint8_t GLF_EN_IDX;
-        GLF_EN_IDX = Display::GLF_EN;
+        uint8_t GLF_EN_IDX = Display::GLF_EN;
 
         const uint8_t *centerBlank = glyphManager->getGlyph( GLF_EN_IDX );
 
@@ -676,9 +658,6 @@ namespace Application {
 
         // Restore the brightness indicator display
         displayBrightness( ops );
-
-        // Restore normal brightness display
-        displayBrightness( ops );
     }
 
     template<uint8_t GLYPH_SIZE>
@@ -686,8 +665,7 @@ namespace Application {
         using namespace Display;
 
         // Get glyph index based on display size
-        uint8_t GLF_CK_IDX;
-        GLF_CK_IDX = Display::GLF_CK;
+        uint8_t GLF_CK_IDX = Display::GLF_CK;
 
         const uint8_t *checkmark = glyphManager->getGlyph( GLF_CK_IDX );
 
@@ -709,8 +687,7 @@ namespace Application {
         using namespace Config::Timing;
 
         // Get glyph index based on display size
-        uint8_t GLF_EN_IDX;
-        GLF_EN_IDX = Display::GLF_EN;
+        uint8_t GLF_EN_IDX = Display::GLF_EN;
 
         const uint8_t *centerBlank = glyphManager->getGlyph( GLF_EN_IDX );
 

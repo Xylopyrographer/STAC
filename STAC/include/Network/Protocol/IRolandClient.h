@@ -104,7 +104,7 @@ namespace Net {
 
         /**
          * @brief Get the switch type this client implements
-         * @return String identifier ("V-60HD" or "V-160HD")
+         * @return String identifier ("V-60HD", "V-80HD", or "V-160HD")
          */
         virtual String getSwitchType() const = 0;
 

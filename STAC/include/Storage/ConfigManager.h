@@ -71,7 +71,7 @@ namespace Storage {
         // @Claude: Should the model be an enum instead of a string for better type safety and performance?
         /**
          * @brief Save switch configuration
-         * @param model Switch model ("V-60HD" or "V-160HD")
+         * @param model Switch model ("V-60HD", "V-80HD" or "V-160HD")
          * @param ipAddress Switch IP address
          * @param port Switch HTTP port
          * @param username Username for authentication (V-160HD only, optional)

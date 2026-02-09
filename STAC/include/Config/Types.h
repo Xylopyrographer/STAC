@@ -206,7 +206,7 @@ struct ProvisioningData {
     uint8_t maxSDIChannel;          ///< Max SDI channel (V-160HD: 8, V-80HD: 4)
     unsigned long pollInterval;     ///< Status polling interval in ms
 
-    // Default constructor
+    // Default constructor - uses conservative defaults; provisioning sets correct model-specific values
     ProvisioningData()
         : switchModel( "NO_MODEL" )
         , wifiSSID( "" )
@@ -216,8 +216,8 @@ struct ProvisioningData {
         , lanUserID( "" )
         , lanPassword( "" )
         , maxChannel( 6 )
-        , maxHDMIChannel( 8 )
-        , maxSDIChannel( 8 )
+        , maxHDMIChannel( 4 )  // Conservative default (V-80HD minimum)
+        , maxSDIChannel( 4 )   // Conservative default (V-80HD minimum)
         , pollInterval( 300 )
     {}
 };

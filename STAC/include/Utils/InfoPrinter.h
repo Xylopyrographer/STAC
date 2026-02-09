@@ -146,7 +146,7 @@ namespace Utils {
                 Serial.print( "    Max SDI Tally Channel: " );
                 Serial.println( ops.maxSDIChannel );
             }
-            else {
+            else if ( ops.isV160HD() ) {
                 // V-160HD: HDMI 1-8, SDI 9-16 (display as 1-8)
                 if ( ops.tallyChannel > 8 ) {
                     Serial.print( "SDI " );
@@ -160,6 +160,13 @@ namespace Utils {
                 Serial.println( ops.maxHDMIChannel );
                 Serial.print( "    Max SDI Tally Channel: " );
                 Serial.println( ops.maxSDIChannel );
+            }
+            else {
+                // Unknown model - print raw channel
+                log_e( "Unknown switch model: %s", ops.switchModel.c_str() );
+                Serial.println( ops.tallyChannel );
+                Serial.print( "    Max Tally Channel: " );
+                Serial.println( ops.maxChannelCount );
             }
 
             Serial.print( "    Tally Mode: " );

@@ -14,8 +14,8 @@ namespace Net {
      */
     enum class SwitchModel {
         V60HD,      ///< Roland V-60HD
-        V160HD,     ///< Roland V-160HD
         V80HD,      ///< Roland V-80HD
+        V160HD,     ///< Roland V-160HD
         UNKNOWN     ///< Unknown or uninitialized
     };
 

@@ -621,7 +621,12 @@ namespace Application {
             String protocol = configManager->getActiveProtocol();
             bool opsLoaded = false;
 
-            // @Claude: another place where we can simplify if we define an enum for the switch models
+            // TODO: Replace string-based model comparisons with enum
+            // Architectural issue: String comparisons are fragile and error-prone.
+            // Recommendation: Define enum class SwitcherModel { V60HD, V80HD, V160HD }
+            // with helper functions toString()/fromString() for serialization.
+            // This provides compile-time safety and centralizes model definitions.
+            // Affects: ConfigManager, RolandClientFactory, WebConfigServer, StartupConfig
             if ( protocol == "V-60HD" ) {
                 opsLoaded = configManager->loadV60HDConfig( ops );
             }
@@ -663,7 +668,8 @@ namespace Application {
             }
 
             // Load switch configuration for printing and Roland client initialization
-            // @Claude: I guess using an enum for the switch models can be problematic if we want to print the model name. Maybe we can have a function that converts from enum to string for printing purposes?
+            // NOTE: See TODO above - enum with toString() helper would allow type-safe
+            // model handling while preserving string output for serial/web display
             String ssid, password;
             switchConfigLoaded = configManager->loadSwitchConfig( ops.switchModel, switchIP, switchPort, username, passwordSwitch );
 
