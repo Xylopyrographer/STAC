@@ -10,4 +10,5 @@ __pycache__/
 
 # Temporary backup files
 *.backup
+*.md.bak
 build_log.txt
