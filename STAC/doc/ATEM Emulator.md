@@ -2,7 +2,7 @@
 
 **Date:** April 12, 2026  
 **Status:** Planning  
-**Reference:** `STAC/utility/SmartTally Server/sts_emulator.py`, `TallyServer.cpp` (AronHetLam/ATEM_tally_light_with_ESP8266)
+**Reference:** `STAC/utility/SmartTally_Server/sts_emulator.py`, `TallyServer.cpp` (AronHetLam/ATEM_tally_light_with_ESP8266)
 
 ---
 
@@ -325,10 +325,10 @@ Consistent with the existing utility layout:
 
 ```
 STAC/utility/
-├── SmartTally Server/
+├── SmartTally_Server/
 │   ├── sts_emulator.py
 │   └── STS_EMULATOR_GUIDE.md
-└── ATEM Switcher/           ← new
+└── ATEM_Server/             ← new
     ├── atem_emulator.py
     └── ATEM_EMULATOR_GUIDE.md
 ```
