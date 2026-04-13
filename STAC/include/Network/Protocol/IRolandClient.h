@@ -53,7 +53,7 @@ namespace Net {
         String password;        ///< Password for authentication (V-160HD only)
         String channelBank;     ///< Channel bank ("bankA" or "bankB" for V-160HD)
         String stacID;          ///< STAC device ID (used as User-Agent)
-        String switchModel;     ///< Switch model ("V-60HD", "V-160HD", "V-80HD")
+        SwitchModel switchModel;  ///< Switch model
 
         RolandConfig()
             : switchIP( 0, 0, 0, 0 )
@@ -63,7 +63,7 @@ namespace Net {
             , password( "" )
             , channelBank( "bankA" )
             , stacID( "" )
-            , switchModel( "" ) {
+            , switchModel( SwitchModel::UNKNOWN ) {
         }
     };
 

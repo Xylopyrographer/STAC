@@ -130,7 +130,7 @@ namespace Net {
         // Map channel to bank channel
         // V-80HD: HDMI 1-4, SDI 5-8 (SDI displays as 1-4)
         // V-160HD: HDMI 1-8, SDI 9-16 (SDI displays as 1-8)
-        if ( config.switchModel == "V-80HD" ) {
+        if ( config.switchModel == SwitchModel::V80HD ) {
             uint8_t channel = constrain( config.tallyChannel, 1, 8 );
             if ( channel <= 4 ) {
                 return channel;  // HDMI 1-4

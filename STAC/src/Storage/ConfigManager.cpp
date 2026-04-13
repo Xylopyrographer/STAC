@@ -93,14 +93,15 @@ namespace Storage {
         log_i( "WiFi credentials cleared" );
     }
 
-    bool ConfigManager::saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+    bool ConfigManager::saveSwitchConfig( SwitchModel model, const IPAddress& ipAddress, uint16_t port,
                                           const String &username, const String &password ) {
         if ( !prefs.begin( NS_SWITCH, READ_WRITE ) ) {
             log_e( "Failed to open switch preferences" );
             return false;
         }
 
-        prefs.putString( KEY_MODEL, model );
+        String modelStr = switchModelToString( model );
+        prefs.putString( KEY_MODEL, modelStr );
         prefs.putUInt( KEY_IP, ( uint32_t )ipAddress );
         prefs.putUShort( KEY_PORT, port );
         prefs.putString( KEY_USERNAME, username );
@@ -108,32 +109,33 @@ namespace Storage {
         prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
         prefs.end();
 
-        log_i( "Switch config saved: %s @ %s:%d", model.c_str(), ipAddress.toString().c_str(), port );
+        log_i( "Switch config saved: %s @ %s:%d", modelStr.c_str(), ipAddress.toString().c_str(), port );
         return true;
     }
 
-    bool ConfigManager::loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+    bool ConfigManager::loadSwitchConfig( SwitchModel &model, IPAddress& ipAddress, uint16_t &port,
                                           String &username, String &password ) {
         if ( !prefs.begin( NS_SWITCH, READ_ONLY ) ) {
             log_w( "No switch preferences found" );
             return false;
         }
 
-        model = prefs.getString( KEY_MODEL, "" );
+        String modelStr = prefs.getString( KEY_MODEL, "" );
         uint32_t ip = prefs.getUInt( KEY_IP, 0 );
         port = prefs.getUShort( KEY_PORT, 80 );
         username = prefs.getString( KEY_USERNAME, "" );
         String obfuscated = prefs.getString( KEY_PASSWORD, "" );
         prefs.end();
 
-        if ( model.isEmpty() || ip == 0 ) {
+        if ( modelStr.isEmpty() || ip == 0 ) {
             log_w( "No switch configuration stored" );
             return false;
         }
 
+        model = switchModelFromString( modelStr );
         password = deobfuscatePassword( obfuscated );
         ipAddress = IPAddress( ip );
-        log_i( "Switch config loaded: %s @ %s:%d", model.c_str(), ipAddress.toString().c_str(), port );
+        log_i( "Switch config loaded: %s @ %s:%d", modelStr.c_str(), ipAddress.toString().c_str(), port );
         return true;
     }
 
@@ -161,7 +163,7 @@ namespace Storage {
             return false;
         }
 
-        ops.switchModel = "V-60HD";
+        ops.switchModel = SwitchModel::V60HD;
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxChannelCount = prefs.getUChar( KEY_MAX_CHANNEL, 8 );
         ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
@@ -212,7 +214,7 @@ namespace Storage {
             return false;
         }
 
-        ops.switchModel = "V-160HD";
+        ops.switchModel = SwitchModel::V160HD;
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 8 );
         ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 8 );
@@ -264,7 +266,7 @@ namespace Storage {
             return false;
         }
 
-        ops.switchModel = "V-80HD";
+        ops.switchModel = SwitchModel::V80HD;
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 4 );
         ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 4 );
@@ -291,39 +293,54 @@ namespace Storage {
     }
 
     String ConfigManager::getActiveProtocol() {
-        String model;
+        SwitchModel model;
         IPAddress ip;
         uint16_t port;
         String username, password;
 
         if ( loadSwitchConfig( model, ip, port, username, password ) ) {
-            return model;
+            return switchModelToString( model );
         }
 
         return "";
     }
 
-    bool ConfigManager::hasProtocolConfig( const String &protocol ) {
+    bool ConfigManager::hasProtocolConfig( SwitchModel model ) {
         bool exists = false;
-        if ( protocol == "V-60HD" ) {
-            if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
-                exists = prefs.isKey( KEY_TALLY_CHANNEL );
-                prefs.end();
-            }
-        }
-        else if ( protocol == "V-160HD" ) {
-            if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
-                exists = prefs.isKey( KEY_TALLY_CHANNEL );
-                prefs.end();
-            }
-        }
-        else if ( protocol == "V-80HD" ) {
-            if ( prefs.begin( NS_V80HD, READ_ONLY ) ) {
-                exists = prefs.isKey( KEY_TALLY_CHANNEL );
-                prefs.end();
-            }
+        switch ( model ) {
+            case SwitchModel::V60HD:
+                if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            case SwitchModel::V160HD:
+                if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            case SwitchModel::V80HD:
+                if ( prefs.begin( NS_V80HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            default:
+                break;
         }
         return exists;
+    }
+
+    bool ConfigManager::saveActiveConfig( const StacOperations& ops ) {
+        switch ( ops.switchModel ) {
+            case SwitchModel::V60HD:  return saveV60HDConfig( ops );
+            case SwitchModel::V160HD: return saveV160HDConfig( ops );
+            case SwitchModel::V80HD:  return saveV80HDConfig( ops );
+            default:
+                log_e( "saveActiveConfig: unknown switch model" );
+                return false;
+        }
     }
 
     bool ConfigManager::saveStacID( const String &stacID ) {

@@ -10,16 +10,6 @@
 namespace Net {
 
     /**
-     * @brief Switch model types
-     */
-    enum class SwitchModel {
-        V60HD,      ///< Roland V-60HD
-        V80HD,      ///< Roland V-80HD
-        V160HD,     ///< Roland V-160HD
-        UNKNOWN     ///< Unknown or uninitialized
-    };
-
-    /**
      * @brief Factory for creating Roland client instances
      *
      * Creates the appropriate Roland client implementation based on
@@ -53,47 +43,7 @@ namespace Net {
          * @return Unique pointer to IRolandClient implementation
          */
         static std::unique_ptr<IRolandClient> createFromString( const String &modelString ) {
-            SwitchModel model = stringToSwitchModel( modelString );
-            return create( model );
-        }
-
-        /**
-         * @brief Convert string to SwitchModel enum
-         * @param modelString Switch model string
-         * @return SwitchModel enum value
-         */
-        static SwitchModel stringToSwitchModel( const String &modelString ) {
-            if ( modelString == "V-60HD" ) {
-                return SwitchModel::V60HD;
-            }
-            else if ( modelString == "V-160HD" ) {
-                return SwitchModel::V160HD;
-            }
-            else if ( modelString == "V-80HD" ) {
-                return SwitchModel::V80HD;
-            }
-            else {
-                return SwitchModel::UNKNOWN;
-            }
-        }
-
-        /**
-         * @brief Convert SwitchModel enum to string
-         * @param model SwitchModel enum value
-         * @return String representation
-         */
-        static String switchModelToString( SwitchModel model ) {
-            switch ( model ) {
-                case SwitchModel::V60HD:
-                    return "V-60HD";
-                case SwitchModel::V160HD:
-                    return "V-160HD";
-                case SwitchModel::V80HD:
-                    return "V-80HD";
-                case SwitchModel::UNKNOWN:
-                default:
-                    return "Unknown";
-            }
+            return create( switchModelFromString( modelString ) );
         }
 
       private:

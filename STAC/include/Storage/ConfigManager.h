@@ -71,14 +71,14 @@ namespace Storage {
         // @Claude: Should the model be an enum instead of a string for better type safety and performance?
         /**
          * @brief Save switch configuration
-         * @param model Switch model ("V-60HD", "V-80HD" or "V-160HD")
+         * @param model Switch model
          * @param ipAddress Switch IP address
          * @param port Switch HTTP port
          * @param username Username for authentication (V-160HD only, optional)
          * @param password Password for authentication (V-160HD only, optional)
          * @return true if saved successfully
          */
-        bool saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+        bool saveSwitchConfig( SwitchModel model, const IPAddress& ipAddress, uint16_t port,
                                const String &username = "", const String &password = "" );
 
         /**
@@ -90,7 +90,7 @@ namespace Storage {
          * @param password Output: Password for authentication (may be empty)
          * @return true if configuration exists
          */
-        bool loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+        bool loadSwitchConfig( SwitchModel &model, IPAddress& ipAddress, uint16_t &port,
                                String &username, String &password );
 
         // ========================================================================
@@ -140,6 +140,13 @@ namespace Storage {
         bool loadV80HDConfig( StacOperations& ops );
 
         /**
+         * @brief Save configuration for whichever switch model is set in ops
+         * @param ops StacOperations containing the model and settings to save
+         * @return true if saved successfully
+         */
+        bool saveActiveConfig( const StacOperations& ops );
+
+        /**
          * @brief Get currently active protocol
          * @return Protocol name ("V-60HD", "V-160HD", "V-80HD", or empty if not set)
          */
@@ -150,7 +157,7 @@ namespace Storage {
          * @param protocol Protocol name ("V-60HD", "V-160HD", or "V-80HD")
          * @return true if protocol configuration exists
          */
-        bool hasProtocolConfig( const String &protocol );
+        bool hasProtocolConfig( SwitchModel model );
 
         // ========================================================================
         // STAC Identity

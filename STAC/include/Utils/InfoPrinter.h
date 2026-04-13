@@ -123,7 +123,7 @@ namespace Utils {
             Serial.println( switchPort );
             Serial.println( "  --------------------------------------" );
             Serial.print( "    Configured for Model: " );
-            Serial.println( ops.switchModel );
+            Serial.println( switchModelToString( ops.switchModel ) );
             Serial.print( "    Active Tally Channel: " );
 
             if ( ops.isV60HD() ) {
@@ -163,7 +163,7 @@ namespace Utils {
             }
             else {
                 // Unknown model - print raw channel
-                log_e( "Unknown switch model: %s", ops.switchModel.c_str() );
+                log_e( "Unknown switch model: %s", switchModelToString( ops.switchModel ).c_str() );
                 Serial.println( ops.tallyChannel );
                 Serial.print( "    Max Tally Channel: " );
                 Serial.println( ops.maxChannelCount );

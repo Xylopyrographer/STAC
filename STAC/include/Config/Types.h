@@ -72,6 +72,34 @@ enum class OperatingMode : uint8_t {
     PROVISIONING    // Configuration mode
 };
 
+/**
+ * @brief Roland video switch model
+ */
+enum class SwitchModel : uint8_t {
+    V60HD,      ///< Roland V-60HD
+    V80HD,      ///< Roland V-80HD
+    V160HD,     ///< Roland V-160HD
+    UNKNOWN     ///< Unknown or uninitialized
+};
+
+/// Convert a model string ("V-60HD", "V-80HD", "V-160HD") to SwitchModel enum
+inline SwitchModel switchModelFromString( const String &s ) {
+    if ( s == "V-60HD" )  return SwitchModel::V60HD;
+    if ( s == "V-160HD" ) return SwitchModel::V160HD;
+    if ( s == "V-80HD" )  return SwitchModel::V80HD;
+    return SwitchModel::UNKNOWN;
+}
+
+/// Convert SwitchModel enum to its canonical display string
+inline String switchModelToString( SwitchModel model ) {
+    switch ( model ) {
+        case SwitchModel::V60HD:  return "V-60HD";
+        case SwitchModel::V160HD: return "V-160HD";
+        case SwitchModel::V80HD:  return "V-80HD";
+        default:                   return "Unknown";
+    }
+}
+
 // ============================================================================
 // STRUCTURES
 // ============================================================================
@@ -80,9 +108,7 @@ enum class OperatingMode : uint8_t {
  * @brief Operating parameters for STAC
  */
 struct StacOperations {
-    // @Claude: switchModel should be an enum instead of a string for better type safety and performance.
-    // @Claude: we discussd detangling V-60HD and V-160HD specific parameters. Is this a case where we should consider an alternate implementation?
-    String switchModel;             ///< Roland switch model ("V-60HD" or "V-160HD")
+    SwitchModel switchModel;        ///< Roland video switch model
     uint8_t tallyChannel;           ///< Channel being monitored (1-based)
     uint8_t maxChannelCount;        ///< Max channels for V-60HD
     String channelBank;             ///< Channel bank for V-160HD
@@ -95,7 +121,7 @@ struct StacOperations {
 
     // Default constructor
     StacOperations()
-        : switchModel( "NO_MODEL" )
+        : switchModel( SwitchModel::UNKNOWN )
         , tallyChannel( 1 )
         , maxChannelCount( 6 )
         , channelBank( "NO_BANK" )
@@ -113,23 +139,21 @@ struct StacOperations {
      * @return true if switchModel is "V-60HD"
      */
     bool isV60HD() const {
-        return switchModel == "V-60HD";
+        return switchModel == SwitchModel::V60HD;
     }
 
     /**
      * @brief Check if switch is V-160HD model
-     * @return true if switchModel is "V-160HD"
      */
     bool isV160HD() const {
-        return switchModel == "V-160HD";
+        return switchModel == SwitchModel::V160HD;
     }
 
     /**
      * @brief Check if switch is V-80HD model
-     * @return true if switchModel is "V-80HD"
      */
     bool isV80HD() const {
-        return switchModel == "V-80HD";
+        return switchModel == SwitchModel::V80HD;
     }
 };
 
@@ -192,9 +216,7 @@ struct WiFiInfo {
  * @brief Provisioning data from web configuration
  */
 struct ProvisioningData {
-    // @Claude: if we make the switch model an enum, we'll need to change the HTML provisioning page to match.
-    // @Claude: is there a way to detangle the V-60 and V-160 specific parameters here? Woud mean a big revamp in the HTML provisioning pages?
-    String switchModel;             ///< Roland switch model ("V-60HD", "V-160HD", "V-80HD")
+    SwitchModel switchModel;        ///< Roland video switch model
     String wifiSSID;                ///< WiFi network SSID
     String wifiPassword;            ///< WiFi network password
     String switchIPString;          ///< Switch IP as string
@@ -208,7 +230,7 @@ struct ProvisioningData {
 
     // Default constructor - uses conservative defaults; provisioning sets correct model-specific values
     ProvisioningData()
-        : switchModel( "NO_MODEL" )
+        : switchModel( SwitchModel::UNKNOWN )
         , wifiSSID( "" )
         , wifiPassword( "" )
         , switchIPString( "" )

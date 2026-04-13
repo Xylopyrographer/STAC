@@ -464,17 +464,7 @@ namespace Application {
                     if ( ops.displayBrightnessLevel != oldBrightness ) {
                         systemState->setOperations( ops );
                         // Save to protocol-specific namespace
-                        bool saved = false;
-                        if ( ops.isV60HD() ) {
-                            saved = configManager->saveV60HDConfig( ops );
-                        }
-                        else if ( ops.isV160HD() ) {
-                            saved = configManager->saveV160HDConfig( ops );
-                        }
-                        else if ( ops.isV80HD() ) {
-                            saved = configManager->saveV80HDConfig( ops );
-                        }
-                        if ( !saved ) {
+                        if ( !configManager->saveActiveConfig( ops ) ) {
                             log_e( "Failed to save brightness level" );
                         }
                     }
@@ -619,22 +609,22 @@ namespace Application {
             // Load protocol-specific operations from NVS
             StacOperations ops;
             String protocol = configManager->getActiveProtocol();
+            SwitchModel activeModel = switchModelFromString( protocol );
             bool opsLoaded = false;
 
-            // TODO: Replace string-based model comparisons with enum
-            // Architectural issue: String comparisons are fragile and error-prone.
-            // Recommendation: Define enum class SwitcherModel { V60HD, V80HD, V160HD }
-            // with helper functions toString()/fromString() for serialization.
-            // This provides compile-time safety and centralizes model definitions.
-            // Affects: ConfigManager, RolandClientFactory, WebConfigServer, StartupConfig
-            if ( protocol == "V-60HD" ) {
-                opsLoaded = configManager->loadV60HDConfig( ops );
-            }
-            else if ( protocol == "V-160HD" ) {
-                opsLoaded = configManager->loadV160HDConfig( ops );
-            }
-            else if ( protocol == "V-80HD" ) {
-                opsLoaded = configManager->loadV80HDConfig( ops );
+            switch ( activeModel ) {
+                case SwitchModel::V60HD:
+                    opsLoaded = configManager->loadV60HDConfig( ops );
+                    break;
+                case SwitchModel::V160HD:
+                    opsLoaded = configManager->loadV160HDConfig( ops );
+                    break;
+                case SwitchModel::V80HD:
+                    opsLoaded = configManager->loadV80HDConfig( ops );
+                    break;
+                default:
+                    log_e( "Unknown active protocol: %s", protocol.c_str() );
+                    break;
             }
 
             // @Claude: Again, should only be one place where we check if we're provisioned or not. Defaults should be loaded int ops parameters based on the configured switch at startup
@@ -645,8 +635,8 @@ namespace Application {
                 ops = StacOperations();  // Use explicit default construction
 
                 // Set switchModel from active protocol if available
-                if ( !protocol.isEmpty() ) {
-                    ops.switchModel = protocol;
+                if ( activeModel != SwitchModel::UNKNOWN ) {
+                    ops.switchModel = activeModel;
                 }
                 else {
                     log_e( "CRITICAL: No active protocol found and config load failed!" );
@@ -654,7 +644,7 @@ namespace Application {
             }
             else {
                 log_i( "Loaded configuration: channel=%d, model=%s, autoStart=%s",
-                       ops.tallyChannel, ops.switchModel.c_str(), ops.autoStartEnabled ? "YES" : "NO" );
+                       ops.tallyChannel, switchModelToString( ops.switchModel ).c_str(), ops.autoStartEnabled ? "YES" : "NO" );
             }
 
             // Update system state with loaded operations IMMEDIATELY to preserve them
@@ -682,10 +672,10 @@ namespace Application {
             // For V-160HD SDI channels (9-16), display the channel within bank (1-8)
             // For V-80HD SDI channels (5-8), display the channel within bank (1-4)
             uint8_t displayChannel = ops.tallyChannel;
-            if ( ops.switchModel == "V-160HD" && ops.tallyChannel > 8 ) {
+            if ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) {
                 displayChannel = ops.tallyChannel - 8;  // SDI 9→1, 10→2, etc.
             }
-            else if ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) {
+            else if ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) {
                 displayChannel = ops.tallyChannel - 4;  // SDI 5→1, 6→2, etc.
             }
             const uint8_t *channelGlyph = glyphManager->getDigitGlyph( displayChannel );
@@ -694,8 +684,8 @@ namespace Application {
             Display::color_t channelColor;
             Display::color_t autostartColor;
 
-            if ( ( ops.switchModel == "V-160HD" && ops.tallyChannel > 8 ) ||
-                    ( ops.switchModel == "V-80HD" && ops.tallyChannel > 4 ) ) {
+            if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
+                    ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
                 // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
                 autostartColor = Display::StandardColors::BLUE;
@@ -772,14 +762,7 @@ namespace Application {
                 systemState->setOperations( ops );
 
                 // Save to protocol-specific namespace
-                bool saved = false;
-                if ( ops.isV60HD() ) {
-                    saved = configManager->saveV60HDConfig( ops );
-                }
-                else if ( ops.isV160HD() ) {
-                    saved = configManager->saveV160HDConfig( ops );
-                }
-                if ( !saved ) {
+                if ( !configManager->saveActiveConfig( ops ) ) {
                     log_e( "Failed to save protocol configuration after startup" );
                 }
             }
@@ -1215,7 +1198,7 @@ namespace Application {
         ops.autoStartEnabled = false;
 
         // Set model-specific parameters
-        if ( provData.switchModel == "V-60HD" ) {
+        if ( provData.switchModel == SwitchModel::V60HD ) {
             ops.maxChannelCount = provData.maxChannel;
             ops.maxHDMIChannel = 0;
             ops.maxSDIChannel = 0;
@@ -1229,17 +1212,7 @@ namespace Application {
         }
 
         // Save to protocol-specific namespace
-        bool saved = false;
-        if ( ops.isV60HD() ) {
-            saved = configManager->saveV60HDConfig( ops );
-        }
-        else if ( ops.isV160HD() ) {
-            saved = configManager->saveV160HDConfig( ops );
-        }
-        else if ( ops.isV80HD() ) {
-            saved = configManager->saveV80HDConfig( ops );
-        }
-        if ( !saved ) {
+        if ( !configManager->saveActiveConfig( ops ) ) {
             log_e( "Failed to save protocol configuration" );
             return;
         }
@@ -1264,9 +1237,9 @@ namespace Application {
         rolandPollInterval = ops.statusPollInterval;
 
         // Create Roland client based on switch model from operations
-        rolandClient = Net::RolandClientFactory::createFromString( ops.switchModel );
+        rolandClient = Net::RolandClientFactory::create( ops.switchModel );
         if ( !rolandClient ) {
-            log_e( "Failed to create Roland client for model: %s", ops.switchModel.c_str() );
+            log_e( "Failed to create Roland client for model: %s", switchModelToString( ops.switchModel ).c_str() );
             return false;
         }
 
@@ -1289,7 +1262,7 @@ namespace Application {
         }
 
         log_i( "Roland client ready: %s @ %s:%d (ch %d)",
-               ops.switchModel.c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
+               switchModelToString( ops.switchModel ).c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
 
         return true;
     }

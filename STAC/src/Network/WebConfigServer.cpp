@@ -241,7 +241,7 @@ namespace Net {
 
         // Extract form data
         String model = server->arg( "stModel" );
-        result.configData.switchModel = model;
+        result.configData.switchModel = switchModelFromString( model );
         result.configData.wifiSSID = server->arg( "SSID" );
         result.configData.wifiPassword = server->arg( "pwd" );
         result.configData.switchIPString = server->arg( "stIP" );
@@ -462,22 +462,27 @@ namespace Net {
             configMgr.loadWiFiCredentials( wifiSSID, wifiPassword );
 
             // Load switch config
-            String switchModel;
+            SwitchModel switchModelEnum;
             IPAddress switchIPAddr;
             uint16_t switchPort;
             String username, password;
-            configMgr.loadSwitchConfig( switchModel, switchIPAddr, switchPort, username, password );
+            configMgr.loadSwitchConfig( switchModelEnum, switchIPAddr, switchPort, username, password );
+            String switchModel = switchModelToString( switchModelEnum );
 
             // Load protocol-specific operations
             StacOperations ops;
-            if ( switchModel == "V-60HD" ) {
-                configMgr.loadV60HDConfig( ops );
-            }
-            else if ( switchModel == "V-160HD" ) {
-                configMgr.loadV160HDConfig( ops );
-            }
-            else if ( switchModel == "V-80HD" ) {
-                configMgr.loadV80HDConfig( ops );
+            switch ( switchModelEnum ) {
+                case SwitchModel::V60HD:
+                    configMgr.loadV60HDConfig( ops );
+                    break;
+                case SwitchModel::V160HD:
+                    configMgr.loadV160HDConfig( ops );
+                    break;
+                case SwitchModel::V80HD:
+                    configMgr.loadV80HDConfig( ops );
+                    break;
+                default:
+                    break;
             }
 
             // Determine tally mode
