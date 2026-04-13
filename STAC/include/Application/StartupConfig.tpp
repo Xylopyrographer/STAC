@@ -160,9 +160,9 @@ namespace Application {
             foreground = StandardColors::BLUE;
         }
         else if ( ops.isATEM() ) {
-            // ATEM: Teal for all channels
+            // ATEM: Blue for all channels (matches Roland V-60HD / HDMI bank)
             background = StandardColors::BLACK;
-            foreground = StandardColors::TEAL;
+            foreground = StandardColors::BLUE;
         }
         else if ( ops.isV80HD() ) {
             // V-80HD: Check bank (HDMI 1-4, SDI 5-8)
@@ -260,7 +260,7 @@ namespace Application {
             bool bankMode = false;      // false=ones cycling (+1/press), true=bank cycling (×10/press)
             bool longPressHandled = false;
 
-            // Draw channel in ONES select mode: orange digit on dark-teal bg, teal bank corners
+            // Draw channel in ONES select mode: orange digit on dark-teal bg, purple bank corners
             auto drawOnesSelect = [&]() {
                 if constexpr ( GLYPH_SIZE == 1 ) {
                     display->drawChannelNumber( ops.tallyChannel, StandardColors::ORANGE, static_cast<color_t>( 0x003333 ) );

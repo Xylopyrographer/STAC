@@ -691,9 +691,8 @@ namespace Application {
             Display::color_t autostartColor;
 
             if ( ops.switchModel == SwitchModel::ATEM ) {
-                // ATEM: Teal for all channel numbers
-                channelColor = Display::StandardColors::TEAL;
-                autostartColor = Display::StandardColors::TEAL;
+                channelColor  = Display::StandardColors::BLUE;
+                autostartColor = Display::StandardColors::GREEN;
             }
             else if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
                     ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
