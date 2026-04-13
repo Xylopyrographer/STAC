@@ -153,7 +153,11 @@ The STAC will confirm receipt, briefly show a checkmark on its display, then res
 <a name="what-the-stac-shows-during-normal-operation"></a>
 ### What the STAC Shows During Normal Operation
 
-On power-up, after the brief orange and green startup indicators, the STAC shows the active tally input number in **teal** on a black background. This is distinct from Roland switchers (which show blue for HDMI / V-60HD channels and light green for SDI channels) — the teal colour indicates an ATEM configuration at a glance.
+On power-up, after the brief orange and green startup indicators, the STAC shows the active tally input number in blue on a black background.
+
+<!-- comment
+This is distinct from Roland switchers (which show blue for HDMI / V-60HD channels and light green for SDI channels) — the blue colour indicates an ATEM configuration at a glance.
+ -->
 
 From here, the startup parameter sequence and button operation are identical to what is described in the STAC Users Guide:
 
@@ -172,18 +176,18 @@ ATEM inputs go from 1 to 40. The STAC provides a **two-tier selection mode** to 
 
 **Entering select mode:**
 
-1. While the teal input number is shown, **press and hold** (~1.5 s). The display changes to an **orange number on a dark teal background** — you are now in **Ones cycling mode**.
+1. While the blue input number is shown, **press and hold** (~1.5 s). The display changes to an **orange number on a dark teal background** — you are now in **Ones cycling mode**.
 
 **Ones cycling mode** (orange on dark teal):
 
 - **Click** to advance to the next input (+1 each press). Cycles 1 → 2 → … → 40 → 1.
-- On LED matrix boards, corner pixels show which bank (decade) you are in — see [Displaying Inputs 10–40](#displaying-inputs-10-40) below for details.
+- On LED matrix boards, **purple** corner pixels show which bank (decade) you are in — see [Displaying Inputs 10–40](#displaying-inputs-10-40) below for details.
 - **Hold ~1.5 s** to switch to Bank cycling mode.
 - **Hold ~4 s** to confirm the current value and exit.
 
 **Bank cycling mode** (orange on black):
 
-- The display shows the **tens digit** (0–4) of the selected bank, with orange corner indicators matching the bank number. This mode is useful for jumping quickly from bank 1 (1–9) to bank 2 (10–19), bank 3 (20–29), and so on.
+- The display shows the **tens digit** (0–4) of the selected bank, with **red** corner indicators matching the bank number. This mode is useful for jumping quickly from bank 1 (1–9) to bank 2 (10–19), bank 3 (20–29), and so on.
 - **Click** to advance to the next bank start: 1 → 10 → 20 → 30 → 40 → 1.
 - **Hold ~1.5 s** to return to Ones cycling mode at the current bank position.
 - **Hold ~4 s** to confirm the current bank start and exit.
@@ -203,7 +207,7 @@ ATEM inputs go from 1 to 40. The STAC provides a **two-tier selection mode** to 
 
 **LED matrix boards (ATOM Matrix, Waveshare Matrix):**
 
-The matrix is a single character wide so only the **last (ones) digit** of the input number is shown. To indicate which bank (decade) you are in, corner pixels are lit in teal during normal display:
+The matrix is a single character wide so only the **last (ones) digit** of the input number is shown. To indicate which bank (decade) you are in, corner pixels are lit in purple during normal display:
 
 | Input range | Display | Corner indicators |
 |-------------|---------|-------------------|
@@ -213,7 +217,7 @@ The matrix is a single character wide so only the **last (ones) digit** of the i
 | 30–39 | Ones digit (0…9) | Top-left + top-right + bottom-right |
 | 40 | 0 | All four corners |
 
-During **Ones cycling mode**, corners are shown in orange along with the orange digit. During **Bank cycling mode**, corners are shown in orange on a black background and the digit shows the bank number (0–4).
+During **Ones cycling mode**, corners are shown in purple along with the orange digit. During **Bank cycling mode**, corners are shown in red on a black background and the digit shows the bank number (0–4).
 
 **TFT LCD boards (M5StickC Plus, LilyGo T-Display, LilyGo T-QT, AI PI-Lite):**
 
