@@ -358,6 +358,7 @@ namespace Net {
           <option value="V-60HD">V-60HD</option>
           <option value="V-80HD">V-80HD</option>
           <option value="V-160HD">V-160HD</option>
+          <option value="ATEM">ATEM (Blackmagic Design)</option>
         </select>
         <input type="submit" value="Next">
       </form>
@@ -500,6 +501,48 @@ namespace Net {
           
           <label for="pollTime3">Poll Interval (ms):</label>
           <input type="number" id="pollTime3" name="pollTime" value="300" min="175" max="2000" inputmode="numeric" pattern="[0-9]*" required>
+        </div>
+        
+        <input type="submit" value="Configure STAC">
+        <br>
+        <input type="reset" value="Reset">
+        <button type="button" onclick="showModelSelect()">Back</button>
+        
+        <!-- Export buttons below Save Configuration -->
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+          <button type="button" onclick="copyExportJSON()" style="background: #4caf50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;">
+            &#128203; Copy Settings
+          </button>
+          <button type="button" onclick="downloadExportJSON()" style="background: #2196f3; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+            &#128190; Save Settings
+          </button>
+          <small style="display:block; margin-top:8px; color:#666;">
+            Copy to paste into another STAC, or Save as file for backup.
+          </small>
+        </div>
+      </form>
+
+      <!-- ATEM Config Form (hidden initially) -->
+      <form id="form-atem" method="post" action="/config" style="display:none;">
+        <input type="hidden" name="stModel" value="ATEM">
+        
+        <div class="section">
+          <h3>WiFi Settings</h3>
+          <label for="SSID4">Network Name (SSID):</label>
+          <input type="text" id="SSID4" name="SSID" maxlength="32" required>
+          
+          <label for="pwd4">Password:</label>
+          <input type="password" id="pwd4" name="pwd" maxlength="63">
+        </div>
+        
+        <div class="section">
+          <h3>ATEM Settings</h3>
+          <label for="stIP4">ATEM Switcher IP Address:</label>
+          <input type="text" id="stIP4" name="stIP" placeholder="192.168.1.100" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" inputmode="decimal" required>
+          
+          <label for="stChanATEM">Input Number (1-40):</label>
+          <input type="number" id="stChanATEM" name="stChanATEM" value="1" min="1" max="40" inputmode="numeric" pattern="[0-9]*" required>
+          <small>The camera input number on the ATEM switcher (1 = Input 1).</small>
         </div>
         
         <input type="submit" value="Configure STAC">
@@ -682,6 +725,9 @@ namespace Net {
           } else if (model === 'V-80HD') {
             document.getElementById('form-v80hd').style.display = 'block';
             attachFormListeners('form-v80hd');
+          } else if (model === 'ATEM') {
+            document.getElementById('form-atem').style.display = 'block';
+            attachFormListeners('form-atem');
           }
           
           // Update export data in background (buttons are always visible)
@@ -717,8 +763,10 @@ namespace Net {
         ssidField = 'SSID2'; pwdField = 'pwd2'; ipField = 'stIP2'; portField = 'stPort2'; pollField = 'pollTime2';
       } else if (model === 'V-80HD') {
         ssidField = 'SSID3'; pwdField = 'pwd3'; ipField = 'stIP3'; portField = 'stPort3'; pollField = 'pollTime3';
+      } else if (model === 'ATEM') {
+        ssidField = 'SSID4'; pwdField = 'pwd4'; ipField = 'stIP4'; portField = null; pollField = null;
       }
-      
+
       // Build config object from form
       const config = {
         model: model,
@@ -728,11 +776,11 @@ namespace Net {
         },
         switch: {
           ip: document.getElementById(ipField).value,
-          port: parseInt(document.getElementById(portField).value),
-          pollInterval: parseInt(document.getElementById(pollField).value)
+          port: portField ? parseInt(document.getElementById(portField).value) : 9910,
+          pollInterval: pollField ? parseInt(document.getElementById(pollField).value) : 0
         }
       };
-      
+
       // Add model-specific fields
       if (model === 'V-60HD') {
         config.switch.maxChannel = parseInt(document.getElementById('stChan').value);
@@ -746,6 +794,8 @@ namespace Net {
         config.switch.lanPassword = document.getElementById('stnetPW3').value;
         config.switch.maxHDMI = parseInt(document.getElementById('stChanHDMI3').value);
         config.switch.maxSDI = parseInt(document.getElementById('stChanSDI3').value);
+      } else if (model === 'ATEM') {
+        config.switch.inputNumber = parseInt(document.getElementById('stChanATEM').value);
       }
       
       // Store export data (no textarea anymore, used by copy/download buttons)
@@ -959,6 +1009,7 @@ namespace Net {
       const v60hdVisible = document.getElementById('form-v60hd').style.display === 'block';
       const v160hdVisible = document.getElementById('form-v160hd').style.display === 'block';
       const v80hdVisible = document.getElementById('form-v80hd').style.display === 'block';
+      const atemVisible = document.getElementById('form-atem').style.display === 'block';
       
       if (v60hdVisible && config.model !== 'V-60HD') {
         if (!confirm('This is a ' + config.model + ' configuration, but you have V-60HD selected.\n\nSwitch to ' + config.model + ' and load this configuration?')) {
@@ -972,6 +1023,10 @@ namespace Net {
         if (!confirm('This is a ' + config.model + ' configuration, but you have V-80HD selected.\n\nSwitch to ' + config.model + ' and load this configuration?')) {
           return;
         }
+      } else if (atemVisible && config.model !== 'ATEM') {
+        if (!confirm('This is a ' + config.model + ' configuration, but you have ATEM selected.\n\nSwitch to ' + config.model + ' and load this configuration?')) {
+          return;
+        }
       }
       
       // Show appropriate form
@@ -982,6 +1037,7 @@ namespace Net {
       document.getElementById('form-v60hd').style.display = 'none';
       document.getElementById('form-v160hd').style.display = 'none';
       document.getElementById('form-v80hd').style.display = 'none';
+      document.getElementById('form-atem').style.display = 'none';
       
       if (config.model === 'V-60HD') {
         document.getElementById('form-v60hd').style.display = 'block';
@@ -1016,6 +1072,13 @@ namespace Net {
         document.getElementById('stChanSDI3').value = config.switch.maxSDI || 4;
         document.getElementById('pollTime3').value = config.switch.pollInterval || 300;
         attachFormListeners('form-v80hd');
+      } else if (config.model === 'ATEM') {
+        document.getElementById('form-atem').style.display = 'block';
+        document.getElementById('SSID4').value = config.wifi.ssid || '';
+        document.getElementById('pwd4').value = config.wifi.password || '';
+        document.getElementById('stIP4').value = config.switch.ip || '';
+        document.getElementById('stChanATEM').value = config.switch.inputNumber || 1;
+        attachFormListeners('form-atem');
       }
       
       // Update export data with loaded config
@@ -1029,6 +1092,7 @@ namespace Net {
       document.getElementById('form-v60hd').style.display = 'none';
       document.getElementById('form-v160hd').style.display = 'none';
       document.getElementById('form-v80hd').style.display = 'none';
+      document.getElementById('form-atem').style.display = 'none';
       document.getElementById('form-model').style.display = 'block';
       window.currentConfigJSON = null;
     }

@@ -101,6 +101,17 @@ namespace Display {
         virtual void drawGlyphOverlay( const uint8_t* glyph, color_t color, bool show = true ) = 0;
 
         /**
+         * @brief Draw a full channel number (multi-digit capable)
+         * @param channel Channel number to display (1-40 for ATEM, etc.)
+         * @param foreground Text/foreground color
+         * @param background Background color
+         * @return true if the display drew the number (TFT), false if no-op (LED matrix)
+         * @note Default is a no-op returning false; TFT overrides to render full numbers.
+         *       LED matrix callers should fall back to the glyph system on false return.
+         */
+        virtual bool drawChannelNumber( uint8_t channel, color_t foreground, color_t background ) { return false; }
+
+        /**
          * @brief Toggle the four corner pixels (for autostart indication)
          * @param cornersGlyph Pointer to corners glyph data (with rotation applied)
          * @param state True to turn on corners, false to turn off

@@ -711,9 +711,9 @@ namespace Display {
         show();
     }
 
-    void DisplayTFT::drawChannelNumber( uint8_t channel, color_t color, color_t bgColor ) {
+    bool DisplayTFT::drawChannelNumber( uint8_t channel, color_t color, color_t bgColor ) {
         if ( !_canvas ) {
-            return;
+            return false;
         }
 
         uint16_t fg = colorToRGB565( color );
@@ -758,6 +758,7 @@ namespace Display {
         _canvas->print( remappedStr );
 
         show();
+        return true;
     }
 
     void DisplayTFT::drawWiFiIcon( int16_t cx, int16_t cy, color_t color, bool connected ) {

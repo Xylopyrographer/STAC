@@ -622,6 +622,9 @@ namespace Application {
                 case SwitchModel::V80HD:
                     opsLoaded = configManager->loadV80HDConfig( ops );
                     break;
+                case SwitchModel::ATEM:
+                    opsLoaded = configManager->loadAtemConfig( ops );
+                    break;
                 default:
                     log_e( "Unknown active protocol: %s", protocol.c_str() );
                     break;
@@ -678,13 +681,21 @@ namespace Application {
             else if ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) {
                 displayChannel = ops.tallyChannel - 4;  // SDI 5→1, 6→2, etc.
             }
+            else if ( ops.switchModel == SwitchModel::ATEM && displayChannel > 9 ) {
+                displayChannel = displayChannel % 10;  // ATEM 1-40: display shows ones digit only for 10+
+            }
             const uint8_t *channelGlyph = glyphManager->getDigitGlyph( displayChannel );
 
             // Channel and autostart colors depend on switch model and channel bank
             Display::color_t channelColor;
             Display::color_t autostartColor;
 
-            if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
+            if ( ops.switchModel == SwitchModel::ATEM ) {
+                // ATEM: Teal for all channel numbers
+                channelColor = Display::StandardColors::TEAL;
+                autostartColor = Display::StandardColors::TEAL;
+            }
+            else if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
                     ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
                 // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
@@ -698,7 +709,24 @@ namespace Application {
 
             // Clear any previous display state before showing channel glyph
             display->clear( Config::Display::NO_SHOW );
-            display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
+
+            // For ATEM: TFT shows full number; LED matrix uses glyph + bank corner overlay
+            bool channelDrawn = false;
+            if ( ops.switchModel == SwitchModel::ATEM ) {
+                channelDrawn = display->drawChannelNumber( ops.tallyChannel, channelColor, Display::StandardColors::BLACK );
+            }
+            if ( !channelDrawn ) {
+                display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
+                if ( ops.switchModel == SwitchModel::ATEM && ops.tallyChannel > 9 ) {
+                    uint8_t bankGlyphIndex;
+                    if ( ops.tallyChannel < 20 )      { bankGlyphIndex = Display::GLF_BANK1_CORNERS; }
+                    else if ( ops.tallyChannel < 30 ) { bankGlyphIndex = Display::GLF_BANK2_CORNERS; }
+                    else if ( ops.tallyChannel < 40 ) { bankGlyphIndex = Display::GLF_BANK3_CORNERS; }
+                    else                              { bankGlyphIndex = Display::GLF_CORNERS; }
+                    const uint8_t *bankGlyph = glyphManager->getGlyph( bankGlyphIndex );
+                    display->drawGlyphOverlay( bankGlyph, channelColor, Config::Display::SHOW );
+                }
+            }
 
             // Wait for button release before proceeding
             while ( button->isPressed() ) {
@@ -1203,6 +1231,16 @@ namespace Application {
             ops.maxHDMIChannel = 0;
             ops.maxSDIChannel = 0;
             ops.channelBank = "";
+        }
+        else if ( provData.switchModel == SwitchModel::ATEM ) {
+            ops.tallyChannel = (provData.maxChannel >= 1 && provData.maxChannel <= 40)
+                                ? provData.maxChannel
+                                : 1;  // provData.maxChannel holds ATEM input number (1-40)
+            ops.maxChannelCount = 0;
+            ops.maxHDMIChannel = 0;
+            ops.maxSDIChannel = 0;
+            ops.channelBank = "";
+            ops.statusPollInterval = 0;  // ATEM uses runLoop(0) — no fixed poll interval
         }
         else {   // V-160HD or V-80HD
             ops.maxChannelCount = 0;

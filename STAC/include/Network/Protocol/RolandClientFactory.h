@@ -5,6 +5,7 @@
 #include "IRolandClient.h"
 #include "V60HDClient.h"
 #include "V160HDClient.h"
+#include "ATEMClient.h"
 
 
 namespace Net {
@@ -30,6 +31,9 @@ namespace Net {
                 case SwitchModel::V160HD:
                 case SwitchModel::V80HD:  // V-80HD uses same protocol as V-160HD
                     return std::make_unique<V160HDClient>();
+
+                case SwitchModel::ATEM:
+                    return std::make_unique<ATEMClient>();
 
                 case SwitchModel::UNKNOWN:
                 default:

@@ -79,6 +79,7 @@ enum class SwitchModel : uint8_t {
     V60HD,      ///< Roland V-60HD
     V80HD,      ///< Roland V-80HD
     V160HD,     ///< Roland V-160HD
+    ATEM,       ///< Blackmagic Design ATEM switcher
     UNKNOWN     ///< Unknown or uninitialized
 };
 
@@ -87,6 +88,7 @@ inline SwitchModel switchModelFromString( const String &s ) {
     if ( s == "V-60HD" )  return SwitchModel::V60HD;
     if ( s == "V-160HD" ) return SwitchModel::V160HD;
     if ( s == "V-80HD" )  return SwitchModel::V80HD;
+    if ( s == "ATEM" )    return SwitchModel::ATEM;
     return SwitchModel::UNKNOWN;
 }
 
@@ -96,6 +98,7 @@ inline String switchModelToString( SwitchModel model ) {
         case SwitchModel::V60HD:  return "V-60HD";
         case SwitchModel::V160HD: return "V-160HD";
         case SwitchModel::V80HD:  return "V-80HD";
+        case SwitchModel::ATEM:   return "ATEM";
         default:                   return "Unknown";
     }
 }
@@ -154,6 +157,13 @@ struct StacOperations {
      */
     bool isV80HD() const {
         return switchModel == SwitchModel::V80HD;
+    }
+
+    /**
+     * @brief Check if switch is a Blackmagic Design ATEM switcher
+     */
+    bool isATEM() const {
+        return switchModel == SwitchModel::ATEM;
     }
 };
 

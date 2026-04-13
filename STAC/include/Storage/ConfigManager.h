@@ -140,6 +140,20 @@ namespace Storage {
         bool loadV80HDConfig( StacOperations& ops );
 
         /**
+         * @brief Save ATEM protocol configuration
+         * @param ops StacOperations structure containing ATEM settings
+         * @return true if saved successfully
+         */
+        bool saveAtemConfig( const StacOperations& ops );
+
+        /**
+         * @brief Load ATEM protocol configuration
+         * @param ops Output: StacOperations structure with ATEM settings
+         * @return true if configuration exists
+         */
+        bool loadAtemConfig( StacOperations& ops );
+
+        /**
          * @brief Save configuration for whichever switch model is set in ops
          * @param ops StacOperations containing the model and settings to save
          * @return true if saved successfully
@@ -245,6 +259,7 @@ namespace Storage {
         static constexpr const char *NS_V60HD = "v60hd";
         static constexpr const char *NS_V160HD = "v160hd";
         static constexpr const char *NS_V80HD = "v80hd";
+        static constexpr const char *NS_ATEM = "atem";
         static constexpr const char *NS_IDENTITY = "identity";
         static constexpr const char *NS_PERIPHERAL = "peripheral";
 

@@ -78,8 +78,11 @@ namespace Display {
     constexpr uint8_t GLF_PO  = 32;  ///< Power-on pixel (center)
     constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
     constexpr uint8_t GLF_FR  = 34;  ///< Factory reset icon (circular arrow)
-    constexpr uint8_t GLF_P_CANCEL = 35; ///< Letter P with cancel slash (PMode cancel)
-    constexpr uint8_t GLF_N   = 36;  ///< Letter N
+    constexpr uint8_t GLF_P_CANCEL      = 35; ///< Letter P with cancel slash (PMode cancel)
+    constexpr uint8_t GLF_N             = 36; ///< Letter N
+    constexpr uint8_t GLF_BANK1_CORNERS = 37; ///< ATEM bank indicator: top-left corner only (inputs 10-19)
+    constexpr uint8_t GLF_BANK2_CORNERS = 38; ///< ATEM bank indicator: top-left + top-right (inputs 20-29)
+    constexpr uint8_t GLF_BANK3_CORNERS = 39; ///< ATEM bank indicator: top-left + top-right + bottom-right (inputs 30-39)
 
     // ========================================================================
     // Stub Glyph Data (for GlyphManager compatibility)
@@ -96,7 +99,7 @@ namespace Display {
         {GLF_DF}, {GLF_QM}, {GLF_CBD}, {GLF_CK}, {GLF_EN},
         {GLF_EM}, {GLF_DOT}, {GLF_CFG}, {GLF_A}, {GLF_S},
         {GLF_P}, {GLF_UD}, {GLF_PO}, {GLF_CORNERS}, {GLF_FR},
-        {GLF_P_CANCEL}, {GLF_N}
+        {GLF_P_CANCEL}, {GLF_N}, {GLF_BANK1_CORNERS}, {GLF_BANK2_CORNERS}, {GLF_BANK3_CORNERS}
     };
 
     constexpr uint8_t GLYPH_COUNT = sizeof( BASE_GLYPHS ) / sizeof( BASE_GLYPHS[ 0 ] );

@@ -161,6 +161,10 @@ namespace Utils {
                 Serial.print( "    Max SDI Tally Channel: " );
                 Serial.println( ops.maxSDIChannel );
             }
+            else if ( ops.isATEM() ) {
+                // ATEM: single flat index 1-40
+                Serial.println( ops.tallyChannel );
+            }
             else {
                 // Unknown model - print raw channel
                 log_e( "Unknown switch model: %s", switchModelToString( ops.switchModel ).c_str() );

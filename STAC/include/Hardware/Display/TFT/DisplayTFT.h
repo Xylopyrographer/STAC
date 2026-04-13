@@ -86,12 +86,13 @@ namespace Display {
         void drawLargeDigit( uint8_t digit, color_t color, color_t bgColor );
 
         /**
-         * @brief Draw a two-digit channel number
+         * @brief Draw a two-digit channel number (overrides IDisplay default no-op)
          * @param channel Channel number (1-99)
          * @param color Text color
          * @param bgColor Background color
+         * @return true (always draws on TFT)
          */
-        void drawChannelNumber( uint8_t channel, color_t color, color_t bgColor );
+        bool drawChannelNumber( uint8_t channel, color_t color, color_t bgColor ) override;
 
         /**
          * @brief Draw WiFi icon using primitives

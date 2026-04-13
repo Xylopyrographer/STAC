@@ -292,6 +292,21 @@ namespace Net {
             log_i( "    Max HDMI: %d, Max SDI: %d", result.configData.maxHDMIChannel, result.configData.maxSDIChannel );
             log_i( "    Poll Interval: %lu ms", result.configData.pollInterval );
         }
+        else if ( model == "ATEM" ) {
+            // ATEM input number stored in maxChannel (1-40); port/poll unused by ATEM
+            result.configData.maxChannel = static_cast<uint8_t>( server->arg( "stChanATEM" ).toInt() );
+            result.configData.switchPort = 0;        // ATEMmin uses port 9910 internally
+            result.configData.pollInterval = 0;      // ATEM uses runLoop(0), no polling interval
+            result.configData.lanUserID = "";
+            result.configData.lanPassword = "";
+            result.configData.maxHDMIChannel = 0;
+            result.configData.maxSDIChannel = 0;
+
+            log_i( "  ATEM Config:" );
+            log_i( "    WiFi SSID: %s", result.configData.wifiSSID.c_str() );
+            log_i( "    Switch IP: %s", result.configData.switchIPString.c_str() );
+            log_i( "    Input Number: %d", result.configData.maxChannel );
+        }
 
         result.type = PortalResultType::CONFIG_RECEIVED;
         operationComplete = true;
@@ -481,6 +496,9 @@ namespace Net {
                 case SwitchModel::V80HD:
                     configMgr.loadV80HDConfig( ops );
                     break;
+                case SwitchModel::ATEM:
+                    configMgr.loadAtemConfig( ops );
+                    break;
                 default:
                     break;
             }
@@ -535,6 +553,9 @@ namespace Net {
                 }
                 page += "\n    Max HDMI Tally Channel: " + String( ops.maxHDMIChannel );
                 page += "\n    Max SDI Tally Channel: " + String( ops.maxSDIChannel );
+            }
+            else if ( ops.isATEM() ) {
+                page += "\n    Active Tally Channel: " + String( ops.tallyChannel );
             }
 
             page += "\n    Tally Mode: " + tallyMode;

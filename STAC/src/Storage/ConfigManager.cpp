@@ -326,6 +326,12 @@ namespace Storage {
                     prefs.end();
                 }
                 break;
+            case SwitchModel::ATEM:
+                if ( prefs.begin( NS_ATEM, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
             default:
                 break;
         }
@@ -337,10 +343,58 @@ namespace Storage {
             case SwitchModel::V60HD:  return saveV60HDConfig( ops );
             case SwitchModel::V160HD: return saveV160HDConfig( ops );
             case SwitchModel::V80HD:  return saveV80HDConfig( ops );
+            case SwitchModel::ATEM:   return saveAtemConfig( ops );
             default:
                 log_e( "saveActiveConfig: unknown switch model" );
                 return false;
         }
+    }
+
+    bool ConfigManager::saveAtemConfig( const StacOperations& ops ) {
+        if ( !prefs.begin( NS_ATEM, READ_WRITE ) ) {
+            log_e( "Failed to open ATEM preferences" );
+            return false;
+        }
+
+        prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+        prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+        prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+        prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+        prefs.end();
+
+        log_i( "ATEM configuration saved" );
+        return true;
+    }
+
+    bool ConfigManager::loadAtemConfig( StacOperations& ops ) {
+        if ( !prefs.begin( NS_ATEM, READ_ONLY ) ) {
+            log_w( "No ATEM configuration found" );
+            return false;
+        }
+
+        ops.switchModel = SwitchModel::ATEM;
+        ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+        ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+        ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+        ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+
+        // ATEM does not use bank/HDMI/SDI/poll concepts
+        ops.maxChannelCount = 0;
+        ops.maxHDMIChannel = 0;
+        ops.maxSDIChannel = 0;
+        ops.channelBank = "";
+        ops.statusPollInterval = 0;  // ATEM uses runLoop(0) — no fixed poll interval
+
+        // Validate channel range (ATEMmin supports indexes 0-39, i.e. channels 1-40)
+        if ( ops.tallyChannel < 1 || ops.tallyChannel > 40 ) {
+            ops.tallyChannel = 1;
+            log_w( "Invalid ATEM tally channel, reset to 1" );
+        }
+
+        prefs.end();
+
+        log_i( "ATEM configuration loaded" );
+        return true;
     }
 
     bool ConfigManager::saveStacID( const String &stacID ) {
