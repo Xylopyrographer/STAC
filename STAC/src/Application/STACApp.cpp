@@ -722,9 +722,9 @@ namespace Application {
                     if ( ops.tallyChannel < 20 )      { bankGlyphIndex = Display::GLF_BANK1_CORNERS; }
                     else if ( ops.tallyChannel < 30 ) { bankGlyphIndex = Display::GLF_BANK2_CORNERS; }
                     else if ( ops.tallyChannel < 40 ) { bankGlyphIndex = Display::GLF_BANK3_CORNERS; }
-                    else                              { bankGlyphIndex = Display::GLF_CORNERS; }
+                    else                              { bankGlyphIndex = Display::GLF_BANK4_CORNERS; }
                     const uint8_t *bankGlyph = glyphManager->getGlyph( bankGlyphIndex );
-                    display->drawGlyphOverlay( bankGlyph, channelColor, Config::Display::SHOW );
+                    display->drawGlyphOverlay( bankGlyph, Display::StandardColors::PURPLE, Config::Display::SHOW );
                 }
             }
 

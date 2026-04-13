@@ -352,7 +352,7 @@ namespace Net {
       </div>
       
       <form id="form-model" method="post" action="/config-step1">
-        <label for="stModel">Select Roland Switcher Model:</label>
+        <label for="stModel">Select Switch Model:</label>
         <select name="stModel" id="stModel" required>
           <option value="" disabled selected>Choose model...</option>
           <option value="V-60HD">V-60HD</option>

@@ -214,10 +214,10 @@ namespace Application {
                 bankGlyphIndex = GLF_BANK3_CORNERS;
             }
             else {
-                bankGlyphIndex = GLF_CORNERS; // channel 40 = all four corners
+                bankGlyphIndex = GLF_BANK4_CORNERS; // channel 40 = all four inner-corner pixels
             }
             const uint8_t *bankGlyph = glyphManager->getGlyph( bankGlyphIndex );
-            display->drawGlyphOverlay( bankGlyph, foreground, true );
+            display->drawGlyphOverlay( bankGlyph, StandardColors::PURPLE, true );
         }
     }
 
@@ -273,8 +273,8 @@ namespace Application {
                         if ( ops.tallyChannel < 20 ) { bgIdx = GLF_BANK1_CORNERS; }
                         else if ( ops.tallyChannel < 30 ) { bgIdx = GLF_BANK2_CORNERS; }
                         else if ( ops.tallyChannel < 40 ) { bgIdx = GLF_BANK3_CORNERS; }
-                        else { bgIdx = GLF_CORNERS; }
-                        display->drawGlyphOverlay( glyphManager->getGlyph( bgIdx ), StandardColors::TEAL, true );
+                        else { bgIdx = GLF_BANK4_CORNERS; }
+                        display->drawGlyphOverlay( glyphManager->getGlyph( bgIdx ), StandardColors::PURPLE, true );
                     }
                 }
             };
@@ -293,8 +293,8 @@ namespace Application {
                         if ( ops.tallyChannel < 20 ) { bgIdx = GLF_BANK1_CORNERS; }
                         else if ( ops.tallyChannel < 30 ) { bgIdx = GLF_BANK2_CORNERS; }
                         else if ( ops.tallyChannel < 40 ) { bgIdx = GLF_BANK3_CORNERS; }
-                        else { bgIdx = GLF_CORNERS; }
-                        display->drawGlyphOverlay( glyphManager->getGlyph( bgIdx ), StandardColors::ORANGE, true );
+                        else { bgIdx = GLF_BANK4_CORNERS; }
+                        display->drawGlyphOverlay( glyphManager->getGlyph( bgIdx ), StandardColors::RED, true );
                     }
                 }
             };
