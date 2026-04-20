@@ -24,7 +24,7 @@ namespace Utils {
          * @brief Print the startup header with version information
          * @param stacID The STAC identifier (MAC-based ID)
          */
-        static void printHeader( const String &stacID ) {
+        static void printHeader( const String &stacID, const char *hwVersion = nullptr ) {
             // Ensure WiFi is initialized to get MAC address
             WiFi.mode( WIFI_STA );
 
@@ -36,7 +36,12 @@ namespace Utils {
             Serial.println( "    github.com/Xylopyrographer/STAC" );
             Serial.println();
             Serial.print( "    Device: " );
-            Serial.println( STAC_BOARD_NAME );
+            Serial.print( STAC_BOARD_NAME );
+            if ( hwVersion ) {
+                Serial.print( " " );
+                Serial.print( hwVersion );
+            }
+            Serial.println();
             Serial.print( "    SSID: " );
             Serial.println( stacID );
             Serial.println( "    Access: http://stac.local" );

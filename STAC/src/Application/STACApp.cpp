@@ -388,7 +388,22 @@ namespace Application {
         }
 
         // Print startup header to serial
-        Utils::InfoPrinter::printHeader( stacID );
+        // For the ATOM Matrix, append hardware version derived from the detected IMU:
+        //   MPU6886 → v1.0 (original hardware)
+        //   BMI270  → v1.1 (revised hardware)
+        const char *atomHwVersion = nullptr;
+        #if defined(IMU_TYPE_ATOM_MATRIX)
+        if ( imu ) {
+            const char *imuType = imu->getType();
+            if ( strcmp( imuType, "MPU6886" ) == 0 ) {
+                atomHwVersion = "v1.0";
+            }
+            else if ( strcmp( imuType, "BMI270" ) == 0 ) {
+                atomHwVersion = "v1.1";
+            }
+        }
+        #endif
+        Utils::InfoPrinter::printHeader( stacID, atomHwVersion );
 
         // WiFi Manager
         wifiManager = std::make_unique<Net::WiFiManager>();
@@ -695,7 +710,7 @@ namespace Application {
                 autostartColor = Display::StandardColors::GREEN;
             }
             else if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
-                    ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
+                      ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
                 // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
                 autostartColor = Display::StandardColors::BLUE;
@@ -718,10 +733,18 @@ namespace Application {
                 display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
                 if ( ops.switchModel == SwitchModel::ATEM && ops.tallyChannel > 9 ) {
                     uint8_t bankGlyphIndex;
-                    if ( ops.tallyChannel < 20 )      { bankGlyphIndex = Display::GLF_BANK1_CORNERS; }
-                    else if ( ops.tallyChannel < 30 ) { bankGlyphIndex = Display::GLF_BANK2_CORNERS; }
-                    else if ( ops.tallyChannel < 40 ) { bankGlyphIndex = Display::GLF_BANK3_CORNERS; }
-                    else                              { bankGlyphIndex = Display::GLF_BANK4_CORNERS; }
+                    if ( ops.tallyChannel < 20 )      {
+                        bankGlyphIndex = Display::GLF_BANK1_CORNERS;
+                    }
+                    else if ( ops.tallyChannel < 30 ) {
+                        bankGlyphIndex = Display::GLF_BANK2_CORNERS;
+                    }
+                    else if ( ops.tallyChannel < 40 ) {
+                        bankGlyphIndex = Display::GLF_BANK3_CORNERS;
+                    }
+                    else                              {
+                        bankGlyphIndex = Display::GLF_BANK4_CORNERS;
+                    }
                     const uint8_t *bankGlyph = glyphManager->getGlyph( bankGlyphIndex );
                     display->drawGlyphOverlay( bankGlyph, Display::StandardColors::PURPLE, Config::Display::SHOW );
                 }
@@ -1232,9 +1255,9 @@ namespace Application {
             ops.channelBank = "";
         }
         else if ( provData.switchModel == SwitchModel::ATEM ) {
-            ops.tallyChannel = (provData.maxChannel >= 1 && provData.maxChannel <= 40)
-                                ? provData.maxChannel
-                                : 1;  // provData.maxChannel holds ATEM input number (1-40)
+            ops.tallyChannel = ( provData.maxChannel >= 1 && provData.maxChannel <= 40 )
+                               ? provData.maxChannel
+                               : 1;  // provData.maxChannel holds ATEM input number (1-40)
             ops.maxChannelCount = 0;
             ops.maxHDMIChannel = 0;
             ops.maxSDIChannel = 0;
