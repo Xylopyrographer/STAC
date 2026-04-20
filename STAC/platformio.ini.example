@@ -60,6 +60,7 @@ board = m5stack-atom
 lib_deps = 
     ${core_libs.lib_deps}
     https://github.com/tanakamasayuki/I2C_MPU6886.git
+    https://github.com/TinyuZhao/BMI270_Sensor.git
 
 build_flags =
     ${debug_level.build_flags}
