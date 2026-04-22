@@ -1,3 +1,6 @@
+#include "Device_Config.h"
+#if defined(IMU_TYPE_ATOM_MATRIX)
+
 #include "Hardware/Sensors/BMI270_IMU.h"
 #include <Arduino.h>
 
@@ -168,5 +171,7 @@ namespace Hardware {
 
 } // namespace Hardware
 
+
+#endif  // IMU_TYPE_ATOM_MATRIX
 
 //  --- EOF --- //

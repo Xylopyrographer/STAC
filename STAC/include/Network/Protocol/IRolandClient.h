@@ -20,7 +20,8 @@ namespace Net {
         TIMEOUT,        ///< Request timed out
         INVALID_REPLY,  ///< Received malformed response
         AUTH_FAILED,    ///< Authentication failed (V-160HD)
-        NOT_INITIALIZED ///< Client not initialized
+        NOT_INITIALIZED,///< Client not initialized
+        CONNECTING      ///< Handshake/connection in progress (ATEM UDP)
     };
 
     /**
@@ -137,6 +138,8 @@ namespace Net {
                 return "auth_failed";
             case TallyStatus::NOT_INITIALIZED:
                 return "not_initialized";
+            case TallyStatus::CONNECTING:
+                return "connecting";
             default:
                 return "unknown";
         }

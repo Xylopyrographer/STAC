@@ -1,5 +1,7 @@
+#include "Device_Config.h"
+#if defined(IMU_TYPE_QMI8658)
+
 #include "Hardware/Sensors/QMI8658_IMU.h"
-#include "Device_Config.h"  // Add this line to get IMU_ORIENTATION_OFFSET
 #include <Arduino.h>
 
 
@@ -112,5 +114,7 @@ namespace Hardware {
 
 } // namespace Hardware
 
+
+#endif  // IMU_TYPE_QMI8658
 
 //  --- EOF --- //

@@ -1354,6 +1354,12 @@ namespace Application {
         Net::TallyQueryResult result;
         rolandClient->queryTallyStatus( result );
 
+        // ATEM handshake in progress — not an error, just keep driving the state machine
+        if ( result.status == Net::TallyStatus::CONNECTING ) {
+            lastRolandPoll = millis();
+            return;
+        }
+
         // Update last poll time AFTER query completes
         // This ensures we don't count the blocking HTTP request time as part of the interval
         lastRolandPoll = millis();

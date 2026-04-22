@@ -16,9 +16,11 @@ namespace Net {
         // the packet goes out immediately)
         _atemSwitcher.connect();
 
-        _initialized = true;
+        _initialized      = true;
+        _connectStartTime = millis();
 
         log_i( "ATEMClient: begin() — IP=%s  input_index=%d",
+
                config.switchIP.toString().c_str(), _inputIndex );
 
         return true;
@@ -43,11 +45,29 @@ namespace Net {
             return true;
         }
 
-        // Not yet connected (hello-packet handshake in progress)
+        // Not yet connected — either initial handshake or reconnect after connection loss.
         if ( !_atemSwitcher.isConnected() ) {
-            result.status    = TallyStatus::NO_CONNECTION;
-            result.connected = false;
-            result.gotReply  = false;
+            if ( _everInitialized ) {
+                // Previously had a working connection — signal loss so the UI can show an error
+                result.status    = TallyStatus::NO_CONNECTION;
+                result.connected = false;
+                result.gotReply  = false;
+                result.timedOut  = true;
+            }
+            else if ( ( millis() - _connectStartTime ) >= INITIAL_CONNECT_TIMEOUT_MS ) {
+                // Never connected and initial timeout elapsed — ATEM is not responding
+                result.status    = TallyStatus::NO_CONNECTION;
+                result.connected = false;
+                result.gotReply  = false;
+                result.timedOut  = true;
+            }
+            else {
+                // Initial handshake in progress, still within timeout window — stay silent
+                result.status    = TallyStatus::CONNECTING;
+                result.connected = false;
+                result.gotReply  = false;
+                result.timedOut  = false;
+            }
             return true;
         }
 
@@ -60,6 +80,7 @@ namespace Net {
         }
 
         // Fully connected and initialised — read tally flags
+        _everInitialized = true;   // Record that we have reached a fully-working connection
         uint8_t flags = _atemSwitcher.getTallyByIndexTallyFlags( _inputIndex );
 
         if ( flags & 0x01 ) {
@@ -82,7 +103,9 @@ namespace Net {
     void ATEMClient::end() {
         // ATEMmin has no explicit disconnect or close; the UDP socket lifetime
         // is managed by the ATEMmin object itself.
-        _initialized = false;
+        _initialized      = false;
+        _everInitialized  = false;  // Reset so a fresh begin() starts silent again
+        _connectStartTime = 0;
         log_i( "ATEMClient: end()" );
     }
 

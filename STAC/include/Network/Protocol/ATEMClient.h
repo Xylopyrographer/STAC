@@ -71,12 +71,20 @@ namespace Net {
         /**
          * @brief Return human-readable identifier for this client type.
          */
-        String getSwitchType() const override { return "ATEM"; }
+        String getSwitchType() const override {
+            return "ATEM";
+        }
+
+        /// Timeout (ms) for the initial connection attempt before showing an error.
+        /// ATEMbase retries every 5 s, so 15 s gives three full attempts.
+        static constexpr unsigned long INITIAL_CONNECT_TIMEOUT_MS = 15000;
 
       private:
-        ATEMmin  _atemSwitcher;
-        uint16_t _inputIndex   = 0;    ///< 0-based tally input index
-        bool     _initialized  = false;
+        ATEMmin       _atemSwitcher;
+        uint16_t      _inputIndex         = 0;     ///< 0-based tally input index
+        bool          _initialized        = false; ///< begin() has been called
+        bool          _everInitialized    = false; ///< ATEM handshake completed at least once
+        unsigned long _connectStartTime   = 0;     ///< millis() when begin() was called
     };
 
 } // namespace Net
