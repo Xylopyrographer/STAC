@@ -492,8 +492,8 @@ class ATEMEmulator:
                       pfx="ERR")
         if self.config.reject_new:
             self._log("Reject new:   ENABLED  (new HELLOs will be rejected)", pfx="ERR")
-        self._log("Shortcuts:    [num]p=PGM  [num]v=PVW  [num]o=OFF  "
-                  "A=all PGM  a=all OFF")
+        self._log("Shortcuts:    [num]p=PGM  [num]v=PVW  [num]u=UNSEL  "
+                  "P=all PGM  V=all PVW  U=all UNSEL")
         self._log("              s=status  ?=help  q or Enter=stop")
         self._log("═" * 65)
 
@@ -542,7 +542,7 @@ class ATEMEmulator:
         Two-character input scheme for setting individual inputs:
           Type one or two digits (the input number) followed by a state key.
           Examples:  1p → input 1 PROGRAM   12p → input 12 PROGRAM
-                     3v → input 3 PREVIEW    2o → input 2 OFF
+                     3v → input 3 PREVIEW    2u → input 2 UNSELECTED
         """
         if ch in ('\n', '\r') or ch.lower() == 'q':
             return None                         # stop server
@@ -559,17 +559,41 @@ class ATEMEmulator:
             self._print_help()
             return buf
 
+        # Bulk state keys: P (all PROGRAM)  V (all PREVIEW)  U (all UNSELECTED)
+        # Must be checked BEFORE the single-input handler (which uses ch.lower()
+        # and would swallow e.g. uppercase 'P' as a no-op 'p' with empty buffer).
+        if ch == 'P':
+            for i in range(len(self.config.tally)):
+                self.config.tally[i] = TallyState.PROGRAM
+            self._push_all()
+            self._log("All inputs → PROGRAM", pfx="KEY")
+            return ""
+
+        if ch == 'V':
+            for i in range(len(self.config.tally)):
+                self.config.tally[i] = TallyState.PREVIEW
+            self._push_all()
+            self._log("All inputs → PREVIEW", pfx="KEY")
+            return ""
+
+        if ch == 'U':
+            for i in range(len(self.config.tally)):
+                self.config.tally[i] = TallyState.OFF
+            self._push_all()
+            self._log("All inputs → UNSELECTED", pfx="KEY")
+            return ""
+
         lower = ch.lower()
 
         # Single-input state keys: p / v / o
-        if lower in ('p', 'v', 'o'):
+        if lower in ('p', 'v', 'u'):
             if buf:
                 try:
                     inp = int(buf)
                     if 1 <= inp <= self.config.num_inputs:
                         new_state = {'p': TallyState.PROGRAM,
                                      'v': TallyState.PREVIEW,
-                                     'o': TallyState.OFF}[lower]
+                                     'u': TallyState.OFF}[lower]
                         self.config.tally[inp - 1] = new_state
                         self._push_all()
                         self._log(f"Input {inp} → {new_state.label}", pfx="KEY")
@@ -578,21 +602,6 @@ class ATEMEmulator:
                                   f"(1–{self.config.num_inputs})", pfx="KEY")
                 except ValueError:
                     pass
-            return ""
-
-        # Bulk state keys: A (all PROGRAM)  a (all OFF)
-        if ch == 'A':
-            for i in range(len(self.config.tally)):
-                self.config.tally[i] = TallyState.PROGRAM
-            self._push_all()
-            self._log("All inputs → PROGRAM", pfx="KEY")
-            return ""
-
-        if ch == 'a':
-            for i in range(len(self.config.tally)):
-                self.config.tally[i] = TallyState.OFF
-            self._push_all()
-            self._log("All inputs → OFF", pfx="KEY")
             return ""
 
         return buf      # unknown key — keep buffer unchanged
@@ -621,11 +630,12 @@ class ATEMEmulator:
     @staticmethod
     def _print_help() -> None:
         print("\n┌─ Keyboard shortcuts (while server is running) " + "─" * 16)
-        print("│  [num]p   — Set input to PROGRAM   e.g. 1p   12p")
-        print("│  [num]v   — Set input to PREVIEW   e.g. 3v")
-        print("│  [num]o   — Set input to OFF        e.g. 2o")
-        print("│  A        — All inputs to PROGRAM")
-        print("│  a        — All inputs to OFF")
+        print("│  [num]p   — Set input to PROGRAM      e.g. 1p   12p")
+        print("│  [num]v   — Set input to PREVIEW      e.g. 3v")
+        print("│  [num]u   — Set input to UNSELECTED   e.g. 2u")
+        print("│  P        — All inputs to PROGRAM")
+        print("│  V        — All inputs to PREVIEW")
+        print("│  U        — All inputs to UNSELECTED")
         print("│  s        — Print live client/tally status")
         print("│  ?        — Show this help")
         print("│  q / Enter — Stop server")
