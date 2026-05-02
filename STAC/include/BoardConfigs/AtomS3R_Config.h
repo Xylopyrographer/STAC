@@ -100,6 +100,13 @@
 // ============================================================================
 // BUTTON CONFIGURATION
 // ============================================================================
+// The ATOM S3R uses a PMS150G-U6 micro-MCU to handle the hardware reset
+// button.  When the reset button is held for ~2 seconds the PMS150G-U6
+// pulls GPIO0 LOW, which causes the ESP32-S3 to enter ROM download mode
+// (same effect as holding BOOT while pressing RESET on a standard devkit).
+// A status LED on the PMS150G-U6 illuminates during download mode.
+// GPIO0 is therefore NOT available as a general-purpose input; do not use
+// it as a user button (see T-QT note in LilygoTQT_Config.h for same reason).
 
 #define PIN_BUTTON             41   // USR_BUT — display button
 #define BUTTON_DEBOUNCE_MS     25
@@ -120,6 +127,10 @@
 #define PIN_IMU_SCL  0   // SYS_SCL
 #define PIN_IMU_SDA 45   // SYS_SDA
 #define IMU_I2C_CLOCK 100000L  // 100 kHz
+
+// BMI270 INT1 output is connected to ESP32-S3 XTAL_32K_N (GPIO15).
+// STAC does not use IMU interrupts (orientation is polled), so this
+// connection is informational only and requires no firmware action.
 
 // IMU orientation remapping — calibrate after first hardware build.
 // Uncomment and adjust once physical orientation is confirmed.
