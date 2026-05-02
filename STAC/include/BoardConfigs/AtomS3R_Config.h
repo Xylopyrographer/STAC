@@ -133,18 +133,15 @@
 // STAC does not use IMU interrupts (orientation is polled), so this
 // connection is informational only and requires no firmware action.
 
-// IMU orientation remapping — calibrate after first hardware build.
-// Uncomment and adjust once physical orientation is confirmed.
-// #define IMU_ORIENTATION_OFFSET OrientationOffset::OFFSET_0
+// IMU orientation remapping — validated on hardware (May 2, 2026).
+// BMI270 on ATOM S3R has same PCB orientation as ATOM Matrix: identity mapping.
 
-// Axis remap — adjust signs/swaps to match ATOM S3R PCB orientation.
-// Placeholder: identity mapping until calibration is done.
+// Axis remap — identity (BMI270 axes align with ATOM S3R board axes)
 #define IMU_AXIS_REMAP_X (acc.x)
 #define IMU_AXIS_REMAP_Y (acc.y)
 #define IMU_AXIS_REMAP_Z (acc.z)
 
-// Orientation-to-LUT map — placeholder, mirrors ATOM Matrix pattern.
-// Update after physical rotation testing.
+// Orientation-to-LUT map — matches ATOM Matrix (home pattern #3, corner offset 0)
 #define DEVICE_ORIENTATION_TO_LUT_MAP { \
         Orientation::ROTATE_90,   /* enum 0 → LUT_90  */ \
                     Orientation::ROTATE_180,  /* enum 1 → LUT_180 */ \
@@ -154,7 +151,7 @@
                     Orientation::ROTATE_0     /* UNKNOWN → home   */ \
     }
 
-// Reverse mapping for debug logging: enum → physical angle (placeholder)
+// Reverse mapping for debug logging: enum → physical angle
 #define ORIENTATION_ENUM_TO_PHYSICAL_ANGLE { \
         270,  /* Orientation::ROTATE_0   → Physical 270° */ \
         180,  /* Orientation::ROTATE_90  → Physical 180° */ \
