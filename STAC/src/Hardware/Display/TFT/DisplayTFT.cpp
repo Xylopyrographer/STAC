@@ -18,8 +18,11 @@
     #define USE_AXP192_PMU
 #elif defined(DISPLAY_BACKLIGHT_PWM)
     #define USE_LGFX_BACKLIGHT
+#elif defined(DISPLAY_BACKLIGHT_LP5562)
+    #define USE_LP5562_BACKLIGHT
+    #include "Hardware/Power/LP5562.h"
 #endif
-// If neither defined, no software backlight control (DISPLAY_BACKLIGHT_NONE)
+// If none defined: no software backlight control (DISPLAY_BACKLIGHT_NONE)
 
 // Default rotation can be overridden in board config
 #ifndef TFT_DEFAULT_ROTATION
@@ -38,6 +41,8 @@ namespace Display {
         , _canvas( nullptr )
           #if defined(USE_AXP192_PMU)
         , _pmu()
+          #elif defined(USE_LP5562_BACKLIGHT)
+        , _lp5562( LED_DRVR_ADDR, Wire )
           #endif
         , _width( width )
         , _height( height )
@@ -76,6 +81,16 @@ namespace Display {
 
         // Small delay for power rail stabilization
         delay( 50 );
+        #elif defined(USE_LP5562_BACKLIGHT)
+        // Initialise the LP5562 RGBW LED driver (display backlight on W channel).
+        // Wire must already be started by the caller (IMU and LP5562 share the bus).
+        log_i( "Initializing LP5562 LED driver..." );
+        if ( !_lp5562.begin() ) {
+            log_e( "Failed to initialize LP5562 LED driver" );
+            return false;
+        }
+        _lp5562.setW( 0 );  // Ensure backlight off during init
+        log_i( "LP5562 initialized" );
         #endif
 
         log_i( "Creating Arduino_GFX display..." );
@@ -1122,6 +1137,9 @@ namespace Display {
         // Active-high: normal PWM mapping
         analogWrite( TFT_BL, _brightness );
         #endif
+        #elif defined(USE_LP5562_BACKLIGHT)
+        // LP5562 W channel controls display backlight via I2C
+        _lp5562.setW( _brightness );
         #endif
         log_d( "Backlight set to: %d", _brightness );
     }

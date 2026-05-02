@@ -25,6 +25,8 @@
 // Conditionally include AXP192 PMU for boards that use PMU-controlled backlight
 #if defined(DISPLAY_BACKLIGHT_PMU)
     #include "Hardware/Power/AXP192.h"
+#elif defined(DISPLAY_BACKLIGHT_LP5562)
+    #include "Hardware/Power/LP5562.h"
 #endif
 
 namespace Display {
@@ -187,9 +189,11 @@ namespace Display {
         Arduino_GFX *_gfx;        // Main display instance
         Arduino_Canvas *_canvas;  // Off-screen buffer for flicker-free updates
 
-        // Power management (backlight control) - only for boards with PMU
+        // Power management / backlight control — board-dependent
         #if defined(DISPLAY_BACKLIGHT_PMU)
         Hardware::AXP192 _pmu;
+        #elif defined(DISPLAY_BACKLIGHT_LP5562)
+        Hardware::LP5562 _lp5562;
         #endif
 
         // Display properties

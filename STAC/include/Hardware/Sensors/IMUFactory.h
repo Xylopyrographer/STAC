@@ -11,6 +11,10 @@
     #include "MPU6886_IMU.h"
 #elif defined(IMU_TYPE_QMI8658)
     #include "QMI8658_IMU.h"
+#elif defined(IMU_TYPE_BMI270)
+    #include "BMI270_IMU.h"
+    #include "NullIMU.h"
+    #include <Wire.h>
 #elif defined(IMU_TYPE_NONE)
     #include "NullIMU.h"
 #else
@@ -45,6 +49,22 @@ namespace Hardware {
                        Config::Pins::IMU_SDA,
                        IMU_I2C_ADDRESS
                    );
+            #elif defined(IMU_TYPE_BMI270)
+            // ATOM S3R: BMI270 is the only IMU variant — no runtime detection needed.
+            // Probe presence before constructing the full driver.
+            {
+                Wire.begin( Config::Pins::IMU_SDA, Config::Pins::IMU_SCL, IMU_I2C_CLOCK );
+                Wire.beginTransmission( 0x68 );
+                if ( Wire.endTransmission() != 0 ) {
+                    log_w( "BMI270 not found at 0x68 — using NullIMU" );
+                    return std::make_unique<NullIMU>();
+                }
+            }
+            return std::make_unique<BMI270_IMU>(
+                       Config::Pins::IMU_SCL,
+                       Config::Pins::IMU_SDA,
+                       IMU_I2C_CLOCK
+                   );
             #else
             return std::make_unique<NullIMU>();
             #endif
@@ -59,6 +79,8 @@ namespace Hardware {
             return "MPU6886";
             #elif defined(IMU_TYPE_QMI8658)
             return "QMI8658";
+            #elif defined(IMU_TYPE_BMI270)
+            return "BMI270";
             #else
             return "None";
             #endif
