@@ -12,7 +12,7 @@
  * All four channels operate in direct I2C PWM mode (no program engine needed).
  * Engines are left in HOLD state so the PWM registers drive LEDs directly.
  *
- * I2C address: 0x60 (fixed, cannot be changed)
+ * I2C address: 0x30 (7-bit, fixed — note: 0x60 is the 8-bit write address)
  * Recommended PWM frequency: 500 Hz (set via internal 32 kHz oscillator)
  *
  * References:
@@ -62,7 +62,7 @@ namespace Hardware {
       public:
         /**
          * @brief Construct LP5562 driver
-         * @param addr  7-bit I2C address (default 0x60)
+         * @param addr  7-bit I2C address (default 0x30)
          * @param wire  TwoWire instance to use (default Wire)
          * @param sda   I2C SDA pin (-1 = do not call Wire.begin)
          * @param scl   I2C SCL pin (-1 = do not call Wire.begin)
@@ -73,7 +73,7 @@ namespace Hardware {
          * when the I2C bus is already initialised by another driver (e.g.
          * BMI270_IMU) on the same bus.
          */
-        LP5562( uint8_t addr = 0x60, TwoWire& wire = Wire,
+        LP5562( uint8_t addr = 0x30, TwoWire& wire = Wire,
                 int8_t sda = -1, int8_t scl = -1, uint32_t clock = 100000 );
 
         /**

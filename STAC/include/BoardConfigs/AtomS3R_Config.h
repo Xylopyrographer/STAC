@@ -89,7 +89,8 @@
 
 // LP5562 driver IC — I2C address and bus pins
 // (shared I2C bus with IMU)
-#define LED_DRVR_ADDR  0x60
+// NOTE: LP5562 7-bit I2C address is 0x30 (0x60 is the 8-bit write address — Wire uses 7-bit)
+#define LED_DRVR_ADDR  0x30
 #define LED_DRVR_SDA   45   // SYS_SDA
 #define LED_DRVR_SCL    0   // SYS_SCL
 
