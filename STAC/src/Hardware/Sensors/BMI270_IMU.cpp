@@ -7,6 +7,10 @@
  * causes hardware timeouts on ESP32-S3 with OPI PSRAM.
  */
 
+// Device_Config.h must be included before the compile guard so that the
+// board config (e.g. AtomS3R_Config.h) is visible and IMU_TYPE_BMI270 is defined.
+#include "Device_Config.h"
+
 // Compile only for boards that have a BMI270
 #if defined(IMU_TYPE_BMI270)
 
