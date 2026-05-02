@@ -128,7 +128,7 @@
 #define PIN_IMU_SDA 45   // SYS_SDA
 #define IMU_I2C_CLOCK 100000L  // 100 kHz
 
-// BMI270 INT1 output is connected to ESP32-S3 XTAL_32K_N (GPIO15).
+// BMI270 INT1 output is connected to ESP32-S3 XTAL_32K_N (GPIO16).
 // STAC does not use IMU interrupts (orientation is polled), so this
 // connection is informational only and requires no firmware action.
 
