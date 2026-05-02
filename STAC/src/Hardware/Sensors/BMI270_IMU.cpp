@@ -59,6 +59,25 @@ namespace Hardware {
             return false;
         }
 
+        // Configure accelerometer before enabling.
+        // The BMI270 power-on default range is ±8G (register 0x41 = 0x02).
+        // Explicitly setting ±2G (highest resolution for 1g detection) with
+        // 100 Hz ODR ensures consistent sensitivity and correct divisor usage.
+        {
+            struct bmi2_sens_config accel_cfg;
+            accel_cfg.type              = BMI2_ACCEL;
+            accel_cfg.cfg.acc.odr       = BMI2_ACC_ODR_100HZ;
+            accel_cfg.cfg.acc.bwp       = BMI2_ACC_OSR2_AVG2;
+            accel_cfg.cfg.acc.filter_perf = BMI2_PERF_OPT_MODE;
+            accel_cfg.cfg.acc.range     = BMI2_ACC_RANGE_2G;
+            rslt = bmi2_set_sensor_config( &accel_cfg, 1, &_dev );
+            if ( rslt != BMI2_OK ) {
+                log_e( "BMI270 set accel config failed: %d", rslt );
+                _initialized = false;
+                return false;
+            }
+        }
+
         // Enable accelerometer
         uint8_t sens_list[] = { BMI2_ACCEL };
         rslt = bmi270_sensor_enable( sens_list, 1, &_dev );
@@ -66,6 +85,27 @@ namespace Hardware {
             log_e( "BMI270 sensor enable failed: %d", rslt );
             _initialized = false;
             return false;
+        }
+
+        // Wait for the first accelerometer sample to be ready.
+        // Poll the STATUS register (0x03) bit 7 (BMI2_DRDY_ACC_MASK = 0x80).
+        // Default accel ODR is 100 Hz → first sample within ~10 ms, but the
+        // sensor can take longer on cold power-up, so cap at 500 ms.
+        {
+            uint8_t status = 0;
+            const uint32_t timeoutMs = 500;
+            const uint32_t t0 = millis();
+            while ( millis() - t0 < timeoutMs ) {
+                if ( bmi2_get_status( &status, &_dev ) == BMI2_OK &&
+                        ( status & BMI2_DRDY_ACC_MASK ) ) {
+                    log_d( "BMI270 accel data ready after %lu ms", millis() - t0 );
+                    break;
+                }
+                delay( 5 );
+            }
+            if ( !( status & BMI2_DRDY_ACC_MASK ) ) {
+                log_w( "BMI270 accel data-ready timeout — proceeding anyway" );
+            }
         }
 
         _initialized = true;
@@ -113,7 +153,7 @@ namespace Hardware {
                              ( rawOrientation == Orientation::ROTATE_270 ) ? "270°"   :
                              ( rawOrientation == Orientation::FLAT       ) ? "FLAT"   : "UNKNOWN";
 
-        log_d( "BMI270 physical orientation: %s", rawStr );
+        log_i( "BMI270 orientation: %s (raw X=%.0f Y=%.0f Z=%.0f)", rawStr, scaledAccX, scaledAccY, scaledAccZ );
 
         return rawOrientation;
     }
