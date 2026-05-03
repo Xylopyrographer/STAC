@@ -246,10 +246,12 @@ namespace Application {
 
         // Set initial rotation: use IMU-detected orientation for boards with IMU,
         // or board-specific physical rotation for boards without IMU
-        #ifdef DISPLAY_PHYSICAL_ROTATION
+        #if IMU_HAS_IMU
+        display->setInitialRotation( static_cast<uint8_t>( displayOrientation ) );
+        #elif defined(DISPLAY_PHYSICAL_ROTATION)
         display->setInitialRotation( DISPLAY_PHYSICAL_ROTATION );
         #else
-        display->setInitialRotation( static_cast<uint8_t>( displayOrientation ) );
+        display->setInitialRotation( 0 );
         #endif
 
         if ( !display->begin() ) {

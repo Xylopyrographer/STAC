@@ -19,7 +19,7 @@ namespace Display {
      */
     inline Arduino_GFX *createArduinoGFXDisplay( uint8_t rotation = 0 ) {
 
-        #if defined(TFT_PANEL_ST7789) || defined(TFT_PANEL_ST7735S) || defined(TFT_PANEL_GC9A01)
+        #if defined(TFT_PANEL_ST7789) || defined(TFT_PANEL_ST7735S) || defined(TFT_PANEL_GC9A01) || defined(TFT_PANEL_GC9107)
 
         // Create SPI bus
         Arduino_DataBus *bus = new Arduino_ESP32SPI(
@@ -107,12 +107,28 @@ namespace Display {
             0,                       // col_offset2 (rotation 2) - no offset needed
             0                        // row_offset2 (rotation 2) - no offset needed
         );
+        #elif defined(TFT_PANEL_GC9107)
+        // Arduino_GC9107 for M5Stack ATOM S3R 128×128 IPS display.
+        // GC9107 is a distinct controller from GC9A01; Arduino_GFX provides
+        // Arduino_GC9107 class. The panel is native 128×128 (no windowing).
+        gfx = new Arduino_GC9107(
+            bus,              // Bus instance
+            TFT_RST,          // Reset pin
+            rotation,         // Rotation (0-3)
+            true,             // IPS display
+            DISPLAY_WIDTH,    // 128
+            DISPLAY_HEIGHT,   // 128
+            0,                // col_offset1
+            0,                // row_offset1
+            0,                // col_offset2
+            0                 // row_offset2
+        );
         #endif
 
         return gfx;
 
         #else
-#error "TFT panel type not defined - check board config"
+#error "TFT panel type not defined - check board config. Expected one of: TFT_PANEL_ST7789, TFT_PANEL_ST7735S, TFT_PANEL_GC9A01, TFT_PANEL_GC9107"
         return nullptr;
         #endif
     }

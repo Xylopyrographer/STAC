@@ -8,10 +8,7 @@ __pycache__/
 # Build artifacts
 *.bin
 
-# Generated release artifacts (distributed via GitHub Releases)
-*.pdf
-
 # Temporary backup files
 *.backup
-*.md.bak
+*.bak
 build_log.txt

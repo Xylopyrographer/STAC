@@ -20,6 +20,7 @@
     #else
         // Arduino IDE fallback - uncomment ONE of these:
         #include "BoardConfigs/AtomMatrix_Config.h"
+        // #include "BoardConfigs/AtomS3R_Config.h"
         // #include "BoardConfigs/WaveshareS3_Config.h"
         // #include "BoardConfigs/M5StickCPlus_Config.h"
         // #include "BoardConfigs/LilygoTDisplay_Config.h"

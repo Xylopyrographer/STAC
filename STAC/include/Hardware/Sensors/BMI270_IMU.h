@@ -1,53 +1,80 @@
+/**
+ * @file BMI270_IMU.h
+ * @brief BMI270 IMU implementation for M5Stack ATOM S3R
+ *
+ * Implements the IIMU interface for the Bosch BMI270 6-axis IMU.
+ * Uses the TinyuZhao/BMI270_Sensor raw Bosch C driver directly —
+ * no Arduino wrapper class exists for this library.
+ *
+ * I2C address: 0x68 (SDO pulled low)
+ *
+ * IMPORTANT — I2C read callback:
+ *   Use full stop (endTransmission(true)) between the register write and the
+ *   subsequent requestFrom().  The ESP32 ng I2C driver produces a hardware
+ *   timeout with repeated-start (endTransmission(false)) on certain ESP32-S3
+ *   hardware configurations (OPI PSRAM).
+ *
+ * Library: https://github.com/TinyuZhao/BMI270_Sensor
+ */
+
 #ifndef STAC_BMI270_IMU_H
 #define STAC_BMI270_IMU_H
 
 #include "IIMU.h"
 #include "Device_Config.h"
-#include <bmi270.h>
 #include <Wire.h>
+
+// Include BMI270 Bosch C driver headers (provided by TinyuZhao/BMI270_Sensor)
+#include <bmi270.h>
 
 namespace Hardware {
 
     /**
-     * @brief IIMU implementation for the Bosch BMI270 accelerometer/gyroscope.
+     * @brief BMI270 IMU for M5Stack ATOM S3R
      *
-     * Used on the revised M5Stack ATOM Matrix hardware where the BMI270 replaces
-     * the original MPU6886. The IMUFactory probes the I2C bus at runtime to
-     * distinguish the two chips and constructs the appropriate subclass.
-     *
-     * The BMI270 uses the raw Bosch C driver (no Arduino wrapper), so Wire I/O
-     * is handled via static callback functions registered with the bmi2_dev struct.
+     * Provides 6-axis accelerometer/gyroscope data used for display
+     * orientation detection.  The BMM150 magnetometer connected through
+     * the BMI270 sensor hub is not used by STAC.
      */
     class BMI270_IMU : public IIMU {
       public:
         /**
-         * @brief Construct with I2C pins and clock rate.
-         * @param sclPin  I2C clock pin number
-         * @param sdaPin  I2C data pin number
-         * @param clock   I2C clock frequency in Hz (e.g. 100000L)
+         * @brief Construct a new BMI270_IMU object
+         * @param sclPin I2C SCL pin
+         * @param sdaPin I2C SDA pin
+         * @param clock  I2C clock frequency (Hz)
+         * @param i2cAddr BMI270 I2C address (default 0x68)
          */
-        BMI270_IMU( uint8_t sclPin, uint8_t sdaPin, uint32_t clock );
+        BMI270_IMU( uint8_t sclPin, uint8_t sdaPin, uint32_t clock,
+                    uint8_t i2cAddr = 0x68 );
 
-        bool        begin() override;
+        ~BMI270_IMU() override = default;
+
+        // IIMU interface implementation
+        bool begin() override;
         Orientation getOrientation() override;
-        bool        getRawAcceleration( float &x, float &y, float &z ) override;
-        bool        isAvailable() const override;
+        bool getRawAcceleration( float &accX, float &accY, float &accZ ) override;
+        bool isAvailable() const override;
         const char *getType() const override;
 
       private:
-        struct bmi2_dev dev;
-        uint8_t         sclPin;
-        uint8_t         sdaPin;
-        uint32_t        clockHz;
-        bool            initialized;
+        uint8_t  _sclPin;
+        uint8_t  _sdaPin;
+        uint32_t _clock;
+        uint8_t  _i2cAddr;
+        bool     _initialized;
 
-        // Bosch driver I2C callback functions.
-        // intf_ptr is a TwoWire* (set to &Wire during begin()).
-        static BMI2_INTF_RETURN_TYPE i2c_read( uint8_t reg_addr, uint8_t *reg_data,
-                                               uint32_t len, void *intf_ptr );
-        static BMI2_INTF_RETURN_TYPE i2c_write( uint8_t reg_addr, const uint8_t *reg_data,
-                                                uint32_t len, void *intf_ptr );
-        static void delay_us_cb( uint32_t period, void *intf_ptr );
+        struct bmi2_dev _dev;  // Bosch driver device descriptor
+
+        // -----------------------------------------------------------------------
+        // Static I2C callbacks registered with the Bosch driver.
+        // intf_ptr is set to `this` so callbacks can access _i2cAddr.
+        // -----------------------------------------------------------------------
+        static int8_t i2c_read( uint8_t reg_addr, uint8_t *reg_data,
+                                uint32_t len, void *intf_ptr );
+        static int8_t i2c_write( uint8_t reg_addr, const uint8_t *reg_data,
+                                 uint32_t len, void *intf_ptr );
+        static void delay_us( uint32_t period_us, void *intf_ptr );
     };
 
 } // namespace Hardware

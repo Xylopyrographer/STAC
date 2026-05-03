@@ -27,9 +27,14 @@
 #include "Device_Config.h"
 
 // Include appropriate calibration display
+// DISPLAY_TYPE_ARDUINO_GFX is checked first so it takes precedence over the
+// generic DISPLAY_TYPE_TFT flag that some board configs also define.
 #if defined(DISPLAY_TYPE_LED_MATRIX)
     #include "Calibration/CalibrationDisplayLED.h"
     using CalibrationDisplayType = Calibration::CalibrationDisplayLED;
+#elif defined(DISPLAY_TYPE_ARDUINO_GFX)
+    #include "Calibration/CalibrationDisplayArduinoGFX.h"
+    using CalibrationDisplayType = Calibration::CalibrationDisplayArduinoGFX;
 #elif defined(DISPLAY_TYPE_TFT)
     #include "Calibration/CalibrationDisplayTFT.h"
     using CalibrationDisplayType = Calibration::CalibrationDisplayTFT;
