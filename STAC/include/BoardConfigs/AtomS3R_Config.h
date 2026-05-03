@@ -141,14 +141,14 @@
 #define IMU_AXIS_REMAP_Y (acc.y)
 #define IMU_AXIS_REMAP_Z (acc.z)
 
-// Orientation-to-LUT map — matches ATOM Matrix (home pattern #3, corner offset 0)
+// Orientation-to-LUT map — calibrated via IMU_Calibrator (home pattern #2, corner offset 0)
 #define DEVICE_ORIENTATION_TO_LUT_MAP { \
-        Orientation::ROTATE_90,   /* enum 0 → LUT_90  */ \
-                    Orientation::ROTATE_180,  /* enum 1 → LUT_180 */ \
-                    Orientation::ROTATE_270,  /* enum 2 → LUT_270 */ \
-                    Orientation::ROTATE_0,    /* enum 3 → LUT_0   */ \
-                    Orientation::ROTATE_0,    /* FLAT → home      */ \
-                    Orientation::ROTATE_0     /* UNKNOWN → home   */ \
+        Orientation::ROTATE_0,    /* enum 0 (physical   0°) → LUT_0   */ \
+                    Orientation::ROTATE_270,  /* enum 1 (physical  90°) → LUT_270 */ \
+                    Orientation::ROTATE_180,  /* enum 2 (physical 180°) → LUT_180 */ \
+                    Orientation::ROTATE_90,   /* enum 3 (physical 270°) → LUT_90  */ \
+                    Orientation::ROTATE_0,    /* FLAT    → same as home            */ \
+                    Orientation::ROTATE_0     /* UNKNOWN → same as home            */ \
     }
 
 // Reverse mapping for debug logging: enum → physical angle

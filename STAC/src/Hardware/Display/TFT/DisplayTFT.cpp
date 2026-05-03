@@ -340,7 +340,7 @@ namespace Display {
                 }
 
                 // Use FreeSansBold24pt - scale down for smoother rendering
-                uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+                uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
                 _canvas->setFont( &STACSansBold24pt7b );
                 _canvas->setTextColor( colorToRGB565( foreground ) );
@@ -699,7 +699,7 @@ namespace Display {
         _canvas->fillScreen( bg );
 
         // Use STACSansBold24pt scaled down for smooth digit rendering
-        uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+        uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
         _canvas->setFont( &STACSansBold24pt7b );
         _canvas->setTextColor( fg, bg );
@@ -743,7 +743,7 @@ namespace Display {
 
         // Use STACSansBold24pt - larger size for single digit, smaller for double digit
         uint8_t scale = ( numDigits == 1 ) ? 3 : 2;
-        if ( _rotation == 1 || _rotation == 3 ) {
+        if ( currentWidth() > currentHeight() ) {
             scale = ( numDigits == 1 ) ? 2 : 1; // Landscape is narrower
         }
 
@@ -784,7 +784,7 @@ namespace Display {
 
         // Draw WiFi arcs (signal strength indicator)
         // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
-        bool isLandscape = ( _rotation == 1 || _rotation == 3 );
+        bool isLandscape = ( currentWidth() > currentHeight() );
         float scale = isLandscape ? 0.55f : 1.0f;
 
         int16_t dotY = cy + static_cast<int16_t>( 40 * scale ); // Base dot position
@@ -950,8 +950,8 @@ namespace Display {
         uint16_t rgb565 = colorToRGB565( color );
 
         // Use larger scale to match the prominence of error X icon
-        // Portrait (0,2): scale 3, Landscape (1,3): scale 2
-        uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+        // Portrait (width <= height): scale 3, Landscape (width > height): scale 2
+        uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
         // Draw question mark using STACSansBold24pt font
         _canvas->setFont( &STACSansBold24pt7b );
@@ -981,7 +981,7 @@ namespace Display {
         uint16_t rgb565 = colorToRGB565( color );
 
         // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
-        bool isLandscape = ( _rotation == 1 || _rotation == 3 );
+        bool isLandscape = ( currentWidth() > currentHeight() );
         float scale = isLandscape ? 0.65f : 1.0f;
 
         // Circular arrow dimensions
