@@ -1399,6 +1399,9 @@ namespace Application {
 
             if ( validResponse ) {
                 // ===== Valid response - update tally state =====
+                // Check if we're recovering from an error condition before clearing flags
+                bool wasInError = switchState.junkReply || ( switchState.noReplyCount > 0 );
+
                 rolandPollInterval = ops.statusPollInterval;  // Use normal poll interval
                 switchState.junkReply = false;
                 switchState.junkReplyCount = 0;  // Clear error counters
@@ -1410,8 +1413,8 @@ namespace Application {
                     systemState->getTallyState().setState( newState );
                     log_i( "Tally: %s", State::TallyStateManager::stateToString( newState ) );
                 }
-                else {
-                    // State unchanged, but we need to update display and GROVE in case we're recovering from error
+                else if ( wasInError ) {
+                    // Recovering from error: state unchanged but display may show error icon - redraw
                     updateDisplay();
                     #if HAS_PERIPHERAL_MODE_CAPABILITY
                     if ( systemState->getOperatingMode().isNormalMode() && grovePort ) {
@@ -1419,6 +1422,7 @@ namespace Application {
                     }
                     #endif
                 }
+                // else: state unchanged and no error recovery needed - display is already correct
 
                 // Grove port will be updated by tally state change callback
             }
