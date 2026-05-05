@@ -98,7 +98,7 @@ class ATEMEmulatorConfig:
     # tally[i] is the state for ATEM input (i + 1); resized when num_inputs changes
     tally: List[TallyState]   = field(default_factory=list)
 
-    # Auto-cycle: rotate the single PROGRAM input through all inputs
+    # Auto-cycle: rotate PROGRAM through all inputs; next input always gets PREVIEW
     auto_cycle:         bool  = False
     cycle_interval_sec: float = 5.0
 
@@ -437,16 +437,22 @@ class ATEMEmulator:
             if c:
                 self._log(f"Disconnected {addr[0]}:{addr[1]} — {reason}")
 
-        # Auto-cycle: advance the PROGRAM input every cycle_interval_sec
+        # Auto-cycle: advance PROGRAM each tick; next input gets PREVIEW
         if self.config.auto_cycle and self.config.tally and \
                 now - self._last_cycle > self.config.cycle_interval_sec:
             for i in range(len(self.config.tally)):
                 self.config.tally[i] = TallyState.OFF
             self._cycle_idx = (self._cycle_idx + 1) % self.config.num_inputs
+            pvw_idx = (self._cycle_idx + 1) % self.config.num_inputs
             self.config.tally[self._cycle_idx] = TallyState.PROGRAM
+            self.config.tally[pvw_idx] = TallyState.PREVIEW
             self._push_all()
             self._last_cycle = now
-            self._log(f"Auto-cycle: input {self._cycle_idx + 1} → PROGRAM", pfx="CYC")
+            self._log(
+                f"Auto-cycle: input {self._cycle_idx + 1} → PROGRAM, "
+                f"input {pvw_idx + 1} → PREVIEW",
+                pfx="CYC",
+            )
 
     def _push_all(self) -> None:
         """Push the current tally state to all initialized clients."""

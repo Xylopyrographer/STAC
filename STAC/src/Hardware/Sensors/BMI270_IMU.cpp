@@ -11,8 +11,9 @@
 // board config (e.g. AtomS3R_Config.h) is visible and IMU_TYPE_BMI270 is defined.
 #include "Device_Config.h"
 
-// Compile only for boards that have a BMI270
-#if defined(IMU_TYPE_BMI270)
+// Compile for boards that have a BMI270 directly, or the ATOM Matrix which
+// detects BMI270 at runtime alongside MPU6886 (both share I2C address 0x68).
+#if defined(IMU_TYPE_BMI270) || defined(IMU_TYPE_ATOM_MATRIX)
 
 #include "Hardware/Sensors/BMI270_IMU.h"
 #include "Config/Constants.h"
