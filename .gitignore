@@ -1,6 +1,12 @@
 # VS Code workspace files
 *.code-workspace
 
+# Copilot chat history
+chat.json
+
+# Documentation PDF builds
+Documentation/*.pdf
+
 # Development/planning documents (not for release)
 STAC_v3_PROJECT_CONTEXT.md
 __pycache__/
