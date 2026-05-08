@@ -172,7 +172,7 @@ Once connected to WiFi, the STAC connects to the ATEM. During the ATEM connectio
 <a name="setting-the-tally-input-on-device"></a>
 ### Setting the Tally Input (On-Device)
 
-ATEM inputs go from 1 to 40. The STAC provides a **two-tier selection mode** to navigate the full range quickly without cycling through all 40 values one press at a time.
+ATEM inputs go from 1 to 40. The STAC provides a two-tier selection mode to navigate the full range quickly without cycling through all 40 values one press at a time.
 
 **Entering select mode:**
 
@@ -183,24 +183,24 @@ ATEM inputs go from 1 to 40. The STAC provides a **two-tier selection mode** to 
 - **Click** to advance to the next input (+1 each press). Cycles 1 → 2 → … → 40 → 1.
 - On LED matrix boards, **purple** corner pixels show which bank (decade) you are in — see [Displaying Inputs 10–40](#displaying-inputs-10-40) below for details.
 - **Hold ~1.5 s** to switch to Bank cycling mode.
-- **Hold ~4 s** to confirm the current value and exit.
+- **Hold ~3 s** to confirm the current value and exit.
 
 **Bank cycling mode** (orange on black):
 
 - The display shows the **tens digit** (0–4) of the selected bank, with **red** corner indicators matching the bank number. This mode is useful for jumping quickly from bank 1 (1–9) to bank 2 (10–19), bank 3 (20–29), and so on.
 - **Click** to advance to the next bank start: 1 → 10 → 20 → 30 → 40 → 1.
 - **Hold ~1.5 s** to return to Ones cycling mode at the current bank position.
-- **Hold ~4 s** to confirm the current bank start and exit.
+- **Hold ~3 s** to confirm the current bank start and exit.
 
 **Timeouts and cancellation:** If no button activity is detected for ~30 seconds while in either mode, the change is cancelled and the original input number is restored.
 
 **Example — setting input 23:**
 1. Hold → enter Ones cycling mode. The display shows your last saved input in orange.
 2. Hold → enter Bank cycling mode. Display shows tens digit `0` (bank 1–9).
-3. Press twice → bank advances to `1` (bank 10–19), then `2` (bank 20–29). TL and TL+TR corner pixels light in orange.
+3. Press twice → bank advances to `1` (bank 10–19), then `2` (bank 20–29). TL and TL+TR corner pixels light in red.
 4. Hold → return to Ones cycling mode at input 20.
 5. Press three times → 21 → 22 → **23**.
-6. Hold ~4 s → confirmed. Green checkmark briefly shown.
+6. Hold ~3 s → confirmed. Green checkmark briefly shown.
 
 <a name="displaying-inputs-10-40"></a>
 ### Displaying Inputs 10–40
