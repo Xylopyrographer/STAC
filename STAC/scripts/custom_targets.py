@@ -52,6 +52,7 @@ def _get_build_suffix(env_name: str, build_type: str) -> str:
     Examples:
         atom-matrix + debug -> "ATOM_Matrix_D3"
         atom-matrix-release + release -> "ATOM_Matrix"
+        atoms3r-release + release -> "ATOM_S3R"
         waveshare-s3 + release -> "Waveshare_S3"
         m5stickc-plus + release -> "StickC_Plus"
         lilygo-t-display + release -> "LilyGo_T_Display"
@@ -60,7 +61,9 @@ def _get_build_suffix(env_name: str, build_type: str) -> str:
     """
     # Determine board name
     env_lower = env_name.lower()
-    if "atom" in env_lower:
+    if "atoms3r" in env_lower:
+        board = "ATOM_S3R"
+    elif "atom" in env_lower:
         board = "ATOM_Matrix"
     elif "waveshare" in env_lower:
         board = "Waveshare_S3"
