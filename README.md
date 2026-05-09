@@ -1,16 +1,21 @@
 # STAC  
 **Smart Tally Atom Client**
 
-A wireless tally light system for Roland video switches.
+A wireless tally light system for Roland video switches and Blackmagic Design ATEM switchers.
 
-Its purpose is to monitor via WiFi the tally status of a single video input channel of a Roland video device that implements their Smart Tally protocol.
+Its purpose is to monitor via WiFi the tally status of a single video input channel of a supported video switcher.
 
 It supports the following Roland video switches:
 
 * V-60HD
+* V-80HD
 * V-160HD
 
-For the Roland video input channel being monitored, STAC will set the colour of the display:
+And the following Blackmagic Design ATEM video switchers:
+
+* All ATEM models (inputs 1–40 supported)
+
+For the video input channel being monitored, STAC will set the colour of the display:
 
 + when in "Camera Operator" mode, to:  
      - RED if the channel is in PGM (Program or onair)
@@ -32,7 +37,8 @@ This release will run on the following devices:
 
 - LilyGo T-Display
 - LilyGo T-QT
-- M5Stack ATOM Matrix
+- M5Stack ATOM Matrix (v1.0 and v1.1)
+- M5Stack ATOM S3R
 - M5Stack StickC Plus
 - Waveshare ESP32-S3 Matrix
 - Xorigin AI PI-Lite
@@ -44,7 +50,7 @@ This release will run on the following devices:
 
 Pre-built binaries are provided for the devices listed above. For information on installing, jump over to the `bin` folder and run through `BIN_README.md`.
 
-Once you've flashed your device it is now a STAC 👍. Next steps are in the *STAC User Guide* in the `Documentation` folder of the Release archive.
+Once you've flashed your device it is now a STAC. Next steps are in the *STAC User Guide* in the `Documentation` folder of the Release archive.
 
 ### Using an IDE
 
@@ -67,24 +73,21 @@ To download the files:
 
 ## Compatibility
 
-This release is a complete rewrite of the STAC software. If you are new to STAC, follow the installation instructions above to get up and running and you can skip the rest of this section.
+### Upgrading from v3.0.x
 
-If you already have ATOM Matrix STAC devices, the fundamental purpose of the STAC&mdash;to relay tally information&mdash;has not changed. At the end of the day, that is what this release still does very well.
+If you are running v3.0.x, this is a straightforward update. OTA update is supported — no cables required.
 
-From a users point of view, this release brings:
-- significant improvements in configuring and managing multiple devices with the ability to create, save and load from a configuration file and use copy and paste functions as well;
-- ability to perform maintenance tasks via the web interface;
-- a single web access point for all functions setup and maintenance.
+### Upgrading from v2.x
 
-Depending on your environment, these may be useful. Check out the *STAC User Guide*.
+This was a complete rewrite of the STAC software. If you are upgrading from v2.x, the fundamental purpose of the STAC&mdash;to relay tally information&mdash;has not changed. At the end of the day, that is what this release still does very well.
 
-**Do note that upgrading to this version will require that the:**<br>
-- **firmware is flashed as per the installation instructions as if this was the very first time using the ATOM as a STAC**<br>
-- **setup be redone;** however, the new setup features makes this much much easier.
+**Do note that upgrading from v2.x to this version will require that the:**<br>
+- **firmware is flashed as per the installation instructions as if this was the very first time using the device as a STAC**<br>
+- **setup be redone;** however, the web-based configuration portal makes this much much easier.
 
-**You cannot do an OTA update to install this release.** Too much has changed under the hood to have made that possible.
+**You cannot do an OTA update from v2.x.** Too much changed under the hood to have made that possible.
 
-All that said, if you're happy as a clam with what you've got that's great. STAC's running this or any other release are fully compatible with their main purpose&mdash;keeping everyone in the know  as to the tally status of the camera you're running!
+All that said, if you're happy as a clam with what you've got that's great. STACs running this or any other release are fully compatible with their main purpose&mdash;keeping everyone in the know as to the tally status of the camera you're running!
 
 <br><br>
 
@@ -92,6 +95,7 @@ All that said, if you're happy as a clam with what you've got that's great. STAC
 
 ### Revision History
 
+**2026-05-09:** Revise for STAC v3.1.0 — ATEM support, V-80HD, M5Stack ATOM S3R, ATOM Matrix v1.1.<br>
 **2026-02-05:** Revise for STAC v3.0.0.<br>
 **2024-05-09:** Revise for STAC v2.2.0, adding V-160HD support.<br>
 **2023-09-09:** Revise required libraries, Build System Compatibility.<br>
