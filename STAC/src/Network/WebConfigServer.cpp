@@ -241,7 +241,7 @@ namespace Net {
 
         // Extract form data
         String model = server->arg( "stModel" );
-        result.configData.switchModel = model;
+        result.configData.switchModel = switchModelFromString( model );
         result.configData.wifiSSID = server->arg( "SSID" );
         result.configData.wifiPassword = server->arg( "pwd" );
         result.configData.switchIPString = server->arg( "stIP" );
@@ -250,7 +250,7 @@ namespace Net {
 
         if ( model == "V-60HD" ) {
             result.configData.maxChannel = static_cast<uint8_t>( server->arg( "stChan" ).toInt() );
-            // Set defaults for unused V-160HD fields
+            // Set defaults for unused V-160HD/V-80HD fields
             result.configData.lanUserID = "";
             result.configData.lanPassword = "";
             result.configData.maxHDMIChannel = 0;
@@ -276,6 +276,36 @@ namespace Net {
             log_i( "    LAN User: %s", result.configData.lanUserID.c_str() );
             log_i( "    Max HDMI: %d, Max SDI: %d", result.configData.maxHDMIChannel, result.configData.maxSDIChannel );
             log_i( "    Poll Interval: %lu ms", result.configData.pollInterval );
+        }
+        else if ( model == "V-80HD" ) {
+            result.configData.lanUserID = server->arg( "stnetUser3" );
+            result.configData.lanPassword = server->arg( "stnetPW3" );
+            result.configData.maxHDMIChannel = static_cast<uint8_t>( server->arg( "stChanHDMI3" ).toInt() );
+            result.configData.maxSDIChannel = static_cast<uint8_t>( server->arg( "stChanSDI3" ).toInt() );
+            // Set default for unused V-60HD field
+            result.configData.maxChannel = 0;
+
+            log_i( "  V-80HD Config:" );
+            log_i( "    WiFi SSID: %s", result.configData.wifiSSID.c_str() );
+            log_i( "    Switch IP: %s:%d", result.configData.switchIPString.c_str(), result.configData.switchPort );
+            log_i( "    LAN User: %s", result.configData.lanUserID.c_str() );
+            log_i( "    Max HDMI: %d, Max SDI: %d", result.configData.maxHDMIChannel, result.configData.maxSDIChannel );
+            log_i( "    Poll Interval: %lu ms", result.configData.pollInterval );
+        }
+        else if ( model == "ATEM" ) {
+            // ATEM input number stored in maxChannel (1-40); port/poll unused by ATEM
+            result.configData.maxChannel = static_cast<uint8_t>( server->arg( "stChanATEM" ).toInt() );
+            result.configData.switchPort = 0;        // ATEMmin uses port 9910 internally
+            result.configData.pollInterval = 0;      // ATEM uses runLoop(0), no polling interval
+            result.configData.lanUserID = "";
+            result.configData.lanPassword = "";
+            result.configData.maxHDMIChannel = 0;
+            result.configData.maxSDIChannel = 0;
+
+            log_i( "  ATEM Config:" );
+            log_i( "    WiFi SSID: %s", result.configData.wifiSSID.c_str() );
+            log_i( "    Switch IP: %s", result.configData.switchIPString.c_str() );
+            log_i( "    Input Number: %d", result.configData.maxChannel );
         }
 
         result.type = PortalResultType::CONFIG_RECEIVED;
@@ -447,19 +477,30 @@ namespace Net {
             configMgr.loadWiFiCredentials( wifiSSID, wifiPassword );
 
             // Load switch config
-            String switchModel;
+            SwitchModel switchModelEnum;
             IPAddress switchIPAddr;
             uint16_t switchPort;
             String username, password;
-            configMgr.loadSwitchConfig( switchModel, switchIPAddr, switchPort, username, password );
+            configMgr.loadSwitchConfig( switchModelEnum, switchIPAddr, switchPort, username, password );
+            String switchModel = switchModelToString( switchModelEnum );
 
             // Load protocol-specific operations
             StacOperations ops;
-            if ( switchModel == "V-60HD" ) {
-                configMgr.loadV60HDConfig( ops );
-            }
-            else if ( switchModel == "V-160HD" ) {
-                configMgr.loadV160HDConfig( ops );
+            switch ( switchModelEnum ) {
+                case SwitchModel::V60HD:
+                    configMgr.loadV60HDConfig( ops );
+                    break;
+                case SwitchModel::V160HD:
+                    configMgr.loadV160HDConfig( ops );
+                    break;
+                case SwitchModel::V80HD:
+                    configMgr.loadV80HDConfig( ops );
+                    break;
+                case SwitchModel::ATEM:
+                    configMgr.loadAtemConfig( ops );
+                    break;
+                default:
+                    break;
             }
 
             // Determine tally mode
@@ -501,6 +542,20 @@ namespace Net {
                 }
                 page += "\n    Max HDMI Tally Channel: " + String( ops.maxHDMIChannel );
                 page += "\n    Max SDI Tally Channel: " + String( ops.maxSDIChannel );
+            }
+            else if ( ops.isV80HD() ) {
+                // V-80HD shows HDMI/SDI format (4+4 channels)
+                if ( ops.tallyChannel > 4 ) {
+                    page += "\n    Active Tally Channel: SDI " + String( ops.tallyChannel - 4 );
+                }
+                else {
+                    page += "\n    Active Tally Channel: HDMI " + String( ops.tallyChannel );
+                }
+                page += "\n    Max HDMI Tally Channel: " + String( ops.maxHDMIChannel );
+                page += "\n    Max SDI Tally Channel: " + String( ops.maxSDIChannel );
+            }
+            else if ( ops.isATEM() ) {
+                page += "\n    Active Tally Channel: " + String( ops.tallyChannel );
             }
 
             page += "\n    Tally Mode: " + tallyMode;

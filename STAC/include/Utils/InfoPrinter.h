@@ -24,7 +24,7 @@ namespace Utils {
          * @brief Print the startup header with version information
          * @param stacID The STAC identifier (MAC-based ID)
          */
-        static void printHeader( const String &stacID ) {
+        static void printHeader( const String &stacID, const char *hwVersion = nullptr ) {
             // Ensure WiFi is initialized to get MAC address
             WiFi.mode( WIFI_STA );
 
@@ -36,7 +36,12 @@ namespace Utils {
             Serial.println( "    github.com/Xylopyrographer/STAC" );
             Serial.println();
             Serial.print( "    Device: " );
-            Serial.println( STAC_BOARD_NAME );
+            Serial.print( STAC_BOARD_NAME );
+            if ( hwVersion ) {
+                Serial.print( " " );
+                Serial.print( hwVersion );
+            }
+            Serial.println();
             Serial.print( "    SSID: " );
             Serial.println( stacID );
             Serial.println( "    Access: http://stac.local" );
@@ -123,7 +128,7 @@ namespace Utils {
             Serial.println( switchPort );
             Serial.println( "  --------------------------------------" );
             Serial.print( "    Configured for Model: " );
-            Serial.println( ops.switchModel );
+            Serial.println( switchModelToString( ops.switchModel ) );
             Serial.print( "    Active Tally Channel: " );
 
             if ( ops.isV60HD() ) {
@@ -131,8 +136,23 @@ namespace Utils {
                 Serial.print( "    Max Tally Channel: " );
                 Serial.println( ops.maxChannelCount );
             }
-            else {
-                // V-160HD
+            else if ( ops.isV80HD() ) {
+                // V-80HD: HDMI 1-4, SDI 5-8 (display as 1-4)
+                if ( ops.tallyChannel > 4 ) {
+                    Serial.print( "SDI " );
+                    Serial.println( ops.tallyChannel - 4 );
+                }
+                else {
+                    Serial.print( "HDMI " );
+                    Serial.println( ops.tallyChannel );
+                }
+                Serial.print( "    Max HDMI Tally Channel: " );
+                Serial.println( ops.maxHDMIChannel );
+                Serial.print( "    Max SDI Tally Channel: " );
+                Serial.println( ops.maxSDIChannel );
+            }
+            else if ( ops.isV160HD() ) {
+                // V-160HD: HDMI 1-8, SDI 9-16 (display as 1-8)
                 if ( ops.tallyChannel > 8 ) {
                     Serial.print( "SDI " );
                     Serial.println( ops.tallyChannel - 8 );
@@ -145,6 +165,17 @@ namespace Utils {
                 Serial.println( ops.maxHDMIChannel );
                 Serial.print( "    Max SDI Tally Channel: " );
                 Serial.println( ops.maxSDIChannel );
+            }
+            else if ( ops.isATEM() ) {
+                // ATEM: single flat index 1-40
+                Serial.println( ops.tallyChannel );
+            }
+            else {
+                // Unknown model - print raw channel
+                log_e( "Unknown switch model: %s", switchModelToString( ops.switchModel ).c_str() );
+                Serial.println( ops.tallyChannel );
+                Serial.print( "    Max Tally Channel: " );
+                Serial.println( ops.maxChannelCount );
             }
 
             Serial.print( "    Tally Mode: " );

@@ -63,7 +63,7 @@
 #define IMU_HAS_IMU true
 
 #if IMU_HAS_IMU
-#define IMU_TYPE_MPU6886
+#define IMU_TYPE_ATOM_MATRIX
 
 // I2C pins
 #define PIN_IMU_SCL 21

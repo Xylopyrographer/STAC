@@ -1,3 +1,6 @@
+#include "Device_Config.h"
+#if defined(IMU_TYPE_MPU6886) || defined(IMU_TYPE_ATOM_MATRIX)
+
 #include "Hardware/Sensors/MPU6886_IMU.h"
 #include <Arduino.h>
 
@@ -95,5 +98,7 @@ namespace Hardware {
 
 } // namespace Hardware
 
+
+#endif  // IMU_TYPE_MPU6886 || IMU_TYPE_ATOM_MATRIX
 
 //  --- EOF --- //

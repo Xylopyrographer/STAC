@@ -71,14 +71,14 @@ namespace Storage {
         // @Claude: Should the model be an enum instead of a string for better type safety and performance?
         /**
          * @brief Save switch configuration
-         * @param model Switch model ("V-60HD" or "V-160HD")
+         * @param model Switch model
          * @param ipAddress Switch IP address
          * @param port Switch HTTP port
          * @param username Username for authentication (V-160HD only, optional)
          * @param password Password for authentication (V-160HD only, optional)
          * @return true if saved successfully
          */
-        bool saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+        bool saveSwitchConfig( SwitchModel model, const IPAddress& ipAddress, uint16_t port,
                                const String &username = "", const String &password = "" );
 
         /**
@@ -90,7 +90,7 @@ namespace Storage {
          * @param password Output: Password for authentication (may be empty)
          * @return true if configuration exists
          */
-        bool loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+        bool loadSwitchConfig( SwitchModel &model, IPAddress& ipAddress, uint16_t &port,
                                String &username, String &password );
 
         // ========================================================================
@@ -126,17 +126,52 @@ namespace Storage {
         bool loadV160HDConfig( StacOperations& ops );
 
         /**
+         * @brief Save V-80HD protocol configuration
+         * @param ops StacOperations structure containing V-80HD settings
+         * @return true if saved successfully
+         */
+        bool saveV80HDConfig( const StacOperations& ops );
+
+        /**
+         * @brief Load V-80HD protocol configuration
+         * @param ops Output: StacOperations structure with V-80HD settings
+         * @return true if configuration exists
+         */
+        bool loadV80HDConfig( StacOperations& ops );
+
+        /**
+         * @brief Save ATEM protocol configuration
+         * @param ops StacOperations structure containing ATEM settings
+         * @return true if saved successfully
+         */
+        bool saveAtemConfig( const StacOperations& ops );
+
+        /**
+         * @brief Load ATEM protocol configuration
+         * @param ops Output: StacOperations structure with ATEM settings
+         * @return true if configuration exists
+         */
+        bool loadAtemConfig( StacOperations& ops );
+
+        /**
+         * @brief Save configuration for whichever switch model is set in ops
+         * @param ops StacOperations containing the model and settings to save
+         * @return true if saved successfully
+         */
+        bool saveActiveConfig( const StacOperations& ops );
+
+        /**
          * @brief Get currently active protocol
-         * @return Protocol name ("V-60HD", "V-160HD", or empty if not set)
+         * @return Protocol name ("V-60HD", "V-160HD", "V-80HD", or empty if not set)
          */
         String getActiveProtocol();
 
         /**
          * @brief Check if a specific protocol has configuration stored
-         * @param protocol Protocol name ("V-60HD" or "V-160HD")
+         * @param protocol Protocol name ("V-60HD", "V-160HD", or "V-80HD")
          * @return true if protocol configuration exists
          */
-        bool hasProtocolConfig( const String &protocol );
+        bool hasProtocolConfig( SwitchModel model );
 
         // ========================================================================
         // STAC Identity
@@ -223,6 +258,8 @@ namespace Storage {
         static constexpr const char *NS_SWITCH = "switch";
         static constexpr const char *NS_V60HD = "v60hd";
         static constexpr const char *NS_V160HD = "v160hd";
+        static constexpr const char *NS_V80HD = "v80hd";
+        static constexpr const char *NS_ATEM = "atem";
         static constexpr const char *NS_IDENTITY = "identity";
         static constexpr const char *NS_PERIPHERAL = "peripheral";
 

@@ -1,0 +1,14 @@
+# ESP-IDF Partition Table
+# Target flash size: 8MB (ESP32-S3-PICO-1-N8R8 on M5Stack ATOM S3R)
+#Partitions
+#   NVS
+#   OTA Data
+#   2 x OTA app partitions (3840KB each)
+# Notes:
+#   No core dump
+#   Uses starting offset of 0x9000 to accommodate larger bootloader
+# Name, Type, SubType, Offset, Size, Flags
+nvs,data,nvs,0x9000,20K,
+otadata,data,ota,0xe000,8K,
+app0,app,ota_0,0x10000,3840K,
+app1,app,ota_1,0x3D0000,3840K,

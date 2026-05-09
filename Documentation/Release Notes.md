@@ -1,4 +1,74 @@
 # STAC Release Notes
+
+## v3.1.0
+
+__New__
+
+* _Blackmagic Design ATEM Switcher Support_
+
+  STAC now works with Blackmagic Design ATEM video switchers! Connects directly to the ATEM over the network — no Smart Tally Server or other middleware required.
+
+  ATEM inputs 1–40 are supported. On-device channel selection is handled via a snazzy two-tier mode so you don't have to click your way through all 40 values one press at a time. Check out the new *Using STAC with ATEM Switchers* document in the *Documentation* folder for all the details.
+
+* _Roland V-80HD Support_
+
+  Added support for the Roland V-80HD Streaming Video Switch. More details in the *STAC Users Guide*.
+
+* _M5Stack ATOM S3R_
+
+  The M5Stack ATOM S3R joins the party as a seventh supported device. 🎉
+
+* _M5Stack ATOM Matrix v1.1_
+
+  The v1.1 revision of the M5Stack ATOM Matrix uses a different motion sensor than the original v1.0 hardware. STAC now detects which one it has at startup and does the right thing. Both v1.0 and v1.1 are supported by the same firmware binary — no need to hunt down a different file.
+
+__Improvements__
+
+* The display orientation detection is more reliable when the device is held at an angle.
+
+---
+
+## v3.0.0
+
+__New__
+
+* _Totally New Everything_
+
+  STAC v3 is a ground-up rewrite. The internals are completely new — but it still does what it says on the tin. 
+
+* _More Hardware_
+
+  STAC now runs on six different devices! In addition to the original M5Stack ATOM Matrix, say hello to:
+  * M5Stack StickC Plus
+  * LilyGo T-Display
+  * LilyGo T-QT
+  * Waveshare ESP32-S3 Matrix
+  * AI PI-Lite
+
+  Each device has its own pre-built firmware binary available on the [Releases page](https://github.com/Xylopyrographer/STAC/releases). Check the *README* for installation instructions and the *bin* folder for device-specific supplements.
+
+* _Web Configuration Portal_
+
+  The STAC setup and maintenance is now done entirely through a web browser. No need to install anything. Details in the *STAC Users Guide*.
+
+* _OTA Updates_
+
+  Software updates can be done over WiFi. No cables required after the initial install.
+
+* _Roland V-160HD_
+
+  Support for the Roland V-160HD was there before but it's been significantly improved — better channel handling, more reliable connections, and a cleaner setup experience. Requires V-160HD System Software version 3 or later.
+
+* _Peripheral Mode_
+
+  Peripheral Mode was there before too, but it's been reworked from scratch along with everything else. One STAC can now power and feed tally data to another via the GROVE port — handy for talent-side monitoring without a separate network connection. More in the *STAC Users Guide*.
+
+__Note__
+
+* Updating from v2.x will require the STAC to be reconfigured. See the *STAC Users Guide* for the details. Sorry about that!
+
+---
+
 ## v2.2.0
 
 __New__

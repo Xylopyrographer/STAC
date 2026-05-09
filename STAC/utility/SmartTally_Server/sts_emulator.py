@@ -4,7 +4,7 @@ Roland Smart Tally Server (STS) Emulator
 Version: 1.2.0
 Python: 3.13.x (latest stable 3.13 release)
 
-A unified emulator for testing STAC devices with Roland V-60HD and V-160HD protocols.
+A unified emulator for testing STAC devices with Roland V-60HD, V-160HD, and V-80HD protocols.
 Supports multiple simultaneous STAC connections, error injection, per-STAC sequential states,
 and detailed logging.
 
@@ -47,6 +47,7 @@ class SwitcherModel(Enum):
     """Supported Roland video switcher models"""
     V60HD = "V-60HD"
     V160HD = "V-160HD"
+    V80HD = "V-80HD"
 
 
 @dataclass
@@ -191,7 +192,7 @@ class STSEmulator:
             self.log(f"STS Emulator Started")
             self.log(f"Model: {self.config.model.value}")
             self.log(f"Listening on: {local_ip}:{self.config.port}")
-            if self.config.model == SwitcherModel.V160HD:
+            if self.config.model in (SwitcherModel.V160HD, SwitcherModel.V80HD):
                 self.log(f"Auth: {self.config.username}:{'*' * len(self.config.password)}")
             if self.config.per_stac_random_enabled:
                 self.log(f"Per-STAC Random: ENABLED (cycle: {'ON' if self.config.per_stac_cycle_enabled else 'OFF'})")
@@ -491,14 +492,14 @@ def config_menu(config: EmulatorConfig):
         print(f"   Host IP:    {get_local_ip_simple()} (auto-detected)")
         print(f"   Port:       {config.port}")
         print(f"   Model:      {config.model.value}")
-        if config.model == SwitcherModel.V160HD:
+        if config.model in (SwitcherModel.V160HD, SwitcherModel.V80HD):
             print(f"   Username:   {config.username}")
             print(f"   Password:   {'*' * len(config.password)}")
         print("-"*70)
         print(f" 1. Change Port (current: {config.port})")
         print(f" 2. Change Model (current: {config.model.value})")
-        if config.model == SwitcherModel.V160HD:
-            print(f" 3. Change V-160HD Username/Password")
+        if config.model in (SwitcherModel.V160HD, SwitcherModel.V80HD):
+            print(f" 3. Change V-160HD/V-80HD Username/Password")
         print(f" 0. Back to Main Menu")
         print("-"*70, flush=True)
         
@@ -519,6 +520,7 @@ def config_menu(config: EmulatorConfig):
             print("\nSelect model:")
             print("  1. V-60HD")
             print("  2. V-160HD")
+            print("  3. V-80HD (uses V-160HD protocol)")
             model_choice = flush_input("Choice: ").strip()
             if model_choice == '1':
                 config.model = SwitcherModel.V60HD
@@ -526,10 +528,13 @@ def config_menu(config: EmulatorConfig):
             elif model_choice == '2':
                 config.model = SwitcherModel.V160HD
                 print("✓ Model set to V-160HD")
+            elif model_choice == '3':
+                config.model = SwitcherModel.V80HD
+                print("✓ Model set to V-80HD (using V-160HD protocol)")
             else:
                 print("✗ Invalid choice")
         
-        elif choice == '3' and config.model == SwitcherModel.V160HD:
+        elif choice == '3' and config.model in (SwitcherModel.V160HD, SwitcherModel.V80HD):
             username = flush_input(f"Enter username (current: {config.username}): ").strip()
             password = flush_input("Enter password: ").strip()
             if username:

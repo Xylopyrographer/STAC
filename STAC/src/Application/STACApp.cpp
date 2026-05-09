@@ -246,10 +246,12 @@ namespace Application {
 
         // Set initial rotation: use IMU-detected orientation for boards with IMU,
         // or board-specific physical rotation for boards without IMU
-        #ifdef DISPLAY_PHYSICAL_ROTATION
+        #if IMU_HAS_IMU
+        display->setInitialRotation( static_cast<uint8_t>( displayOrientation ) );
+        #elif defined(DISPLAY_PHYSICAL_ROTATION)
         display->setInitialRotation( DISPLAY_PHYSICAL_ROTATION );
         #else
-        display->setInitialRotation( static_cast<uint8_t>( displayOrientation ) );
+        display->setInitialRotation( 0 );
         #endif
 
         if ( !display->begin() ) {
@@ -388,7 +390,22 @@ namespace Application {
         }
 
         // Print startup header to serial
-        Utils::InfoPrinter::printHeader( stacID );
+        // For the ATOM Matrix, append hardware version derived from the detected IMU:
+        //   MPU6886 → v1.0 (original hardware)
+        //   BMI270  → v1.1 (revised hardware)
+        const char *atomHwVersion = nullptr;
+        #if defined(IMU_TYPE_ATOM_MATRIX)
+        if ( imu ) {
+            const char *imuType = imu->getType();
+            if ( strcmp( imuType, "MPU6886" ) == 0 ) {
+                atomHwVersion = "v1.0";
+            }
+            else if ( strcmp( imuType, "BMI270" ) == 0 ) {
+                atomHwVersion = "v1.1";
+            }
+        }
+        #endif
+        Utils::InfoPrinter::printHeader( stacID, atomHwVersion );
 
         // WiFi Manager
         wifiManager = std::make_unique<Net::WiFiManager>();
@@ -464,14 +481,7 @@ namespace Application {
                     if ( ops.displayBrightnessLevel != oldBrightness ) {
                         systemState->setOperations( ops );
                         // Save to protocol-specific namespace
-                        bool saved = false;
-                        if ( ops.isV60HD() ) {
-                            saved = configManager->saveV60HDConfig( ops );
-                        }
-                        else if ( ops.isV160HD() ) {
-                            saved = configManager->saveV160HDConfig( ops );
-                        }
-                        if ( !saved ) {
+                        if ( !configManager->saveActiveConfig( ops ) ) {
                             log_e( "Failed to save brightness level" );
                         }
                     }
@@ -616,14 +626,25 @@ namespace Application {
             // Load protocol-specific operations from NVS
             StacOperations ops;
             String protocol = configManager->getActiveProtocol();
+            SwitchModel activeModel = switchModelFromString( protocol );
             bool opsLoaded = false;
 
-            // @Claude: another place where we can simplify if we define an enum for the switch models
-            if ( protocol == "V-60HD" ) {
-                opsLoaded = configManager->loadV60HDConfig( ops );
-            }
-            else if ( protocol == "V-160HD" ) {
-                opsLoaded = configManager->loadV160HDConfig( ops );
+            switch ( activeModel ) {
+                case SwitchModel::V60HD:
+                    opsLoaded = configManager->loadV60HDConfig( ops );
+                    break;
+                case SwitchModel::V160HD:
+                    opsLoaded = configManager->loadV160HDConfig( ops );
+                    break;
+                case SwitchModel::V80HD:
+                    opsLoaded = configManager->loadV80HDConfig( ops );
+                    break;
+                case SwitchModel::ATEM:
+                    opsLoaded = configManager->loadAtemConfig( ops );
+                    break;
+                default:
+                    log_e( "Unknown active protocol: %s", protocol.c_str() );
+                    break;
             }
 
             // @Claude: Again, should only be one place where we check if we're provisioned or not. Defaults should be loaded int ops parameters based on the configured switch at startup
@@ -634,8 +655,8 @@ namespace Application {
                 ops = StacOperations();  // Use explicit default construction
 
                 // Set switchModel from active protocol if available
-                if ( !protocol.isEmpty() ) {
-                    ops.switchModel = protocol;
+                if ( activeModel != SwitchModel::UNKNOWN ) {
+                    ops.switchModel = activeModel;
                 }
                 else {
                     log_e( "CRITICAL: No active protocol found and config load failed!" );
@@ -643,7 +664,7 @@ namespace Application {
             }
             else {
                 log_i( "Loaded configuration: channel=%d, model=%s, autoStart=%s",
-                       ops.tallyChannel, ops.switchModel.c_str(), ops.autoStartEnabled ? "YES" : "NO" );
+                       ops.tallyChannel, switchModelToString( ops.switchModel ).c_str(), ops.autoStartEnabled ? "YES" : "NO" );
             }
 
             // Update system state with loaded operations IMMEDIATELY to preserve them
@@ -657,7 +678,8 @@ namespace Application {
             }
 
             // Load switch configuration for printing and Roland client initialization
-            // @Claude: I guess using an enum for the switch models can be problematic if we want to print the model name. Maybe we can have a function that converts from enum to string for printing purposes?
+            // NOTE: See TODO above - enum with toString() helper would allow type-safe
+            // model handling while preserving string output for serial/web display
             String ssid, password;
             switchConfigLoaded = configManager->loadSwitchConfig( ops.switchModel, switchIP, switchPort, username, passwordSwitch );
 
@@ -667,10 +689,17 @@ namespace Application {
             }
 
             // Display the active tally channel (always, regardless of autostart setting)
-            // For V-160HD SDI channels (9-20), display the channel within bank (1-8)
+            // For V-160HD SDI channels (9-16), display the channel within bank (1-8)
+            // For V-80HD SDI channels (5-8), display the channel within bank (1-4)
             uint8_t displayChannel = ops.tallyChannel;
-            if ( ops.switchModel != "V-60HD" && ops.tallyChannel > 8 ) {
+            if ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) {
                 displayChannel = ops.tallyChannel - 8;  // SDI 9→1, 10→2, etc.
+            }
+            else if ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) {
+                displayChannel = ops.tallyChannel - 4;  // SDI 5→1, 6→2, etc.
+            }
+            else if ( ops.switchModel == SwitchModel::ATEM && displayChannel > 9 ) {
+                displayChannel = displayChannel % 10;  // ATEM 1-40: display shows ones digit only for 10+
             }
             const uint8_t *channelGlyph = glyphManager->getDigitGlyph( displayChannel );
 
@@ -678,20 +707,50 @@ namespace Application {
             Display::color_t channelColor;
             Display::color_t autostartColor;
 
-            if ( ops.switchModel != "V-60HD" && ops.tallyChannel > 8 ) {
-                // V-160HD second bank (SDI channels 9-20)
+            if ( ops.switchModel == SwitchModel::ATEM ) {
+                channelColor  = Display::StandardColors::BLUE;
+                autostartColor = Display::StandardColors::GREEN;
+            }
+            else if ( ( ops.switchModel == SwitchModel::V160HD && ops.tallyChannel > 8 ) ||
+                      ( ops.switchModel == SwitchModel::V80HD && ops.tallyChannel > 4 ) ) {
+                // V-160HD second bank (SDI channels 9-16) or V-80HD second bank (SDI channels 5-8)
                 channelColor = Display::StandardColors::LIGHT_GREEN;
                 autostartColor = Display::StandardColors::BLUE;
             }
             else {
-                // V-60HD or V-160HD first bank (HDMI channels 1-8)
+                // V-60HD or V-160HD/V-80HD first bank (HDMI channels)
                 channelColor = Display::StandardColors::BLUE;
                 autostartColor = Display::StandardColors::BRIGHT_GREEN;
             }
 
             // Clear any previous display state before showing channel glyph
             display->clear( Config::Display::NO_SHOW );
-            display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
+
+            // For ATEM: TFT shows full number; LED matrix uses glyph + bank corner overlay
+            bool channelDrawn = false;
+            if ( ops.switchModel == SwitchModel::ATEM ) {
+                channelDrawn = display->drawChannelNumber( ops.tallyChannel, channelColor, Display::StandardColors::BLACK );
+            }
+            if ( !channelDrawn ) {
+                display->drawGlyph( channelGlyph, channelColor, Display::StandardColors::BLACK, Config::Display::SHOW );
+                if ( ops.switchModel == SwitchModel::ATEM && ops.tallyChannel > 9 ) {
+                    uint8_t bankGlyphIndex;
+                    if ( ops.tallyChannel < 20 )      {
+                        bankGlyphIndex = Display::GLF_BANK1_CORNERS;
+                    }
+                    else if ( ops.tallyChannel < 30 ) {
+                        bankGlyphIndex = Display::GLF_BANK2_CORNERS;
+                    }
+                    else if ( ops.tallyChannel < 40 ) {
+                        bankGlyphIndex = Display::GLF_BANK3_CORNERS;
+                    }
+                    else                              {
+                        bankGlyphIndex = Display::GLF_BANK4_CORNERS;
+                    }
+                    const uint8_t *bankGlyph = glyphManager->getGlyph( bankGlyphIndex );
+                    display->drawGlyphOverlay( bankGlyph, Display::StandardColors::PURPLE, Config::Display::SHOW );
+                }
+            }
 
             // Wait for button release before proceeding
             while ( button->isPressed() ) {
@@ -755,14 +814,7 @@ namespace Application {
                 systemState->setOperations( ops );
 
                 // Save to protocol-specific namespace
-                bool saved = false;
-                if ( ops.isV60HD() ) {
-                    saved = configManager->saveV60HDConfig( ops );
-                }
-                else if ( ops.isV160HD() ) {
-                    saved = configManager->saveV160HDConfig( ops );
-                }
-                if ( !saved ) {
+                if ( !configManager->saveActiveConfig( ops ) ) {
                     log_e( "Failed to save protocol configuration after startup" );
                 }
             }
@@ -1198,13 +1250,23 @@ namespace Application {
         ops.autoStartEnabled = false;
 
         // Set model-specific parameters
-        if ( provData.switchModel == "V-60HD" ) {
+        if ( provData.switchModel == SwitchModel::V60HD ) {
             ops.maxChannelCount = provData.maxChannel;
             ops.maxHDMIChannel = 0;
             ops.maxSDIChannel = 0;
             ops.channelBank = "";
         }
-        else {   // V-160HD
+        else if ( provData.switchModel == SwitchModel::ATEM ) {
+            ops.tallyChannel = ( provData.maxChannel >= 1 && provData.maxChannel <= 40 )
+                               ? provData.maxChannel
+                               : 1;  // provData.maxChannel holds ATEM input number (1-40)
+            ops.maxChannelCount = 0;
+            ops.maxHDMIChannel = 0;
+            ops.maxSDIChannel = 0;
+            ops.channelBank = "";
+            ops.statusPollInterval = 0;  // ATEM uses runLoop(0) — no fixed poll interval
+        }
+        else {   // V-160HD or V-80HD
             ops.maxChannelCount = 0;
             ops.maxHDMIChannel = provData.maxHDMIChannel;
             ops.maxSDIChannel = provData.maxSDIChannel;
@@ -1212,14 +1274,7 @@ namespace Application {
         }
 
         // Save to protocol-specific namespace
-        bool saved = false;
-        if ( ops.isV60HD() ) {
-            saved = configManager->saveV60HDConfig( ops );
-        }
-        else if ( ops.isV160HD() ) {
-            saved = configManager->saveV160HDConfig( ops );
-        }
-        if ( !saved ) {
+        if ( !configManager->saveActiveConfig( ops ) ) {
             log_e( "Failed to save protocol configuration" );
             return;
         }
@@ -1244,9 +1299,9 @@ namespace Application {
         rolandPollInterval = ops.statusPollInterval;
 
         // Create Roland client based on switch model from operations
-        rolandClient = Net::RolandClientFactory::createFromString( ops.switchModel );
+        rolandClient = Net::RolandClientFactory::create( ops.switchModel );
         if ( !rolandClient ) {
-            log_e( "Failed to create Roland client for model: %s", ops.switchModel.c_str() );
+            log_e( "Failed to create Roland client for model: %s", switchModelToString( ops.switchModel ).c_str() );
             return false;
         }
 
@@ -1259,6 +1314,7 @@ namespace Application {
         rolandConfig.password = password;
         rolandConfig.channelBank = ops.channelBank;
         rolandConfig.stacID = stacID;
+        rolandConfig.switchModel = ops.switchModel;
 
         // Initialize the client
         if ( !rolandClient->begin( rolandConfig ) ) {
@@ -1268,7 +1324,7 @@ namespace Application {
         }
 
         log_i( "Roland client ready: %s @ %s:%d (ch %d)",
-               ops.switchModel.c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
+               switchModelToString( ops.switchModel ).c_str(), switchIP.toString().c_str(), switchPort, ops.tallyChannel );
 
         return true;
     }
@@ -1299,6 +1355,12 @@ namespace Application {
         // Query tally status
         Net::TallyQueryResult result;
         rolandClient->queryTallyStatus( result );
+
+        // ATEM handshake in progress — not an error, just keep driving the state machine
+        if ( result.status == Net::TallyStatus::CONNECTING ) {
+            lastRolandPoll = millis();
+            return;
+        }
 
         // Update last poll time AFTER query completes
         // This ensures we don't count the blocking HTTP request time as part of the interval
@@ -1337,6 +1399,9 @@ namespace Application {
 
             if ( validResponse ) {
                 // ===== Valid response - update tally state =====
+                // Check if we're recovering from an error condition before clearing flags
+                bool wasInError = switchState.junkReply || ( switchState.noReplyCount > 0 );
+
                 rolandPollInterval = ops.statusPollInterval;  // Use normal poll interval
                 switchState.junkReply = false;
                 switchState.junkReplyCount = 0;  // Clear error counters
@@ -1348,8 +1413,8 @@ namespace Application {
                     systemState->getTallyState().setState( newState );
                     log_i( "Tally: %s", State::TallyStateManager::stateToString( newState ) );
                 }
-                else {
-                    // State unchanged, but we need to update display and GROVE in case we're recovering from error
+                else if ( wasInError ) {
+                    // Recovering from error: state unchanged but display may show error icon - redraw
                     updateDisplay();
                     #if HAS_PERIPHERAL_MODE_CAPABILITY
                     if ( systemState->getOperatingMode().isNormalMode() && grovePort ) {
@@ -1357,6 +1422,7 @@ namespace Application {
                     }
                     #endif
                 }
+                // else: state unchanged and no error recovery needed - display is already correct
 
                 // Grove port will be updated by tally state change callback
             }

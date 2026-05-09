@@ -55,8 +55,12 @@ namespace Display {
     constexpr uint8_t GLF_IMUX    = 27;  ///< UNUSED - reserved
     constexpr uint8_t GLF_CORNERS = 28;  ///< Four corner pixels
     constexpr uint8_t GLF_FR      = 29;  ///< Factory reset icon (circular arrow)
-    constexpr uint8_t GLF_P_CANCEL = 30; ///< Letter P with cancel slash (PMode cancel)
-    constexpr uint8_t GLF_N       = 31;  ///< Letter N (for normal mode)
+    constexpr uint8_t GLF_P_CANCEL      = 30; ///< Letter P with cancel slash (PMode cancel)
+    constexpr uint8_t GLF_N              = 31; ///< Letter N (for normal mode)
+    constexpr uint8_t GLF_BANK1_CORNERS  = 32; ///< ATEM bank indicator: left edge row 1 (inputs 10-19)
+    constexpr uint8_t GLF_BANK2_CORNERS  = 33; ///< ATEM bank indicator: both edge cols row 1 (inputs 20-29)
+    constexpr uint8_t GLF_BANK3_CORNERS  = 34; ///< ATEM bank indicator: top edge row 1 + BR edge row 6 (inputs 30-39)
+    constexpr uint8_t GLF_BANK4_CORNERS  = 35; ///< ATEM bank indicator: all four edge-col row 1/6 pixels (input 40)
 
     /**
      * @brief Base glyph data (unrotated) for 8×8 display
@@ -256,6 +260,30 @@ namespace Display {
         {
             0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0,
             0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0
+        },
+
+        // BANK1_CORNERS (top-left edge row 1: pixel 8 - ATEM inputs 10-19)
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        },
+
+        // BANK2_CORNERS (top edge row 1: pixels 8,15 - ATEM inputs 20-29)
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        },
+
+        // BANK3_CORNERS (top edge row 1 + bottom-right edge row 6: pixels 8,15,55 - ATEM inputs 30-39)
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
+        },
+
+        // BANK4_CORNERS (all four edge row 1/6: pixels 8,15,48,55 - ATEM input 40)
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0
         }
     };
 

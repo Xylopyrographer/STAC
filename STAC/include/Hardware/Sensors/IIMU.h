@@ -54,8 +54,7 @@ namespace Hardware {
         // Pattern detection thresholds (used by all IMU implementations)
         static constexpr float ACCL_SCALE = 1000.0f;
         static constexpr float LOW_TOL = 100.0f;
-        static constexpr float HIGH_TOL = 900.0f;
-        static constexpr float MID_TOL = LOW_TOL + ( HIGH_TOL - LOW_TOL ) / 2.0f;
+        static constexpr float MID_TOL = 500.0f;   // ~0.5g minimum for a valid dominant axis
 
         /**
          * @brief Apply orientation offset correction
@@ -101,36 +100,37 @@ namespace Hardware {
          * @return Orientation enum value
          */
         static Orientation detectOrientationFromPattern( float scaledAccX, float scaledAccY, float scaledAccZ ) {
-            Orientation rawOrientation = Orientation::UNKNOWN;
+            float axX = abs( scaledAccX );
+            float axY = abs( scaledAccY );
+            float axZ = abs( scaledAccZ );
 
-            // Check if device is flat first (Z-axis dominant)
-            if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) > MID_TOL ) {
-                rawOrientation = Orientation::FLAT;
+            // Find the dominant axis by comparison — the winning axis must be strictly
+            // larger than both others AND exceed MID_TOL (~0.5g).
+            //
+            // Using magnitude comparison rather than fixed cross-axis thresholds means
+            // the correct axis wins as long as the tilt is < 45° off-axis, giving a
+            // comfortable ~45° envelope (well beyond the ~30° real-world use case).
+            //
+            // Old HIGH_TOL cross-axis check failed at ~30° tilt: e.g. the device held
+            // vertically but tilted 30° toward flat has Y=866 milli-g which passed the
+            // FLAT check's abs(Y)<HIGH_TOL(900) guard, misidentifying the orientation.
+
+            if ( axZ > axX && axZ > axY && axZ > MID_TOL ) {
+                // Z-axis dominant → device is flat (face-up or face-down)
+                return Orientation::FLAT;
             }
-            // Check if device is vertical with Y-axis dominant
-            else if ( abs( scaledAccX ) < HIGH_TOL && abs( scaledAccY ) > MID_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
-                // Y-axis dominant - match against patterns
-                // Pattern 3: (0, +1), Pattern 1: (0, -1)
-                if ( scaledAccY > 0 ) {
-                    rawOrientation = Orientation::ROTATE_270;  // Pattern 3
-                }
-                else {
-                    rawOrientation = Orientation::ROTATE_90;   // Pattern 1
-                }
+            else if ( axY > axX && axY > axZ && axY > MID_TOL ) {
+                // Y-axis dominant
+                // Pattern 3: (0, +1) → ROTATE_270 | Pattern 1: (0, -1) → ROTATE_90
+                return ( scaledAccY > 0 ) ? Orientation::ROTATE_270 : Orientation::ROTATE_90;
             }
-            // Check if device is vertical with X-axis dominant
-            else if ( abs( scaledAccX ) > MID_TOL && abs( scaledAccY ) < HIGH_TOL && abs( scaledAccZ ) < HIGH_TOL ) {
-                // X-axis dominant - match against patterns
-                // Pattern 0: (+1, 0), Pattern 2: (-1, 0)
-                if ( scaledAccX > 0 ) {
-                    rawOrientation = Orientation::ROTATE_180;  // Pattern 0
-                }
-                else {
-                    rawOrientation = Orientation::ROTATE_0;    // Pattern 2
-                }
+            else if ( axX > axY && axX > axZ && axX > MID_TOL ) {
+                // X-axis dominant
+                // Pattern 0: (+1, 0) → ROTATE_180 | Pattern 2: (-1, 0) → ROTATE_0
+                return ( scaledAccX > 0 ) ? Orientation::ROTATE_180 : Orientation::ROTATE_0;
             }
 
-            return rawOrientation;
+            return Orientation::UNKNOWN;
         }
     };  // ← This is the closing brace of the class
 

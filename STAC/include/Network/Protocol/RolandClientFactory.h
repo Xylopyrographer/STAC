@@ -5,18 +5,10 @@
 #include "IRolandClient.h"
 #include "V60HDClient.h"
 #include "V160HDClient.h"
+#include "ATEMClient.h"
 
 
 namespace Net {
-
-    /**
-     * @brief Switch model types
-     */
-    enum class SwitchModel {
-        V60HD,      ///< Roland V-60HD
-        V160HD,     ///< Roland V-160HD
-        UNKNOWN     ///< Unknown or uninitialized
-    };
 
     /**
      * @brief Factory for creating Roland client instances
@@ -37,7 +29,11 @@ namespace Net {
                     return std::make_unique<V60HDClient>();
 
                 case SwitchModel::V160HD:
+                case SwitchModel::V80HD:  // V-80HD uses same protocol as V-160HD
                     return std::make_unique<V160HDClient>();
+
+                case SwitchModel::ATEM:
+                    return std::make_unique<ATEMClient>();
 
                 case SwitchModel::UNKNOWN:
                 default:
@@ -47,46 +43,11 @@ namespace Net {
 
         /**
          * @brief Create Roland client from string identifier
-         * @param modelString Switch model string ("V-60HD" or "V-160HD")
+         * @param modelString Switch model string ("V-60HD", "V-160HD", or "V-80HD")
          * @return Unique pointer to IRolandClient implementation
          */
         static std::unique_ptr<IRolandClient> createFromString( const String &modelString ) {
-            SwitchModel model = stringToSwitchModel( modelString );
-            return create( model );
-        }
-
-        /**
-         * @brief Convert string to SwitchModel enum
-         * @param modelString Switch model string
-         * @return SwitchModel enum value
-         */
-        static SwitchModel stringToSwitchModel( const String &modelString ) {
-            if ( modelString == "V-60HD" ) {
-                return SwitchModel::V60HD;
-            }
-            else if ( modelString == "V-160HD" ) {
-                return SwitchModel::V160HD;
-            }
-            else {
-                return SwitchModel::UNKNOWN;
-            }
-        }
-
-        /**
-         * @brief Convert SwitchModel enum to string
-         * @param model SwitchModel enum value
-         * @return String representation
-         */
-        static String switchModelToString( SwitchModel model ) {
-            switch ( model ) {
-                case SwitchModel::V60HD:
-                    return "V-60HD";
-                case SwitchModel::V160HD:
-                    return "V-160HD";
-                case SwitchModel::UNKNOWN:
-                default:
-                    return "Unknown";
-            }
+            return create( switchModelFromString( modelString ) );
         }
 
       private:

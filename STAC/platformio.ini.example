@@ -60,6 +60,7 @@ board = m5stack-atom
 lib_deps = 
     ${core_libs.lib_deps}
     https://github.com/tanakamasayuki/I2C_MPU6886.git
+    https://github.com/TinyuZhao/BMI270_Sensor.git
 
 build_flags =
     ${debug_level.build_flags}
@@ -113,3 +114,46 @@ build_src_filter =
 ; 5. Adjust build_src_filter to exclude unused drivers
 ;
 ; See STAC/doc/HARDWARE_CONFIG.md and STAC/doc/DEVELOPER_GUIDE.md for details
+
+; ======================================
+; EXAMPLE DEVICE: M5Stack ATOM S3R
+; TFT Display: 0.85" GC9107 128x128 IPS
+; IMU: BMI270 (I2C)
+; Backlight: LP5562 RGBW driver W channel (I2C)
+; Flash: 8MB  PSRAM: 8MB OPI
+; ======================================
+
+; Uncomment to enable ATOM S3R build:
+; [env:atoms3r]
+; extends = common_settings
+; platform =
+;     https://github.com/pioarduino/platform-espressif32/releases/download/55.03.32/platform-espressif32.zip
+; board = esp32-s3-devkitc-1
+; board_upload.flash_size = 8MB
+; board_build.flash_mode = qio
+; board_build.f_flash = 80000000L
+; board_build.arduino.memory_type = qio_opi
+; board_build.partitions = partitions/8M_OTA_noCD.csv
+;
+; lib_deps =
+;     ${core_libs.lib_deps}
+;     moononournation/GFX Library for Arduino@^1.6.3
+;     https://github.com/TinyuZhao/BMI270_Sensor.git
+;
+; build_flags =
+;     ${debug_level.build_flags}
+;     -DBOARD_CONFIG_FILE=\"BoardConfigs/AtomS3R_Config.h\"
+;     -DESP32S3
+;     -DBOARD_HAS_PSRAM
+;     -mfix-esp32-psram-cache-issue
+;     -DARDUINO_USB_MODE=1
+;     -DARDUINO_USB_CDC_ON_BOOT=1
+;     -ULITTLE_FOOT_PRINT
+;
+; build_src_filter =
+;     +<*>
+;     -<Hardware/Sensors/MPU6886_IMU.cpp>
+;     -<Hardware/Sensors/QMI8658_IMU.cpp>
+;     -<Hardware/Display/Matrix5x5/*>
+;     -<Hardware/Display/Matrix8x8/*>
+;     -<Hardware/Power/AXP192.cpp>

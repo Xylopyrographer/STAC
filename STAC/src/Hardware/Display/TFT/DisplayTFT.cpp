@@ -18,8 +18,11 @@
     #define USE_AXP192_PMU
 #elif defined(DISPLAY_BACKLIGHT_PWM)
     #define USE_LGFX_BACKLIGHT
+#elif defined(DISPLAY_BACKLIGHT_LP5562)
+    #define USE_LP5562_BACKLIGHT
+    #include "Hardware/Power/LP5562.h"
 #endif
-// If neither defined, no software backlight control (DISPLAY_BACKLIGHT_NONE)
+// If none defined: no software backlight control (DISPLAY_BACKLIGHT_NONE)
 
 // Default rotation can be overridden in board config
 #ifndef TFT_DEFAULT_ROTATION
@@ -38,6 +41,8 @@ namespace Display {
         , _canvas( nullptr )
           #if defined(USE_AXP192_PMU)
         , _pmu()
+          #elif defined(USE_LP5562_BACKLIGHT)
+        , _lp5562( LED_DRVR_ADDR, Wire )
           #endif
         , _width( width )
         , _height( height )
@@ -76,6 +81,16 @@ namespace Display {
 
         // Small delay for power rail stabilization
         delay( 50 );
+        #elif defined(USE_LP5562_BACKLIGHT)
+        // Initialise the LP5562 RGBW LED driver (display backlight on W channel).
+        // Wire must already be started by the caller (IMU and LP5562 share the bus).
+        log_i( "Initializing LP5562 LED driver..." );
+        if ( !_lp5562.begin() ) {
+            log_e( "Failed to initialize LP5562 LED driver" );
+            return false;
+        }
+        _lp5562.setW( 0 );  // Ensure backlight off during init
+        log_i( "LP5562 initialized" );
         #endif
 
         log_i( "Creating Arduino_GFX display..." );
@@ -325,7 +340,7 @@ namespace Display {
                 }
 
                 // Use FreeSansBold24pt - scale down for smoother rendering
-                uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+                uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
                 _canvas->setFont( &STACSansBold24pt7b );
                 _canvas->setTextColor( colorToRGB565( foreground ) );
@@ -684,7 +699,7 @@ namespace Display {
         _canvas->fillScreen( bg );
 
         // Use STACSansBold24pt scaled down for smooth digit rendering
-        uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+        uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
         _canvas->setFont( &STACSansBold24pt7b );
         _canvas->setTextColor( fg, bg );
@@ -711,9 +726,9 @@ namespace Display {
         show();
     }
 
-    void DisplayTFT::drawChannelNumber( uint8_t channel, color_t color, color_t bgColor ) {
+    bool DisplayTFT::drawChannelNumber( uint8_t channel, color_t color, color_t bgColor ) {
         if ( !_canvas ) {
-            return;
+            return false;
         }
 
         uint16_t fg = colorToRGB565( color );
@@ -728,7 +743,7 @@ namespace Display {
 
         // Use STACSansBold24pt - larger size for single digit, smaller for double digit
         uint8_t scale = ( numDigits == 1 ) ? 3 : 2;
-        if ( _rotation == 1 || _rotation == 3 ) {
+        if ( currentWidth() > currentHeight() ) {
             scale = ( numDigits == 1 ) ? 2 : 1; // Landscape is narrower
         }
 
@@ -758,6 +773,7 @@ namespace Display {
         _canvas->print( remappedStr );
 
         show();
+        return true;
     }
 
     void DisplayTFT::drawWiFiIcon( int16_t cx, int16_t cy, color_t color, bool connected ) {
@@ -769,7 +785,7 @@ namespace Display {
 
         // Draw WiFi arcs (signal strength indicator)
         // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
-        bool isLandscape = ( _rotation == 1 || _rotation == 3 );
+        bool isLandscape = ( currentWidth() > currentHeight() );
         float scale = isLandscape ? 0.55f : 1.0f;
 
         int16_t dotY = cy + static_cast<int16_t>( 40 * scale ); // Base dot position
@@ -935,8 +951,8 @@ namespace Display {
         uint16_t rgb565 = colorToRGB565( color );
 
         // Use larger scale to match the prominence of error X icon
-        // Portrait (0,2): scale 3, Landscape (1,3): scale 2
-        uint8_t scale = ( _rotation == 1 || _rotation == 3 ) ? 2 : 3;
+        // Portrait (width <= height): scale 3, Landscape (width > height): scale 2
+        uint8_t scale = ( currentWidth() > currentHeight() ) ? 2 : 3;
 
         // Draw question mark using STACSansBold24pt font
         _canvas->setFont( &STACSansBold24pt7b );
@@ -966,7 +982,7 @@ namespace Display {
         uint16_t rgb565 = colorToRGB565( color );
 
         // Scale based on rotation: portrait (0,2) = large, landscape (1,3) = smaller to fit 135px
-        bool isLandscape = ( _rotation == 1 || _rotation == 3 );
+        bool isLandscape = ( currentWidth() > currentHeight() );
         float scale = isLandscape ? 0.65f : 1.0f;
 
         // Circular arrow dimensions
@@ -1122,6 +1138,9 @@ namespace Display {
         // Active-high: normal PWM mapping
         analogWrite( TFT_BL, _brightness );
         #endif
+        #elif defined(USE_LP5562_BACKLIGHT)
+        // LP5562 W channel controls display backlight via I2C
+        _lp5562.setW( _brightness );
         #endif
         log_d( "Backlight set to: %d", _brightness );
     }

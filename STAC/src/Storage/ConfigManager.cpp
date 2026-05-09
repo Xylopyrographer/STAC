@@ -93,14 +93,15 @@ namespace Storage {
         log_i( "WiFi credentials cleared" );
     }
 
-    bool ConfigManager::saveSwitchConfig( const String &model, const IPAddress& ipAddress, uint16_t port,
+    bool ConfigManager::saveSwitchConfig( SwitchModel model, const IPAddress& ipAddress, uint16_t port,
                                           const String &username, const String &password ) {
         if ( !prefs.begin( NS_SWITCH, READ_WRITE ) ) {
             log_e( "Failed to open switch preferences" );
             return false;
         }
 
-        prefs.putString( KEY_MODEL, model );
+        String modelStr = switchModelToString( model );
+        prefs.putString( KEY_MODEL, modelStr );
         prefs.putUInt( KEY_IP, ( uint32_t )ipAddress );
         prefs.putUShort( KEY_PORT, port );
         prefs.putString( KEY_USERNAME, username );
@@ -108,32 +109,33 @@ namespace Storage {
         prefs.putUChar( KEY_VERSION, Config::NVS::NOM_PREFS_VERSION );
         prefs.end();
 
-        log_i( "Switch config saved: %s @ %s:%d", model.c_str(), ipAddress.toString().c_str(), port );
+        log_i( "Switch config saved: %s @ %s:%d", modelStr.c_str(), ipAddress.toString().c_str(), port );
         return true;
     }
 
-    bool ConfigManager::loadSwitchConfig( String &model, IPAddress& ipAddress, uint16_t &port,
+    bool ConfigManager::loadSwitchConfig( SwitchModel &model, IPAddress& ipAddress, uint16_t &port,
                                           String &username, String &password ) {
         if ( !prefs.begin( NS_SWITCH, READ_ONLY ) ) {
             log_w( "No switch preferences found" );
             return false;
         }
 
-        model = prefs.getString( KEY_MODEL, "" );
+        String modelStr = prefs.getString( KEY_MODEL, "" );
         uint32_t ip = prefs.getUInt( KEY_IP, 0 );
         port = prefs.getUShort( KEY_PORT, 80 );
         username = prefs.getString( KEY_USERNAME, "" );
         String obfuscated = prefs.getString( KEY_PASSWORD, "" );
         prefs.end();
 
-        if ( model.isEmpty() || ip == 0 ) {
+        if ( modelStr.isEmpty() || ip == 0 ) {
             log_w( "No switch configuration stored" );
             return false;
         }
 
+        model = switchModelFromString( modelStr );
         password = deobfuscatePassword( obfuscated );
         ipAddress = IPAddress( ip );
-        log_i( "Switch config loaded: %s @ %s:%d", model.c_str(), ipAddress.toString().c_str(), port );
+        log_i( "Switch config loaded: %s @ %s:%d", modelStr.c_str(), ipAddress.toString().c_str(), port );
         return true;
     }
 
@@ -161,7 +163,7 @@ namespace Storage {
             return false;
         }
 
-        ops.switchModel = "V-60HD";
+        ops.switchModel = SwitchModel::V60HD;
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxChannelCount = prefs.getUChar( KEY_MAX_CHANNEL, 8 );
         ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
@@ -195,7 +197,7 @@ namespace Storage {
         prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
         prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
         prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
-        prefs.putString( KEY_CHANNEL_BANK, ops.channelBank );
+        // channelBank is not saved - always derived from tallyChannel on load
         prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
         prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
         prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
@@ -212,11 +214,10 @@ namespace Storage {
             return false;
         }
 
-        ops.switchModel = "V-160HD";
+        ops.switchModel = SwitchModel::V160HD;
         ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
         ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 8 );
         ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 8 );
-        ops.channelBank = prefs.getString( KEY_CHANNEL_BANK, "hdmi_" );
         ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
         ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
         ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
@@ -225,7 +226,7 @@ namespace Storage {
         // V-160HD doesn't use maxChannelCount
         ops.maxChannelCount = 0;
 
-        // Validate and correct channelBank based on tallyChannel
+        // Derive channelBank from tallyChannel (not stored, always calculated)
         if ( ops.tallyChannel > 8 ) {
             ops.channelBank = "sdi_";
         }
@@ -239,34 +240,161 @@ namespace Storage {
         return true;
     }
 
+    bool ConfigManager::saveV80HDConfig( const StacOperations& ops ) {
+        if ( !prefs.begin( NS_V80HD, READ_WRITE ) ) {
+            log_e( "Failed to open V-80HD preferences" );
+            return false;
+        }
+
+        prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+        prefs.putUChar( KEY_MAX_HDMI, ops.maxHDMIChannel );
+        prefs.putUChar( KEY_MAX_SDI, ops.maxSDIChannel );
+        // channelBank is not saved - always derived from tallyChannel on load
+        prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+        prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+        prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+        prefs.putULong( KEY_POLL_INTERVAL, ops.statusPollInterval );
+        prefs.end();
+
+        log_i( "V-80HD configuration saved" );
+        return true;
+    }
+
+    bool ConfigManager::loadV80HDConfig( StacOperations& ops ) {
+        if ( !prefs.begin( NS_V80HD, READ_ONLY ) ) {
+            log_w( "No V-80HD configuration found" );
+            return false;
+        }
+
+        ops.switchModel = SwitchModel::V80HD;
+        ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+        ops.maxHDMIChannel = prefs.getUChar( KEY_MAX_HDMI, 4 );
+        ops.maxSDIChannel = prefs.getUChar( KEY_MAX_SDI, 4 );
+        ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+        ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+        ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+        ops.statusPollInterval = prefs.getULong( KEY_POLL_INTERVAL, 300 );
+
+        // V-80HD doesn't use maxChannelCount
+        ops.maxChannelCount = 0;
+
+        // Derive channelBank from tallyChannel (not stored, always calculated)
+        if ( ops.tallyChannel > 4 ) {
+            ops.channelBank = "sdi_";
+        }
+        else {
+            ops.channelBank = "hdmi_";
+        }
+
+        prefs.end();
+
+        log_i( "V-80HD configuration loaded" );
+        return true;
+    }
+
     String ConfigManager::getActiveProtocol() {
-        String model;
+        SwitchModel model;
         IPAddress ip;
         uint16_t port;
         String username, password;
 
         if ( loadSwitchConfig( model, ip, port, username, password ) ) {
-            return model;
+            return switchModelToString( model );
         }
 
         return "";
     }
 
-    bool ConfigManager::hasProtocolConfig( const String &protocol ) {
+    bool ConfigManager::hasProtocolConfig( SwitchModel model ) {
         bool exists = false;
-        if ( protocol == "V-60HD" ) {
-            if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
-                exists = prefs.isKey( KEY_TALLY_CHANNEL );
-                prefs.end();
-            }
-        }
-        else if ( protocol == "V-160HD" ) {
-            if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
-                exists = prefs.isKey( KEY_TALLY_CHANNEL );
-                prefs.end();
-            }
+        switch ( model ) {
+            case SwitchModel::V60HD:
+                if ( prefs.begin( NS_V60HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            case SwitchModel::V160HD:
+                if ( prefs.begin( NS_V160HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            case SwitchModel::V80HD:
+                if ( prefs.begin( NS_V80HD, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            case SwitchModel::ATEM:
+                if ( prefs.begin( NS_ATEM, READ_ONLY ) ) {
+                    exists = prefs.isKey( KEY_TALLY_CHANNEL );
+                    prefs.end();
+                }
+                break;
+            default:
+                break;
         }
         return exists;
+    }
+
+    bool ConfigManager::saveActiveConfig( const StacOperations& ops ) {
+        switch ( ops.switchModel ) {
+            case SwitchModel::V60HD:  return saveV60HDConfig( ops );
+            case SwitchModel::V160HD: return saveV160HDConfig( ops );
+            case SwitchModel::V80HD:  return saveV80HDConfig( ops );
+            case SwitchModel::ATEM:   return saveAtemConfig( ops );
+            default:
+                log_e( "saveActiveConfig: unknown switch model" );
+                return false;
+        }
+    }
+
+    bool ConfigManager::saveAtemConfig( const StacOperations& ops ) {
+        if ( !prefs.begin( NS_ATEM, READ_WRITE ) ) {
+            log_e( "Failed to open ATEM preferences" );
+            return false;
+        }
+
+        prefs.putUChar( KEY_TALLY_CHANNEL, ops.tallyChannel );
+        prefs.putBool( KEY_AUTO_START, ops.autoStartEnabled );
+        prefs.putBool( KEY_CAM_OP_MODE, ops.cameraOperatorMode );
+        prefs.putUChar( KEY_BRIGHTNESS, ops.displayBrightnessLevel );
+        prefs.end();
+
+        log_i( "ATEM configuration saved" );
+        return true;
+    }
+
+    bool ConfigManager::loadAtemConfig( StacOperations& ops ) {
+        if ( !prefs.begin( NS_ATEM, READ_ONLY ) ) {
+            log_w( "No ATEM configuration found" );
+            return false;
+        }
+
+        ops.switchModel = SwitchModel::ATEM;
+        ops.tallyChannel = prefs.getUChar( KEY_TALLY_CHANNEL, 1 );
+        ops.autoStartEnabled = prefs.getBool( KEY_AUTO_START, false );
+        ops.cameraOperatorMode = prefs.getBool( KEY_CAM_OP_MODE, true );
+        ops.displayBrightnessLevel = prefs.getUChar( KEY_BRIGHTNESS, 1 );
+
+        // ATEM does not use bank/HDMI/SDI/poll concepts
+        ops.maxChannelCount = 0;
+        ops.maxHDMIChannel = 0;
+        ops.maxSDIChannel = 0;
+        ops.channelBank = "";
+        ops.statusPollInterval = 0;  // ATEM uses runLoop(0) — no fixed poll interval
+
+        // Validate channel range (ATEMmin supports indexes 0-39, i.e. channels 1-40)
+        if ( ops.tallyChannel < 1 || ops.tallyChannel > 40 ) {
+            ops.tallyChannel = 1;
+            log_w( "Invalid ATEM tally channel, reset to 1" );
+        }
+
+        prefs.end();
+
+        log_i( "ATEM configuration loaded" );
+        return true;
     }
 
     bool ConfigManager::saveStacID( const String &stacID ) {

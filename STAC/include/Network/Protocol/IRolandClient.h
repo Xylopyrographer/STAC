@@ -20,7 +20,8 @@ namespace Net {
         TIMEOUT,        ///< Request timed out
         INVALID_REPLY,  ///< Received malformed response
         AUTH_FAILED,    ///< Authentication failed (V-160HD)
-        NOT_INITIALIZED ///< Client not initialized
+        NOT_INITIALIZED,///< Client not initialized
+        CONNECTING      ///< Handshake/connection in progress (ATEM UDP)
     };
 
     /**
@@ -53,6 +54,7 @@ namespace Net {
         String password;        ///< Password for authentication (V-160HD only)
         String channelBank;     ///< Channel bank ("bankA" or "bankB" for V-160HD)
         String stacID;          ///< STAC device ID (used as User-Agent)
+        SwitchModel switchModel;  ///< Switch model
 
         RolandConfig()
             : switchIP( 0, 0, 0, 0 )
@@ -61,7 +63,8 @@ namespace Net {
             , username( "" )
             , password( "" )
             , channelBank( "bankA" )
-            , stacID( "" ) {
+            , stacID( "" )
+            , switchModel( SwitchModel::UNKNOWN ) {
         }
     };
 
@@ -102,7 +105,7 @@ namespace Net {
 
         /**
          * @brief Get the switch type this client implements
-         * @return String identifier ("V-60HD" or "V-160HD")
+         * @return String identifier ("V-60HD", "V-80HD", or "V-160HD")
          */
         virtual String getSwitchType() const = 0;
 
@@ -135,6 +138,8 @@ namespace Net {
                 return "auth_failed";
             case TallyStatus::NOT_INITIALIZED:
                 return "not_initialized";
+            case TallyStatus::CONNECTING:
+                return "connecting";
             default:
                 return "unknown";
         }

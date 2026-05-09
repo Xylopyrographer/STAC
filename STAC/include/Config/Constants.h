@@ -64,6 +64,7 @@ namespace Config {
         constexpr unsigned long GUI_PAUSE_MS = TIMING_GUI_PAUSE_MS;
         constexpr unsigned long GUI_PAUSE_SHORT_MS = TIMING_GUI_PAUSE_SHORT_MS;
         constexpr unsigned long BUTTON_SELECT_MS = TIMING_BUTTON_SELECT_MS;
+        constexpr unsigned long BUTTON_ATEM_CONFIRM_MS = TIMING_BUTTON_SELECT_MS * 2; ///< hold to confirm+exit ATEM bank select (= 2× BUTTON_SELECT_MS; same interval as ones→bank transition)
         constexpr unsigned long WIFI_CONNECT_TIMEOUT_MS = TIMING_WIFI_CONNECT_TIMEOUT_MS;
         constexpr unsigned long ERROR_REPOLL_MS = TIMING_ERROR_REPOLL_MS;
         constexpr unsigned long PM_POLL_INTERVAL_MS = TIMING_PM_POLL_INTERVAL_MS;

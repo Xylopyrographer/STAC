@@ -44,7 +44,7 @@ The STS (Smart Tally Server) Emulator is a comprehensive testing tool for STAC d
 
 2. Navigate to the emulator directory:
    ```bash
-   cd /path/to/STAC3/Documentation/Developer/Utility/SmartTally\ Server
+   cd /path/to/STAC3/STAC/utility/SmartTally_Server
    ```
 
 3. Run the emulator:

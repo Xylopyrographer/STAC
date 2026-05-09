@@ -57,8 +57,12 @@ namespace Display {
     constexpr uint8_t GLF_PO      = 32;  ///< Power-on pixel (center)
     constexpr uint8_t GLF_CORNERS = 33;  ///< Four corner pixels
     constexpr uint8_t GLF_FR      = 34;  ///< Factory reset icon (circular arrow)
-    constexpr uint8_t GLF_P_CANCEL = 35; ///< Letter P with cancel slash (PMode cancel)
-    constexpr uint8_t GLF_N       = 36;  ///< Letter N (for normal mode)
+    constexpr uint8_t GLF_P_CANCEL      = 35; ///< Letter P with cancel slash (PMode cancel)
+    constexpr uint8_t GLF_N              = 36; ///< Letter N (for normal mode)
+    constexpr uint8_t GLF_BANK1_CORNERS  = 37; ///< ATEM bank indicator: left edge row 1 (inputs 10-19)
+    constexpr uint8_t GLF_BANK2_CORNERS  = 38; ///< ATEM bank indicator: both edge cols row 1 (inputs 20-29)
+    constexpr uint8_t GLF_BANK3_CORNERS  = 39; ///< ATEM bank indicator: top edge row 1 + BR edge row 3 (inputs 30-39)
+    constexpr uint8_t GLF_BANK4_CORNERS  = 40; ///< ATEM bank indicator: all four edge-col row 1/3 pixels (input 40)
 
     /**
      * @brief Base glyph data (unrotated)
@@ -140,7 +144,15 @@ namespace Display {
         // P_CANCEL (P with diagonal slash through it - PMode cancel)
         {0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0},
         // LETTER_N
-        {1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1}
+        {1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1},
+        // BANK1_CORNERS (top-left edge, row 1: pixel 5 - ATEM inputs 10-19)
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        // BANK2_CORNERS (top edge row 1: pixels 5,9 - ATEM inputs 20-29)
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        // BANK3_CORNERS (top edge row 1 + bottom-right edge row 3: pixels 5,9,19 - ATEM inputs 30-39)
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+        // BANK4_CORNERS (all four edge row 1/3: pixels 5,9,15,19 - ATEM input 40)
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0}
     };
 
     // Derive glyph count from array size at compile time

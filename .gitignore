@@ -1,6 +1,13 @@
 # VS Code workspace files
 *.code-workspace
 
+# Copilot chat history
+chat.json
+
+# Documentation PDF builds (keep Users Guide, exclude others)
+Documentation/*.pdf
+!Documentation/STAC Users Guide.pdf
+
 # Development/planning documents (not for release)
 STAC_v3_PROJECT_CONTEXT.md
 __pycache__/
@@ -10,4 +17,5 @@ __pycache__/
 
 # Temporary backup files
 *.backup
+*.bak
 build_log.txt
