@@ -4,8 +4,9 @@
 # Copilot chat history
 chat.json
 
-# Documentation PDF builds
+# Documentation PDF builds (keep Users Guide, exclude others)
 Documentation/*.pdf
+!Documentation/STAC Users Guide.pdf
 
 # Development/planning documents (not for release)
 STAC_v3_PROJECT_CONTEXT.md

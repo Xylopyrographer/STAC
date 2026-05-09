@@ -4,28 +4,6 @@
 
 A guide to configuring and running STAC as a tally light for Blackmagic Design ATEM video switchers.
 
----
-
-## Contents
-
-- [Overview](#overview)
-- [Network Topology](#network-topology)
-  - [How STAC Connects to an ATEM](#how-stac-connects-to-an-atem)
-  - [Compared to Other ATEM Tally Solutions](#compared-to-other-atem-tally-solutions)
-- [Connection Limitations](#connection-limitations)
-- [First Time Setup](#first-time-setup)
-- [Up and Running](#up-and-running)
-  - [What the STAC Shows During Normal Operation](#what-the-stac-shows-during-normal-operation)
-  - [Setting the Tally Input (On-Device)](#setting-the-tally-input-on-device)
-  - [Displaying Inputs 10–40](#displaying-inputs-10-40)
-  - [Setting the Tally Display Mode](#setting-the-tally-display-mode)
-  - [Setting the Startup Mode](#setting-the-startup-mode)
-  - [Setting the Brightness Level](#setting-the-brightness-level)
-  - [Setting the Display Orientation](#setting-the-display-orientation)
-- [Peripheral Mode](#peripheral-mode)
-- [Troubleshooting](#troubleshooting)
-
----
 
 <a name="overview"></a>
 ## Overview
@@ -137,7 +115,7 @@ You will also need a device with a web browser to connect to the STAC hotspot du
    - **Network Name (SSID):** Your WiFi network name (the one your ATEM is on)
    - **Password:** Your WiFi password
    - **ATEM Switcher IP Address:** The IP address of the ATEM (e.g., `192.168.1.100`)
-   - **Input Number:** The camera input number on the ATEM to monitor (1–40)
+   - **Input Number:** The camera input number on the ATEM to monitor (1–40). This can be changed on the device later.
 
 6. Tap **Configure STAC**.
 
@@ -155,10 +133,18 @@ The STAC will confirm receipt, briefly show a checkmark on its display, then res
 
 On power-up, after the brief orange and green startup indicators, the STAC shows the active tally input number in blue on a black background.
 
+<a name="channel-display"></a>
+### Channel Display
+
+With LCD displays, the active channel number is shown. With LED matrix displays, the last digit of the chanel is shown along with a purple indicator to show which decade that number belongs to. Refering to the picture below, no dot means the number is the actual channel. One dot means "add 10 to the number"; two dots mean add 20; three add 30. Since the highest channel is 40, that is indicated by 0 and 4 dots.
+![ATEM Channel Display](./images/atem-decDisplay.png)
+
 <!-- comment
 This is distinct from Roland switchers (which show blue for HDMI / V-60HD channels and light green for SDI channels) — the blue colour indicates an ATEM configuration at a glance.
  -->
 
+<a name="startup"></a>
+### Startup
 From here, the startup parameter sequence and button operation are identical to what is described in the STAC Users Guide:
 
 1. Click through (or press-and-hold to change): **Tally Input Number**
@@ -181,9 +167,11 @@ ATEM inputs go from 1 to 40. The STAC provides a two-tier selection mode to navi
 **Ones cycling mode** (orange on dark teal):
 
 - **Click** to advance to the next input (+1 each press). Cycles 1 → 2 → … → 40 → 1.
-- On LED matrix boards, **purple** corner pixels show which bank (decade) you are in — see [Displaying Inputs 10–40](#displaying-inputs-10-40) below for details.
+- On LED matrix boards, **purple** corner pixels show which bank (decade) you are in.
 - **Hold ~1.5 s** to switch to Bank cycling mode.
 - **Hold ~3 s** to confirm the current value and exit.
+
+![Changing ATEM CHannel](./images/atem-chanChange.png)
 
 **Bank cycling mode** (orange on black):
 
@@ -192,38 +180,18 @@ ATEM inputs go from 1 to 40. The STAC provides a two-tier selection mode to navi
 - **Hold ~1.5 s** to return to Ones cycling mode at the current bank position.
 - **Hold ~3 s** to confirm the current bank start and exit.
 
+![ATEM Decade Select](./images/atem-decSel.png)
+
 **Timeouts and cancellation:** If no button activity is detected for ~30 seconds while in either mode, the change is cancelled and the original input number is restored.
 
 **Example — setting input 23:**
+
 1. Hold → enter Ones cycling mode. The display shows your last saved input in orange.
 2. Hold → enter Bank cycling mode. Display shows tens digit `0` (bank 1–9).
 3. Press twice → bank advances to `1` (bank 10–19), then `2` (bank 20–29). TL and TL+TR corner pixels light in red.
 4. Hold → return to Ones cycling mode at input 20.
 5. Press three times → 21 → 22 → **23**.
 6. Hold ~3 s → confirmed. Green checkmark briefly shown.
-
-<a name="displaying-inputs-10-40"></a>
-### Displaying Inputs 10–40
-
-**LED matrix boards (ATOM Matrix, Waveshare Matrix):**
-
-The matrix is a single character wide so only the **last (ones) digit** of the input number is shown. To indicate which bank (decade) you are in, corner pixels are lit in purple during normal display:
-
-| Input range | Display | Corner indicators |
-|-------------|---------|-------------------|
-| 1–9  | The number itself (1…9) | None |
-| 10–19 | Ones digit (0…9) | Top-left corner |
-| 20–29 | Ones digit (0…9) | Top-left + top-right |
-| 30–39 | Ones digit (0…9) | Top-left + top-right + bottom-right |
-| 40 | 0 | All four corners |
-
-During **Ones cycling mode**, corners are shown in purple along with the orange digit. During **Bank cycling mode**, corners are shown in red on a black background and the digit shows the bank number (0–4).
-
-**TFT LCD boards (M5StickC Plus, LilyGo T-Display, LilyGo T-QT, AI PI-Lite):**
-
-TFT displays show the full **two-digit channel number** (e.g., `14`, `23`, `40`) directly, scaled to fill the screen. No corner indicators are needed.
-
-> **The digit "0" display:** For input 10 (or 20, 30, 40 on LED matrix boards), the ones digit is 0. The "0" glyph is fully supported and correctly rendered on all display types.
 
 <a name="setting-the-tally-display-mode"></a>
 ### Setting the Tally Display Mode
@@ -243,14 +211,14 @@ Identical to Roland switchers, including the ability to change brightness while 
 <a name="setting-the-display-orientation"></a>
 ### Setting the Display Orientation
 
-Identical to Roland switchers. Press the Reset button to restart and re-detect orientation. See the "Setting the Display Orientation" section in the STAC Users Guide.
+Setting the display Orientation is supported on devices with the appropriate hardware (an IMU). Press the Reset button to restart and re-detect orientation. See the "Setting the Display Orientation" section in the STAC Users Guide.
 
 ---
 
 <a name="peripheral-mode"></a>
 ## Peripheral Mode
 
-Peripheral Mode works with ATEM exactly as it does with Roland switchers. One STAC maintains the WiFi connection and ATEM subscription; a second STAC connected via the GROVE port receives tally data from the first.
+For devices that support it, Peripheral Mode works with ATEM exactly as it does with Roland switchers. One STAC maintains the WiFi connection and ATEM subscription; a second STAC connected via the peripheral port receives tally data from the first.
 
 This is useful at a camera position where both the operator and the on-stage talent need a tally indicator. Only the controller STAC uses one ATEM client slot; the peripheral STAC requires no WiFi connection and no ATEM slot.
 
@@ -275,3 +243,8 @@ Verify the configured input number in the web portal or by stepping through the 
 
 **Tally colour doesn't change when switching**  
 This can happen if the STAC lost its ATEM connection silently and is still showing the last known tally state. Press the Reset button on the side of the STAC to restart and reconnect.
+
+
+
+<!-- EOF -->
+
