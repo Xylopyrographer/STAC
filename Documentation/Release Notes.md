@@ -6,7 +6,7 @@ __New__
 
 * _Blackmagic Design ATEM Switcher Support_
 
-  STAC now works with Blackmagic Design ATEM video switchers! Connects directly to the ATEM over the network — no Smart Tally Server or other middleware required.
+  STAC now works with Blackmagic Design ATEM video switchers! Connects directly to the ATEM over the network.
 
   ATEM inputs 1–40 are supported. On-device channel selection is handled via a snazzy two-tier mode so you don't have to click your way through all 40 values one press at a time. Check out the new *Using STAC with ATEM Switchers* document in the *Documentation* folder for all the details.
 
@@ -16,7 +16,7 @@ __New__
 
 * _M5Stack ATOM S3R_
 
-  The M5Stack ATOM S3R joins the party as a seventh supported device. 🎉
+  The M5Stack ATOM S3R joins the party as a seventh supported device.
 
 * _M5Stack ATOM Matrix v1.1_
 
